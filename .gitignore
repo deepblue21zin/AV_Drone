@@ -1,0 +1,23 @@
+# ===== ROS2 build artifacts =====
+build/
+install/
+log/
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# ===== VS Code =====
+.vscode/
+
+# ===== PX4 / Gazebo =====
+px4_sitl_default/
+*.ulg
+*.log
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
