@@ -1,49 +1,28 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 from glob import glob
 import os
 
-package_name = 'mppi'
+package_name = "mppi"
 
 setup(
     name=package_name,
-    version='0.1.0',
-    packages=find_packages(exclude=['test']),
-
+    version="0.0.0",
+    packages=[package_name],
     data_files=[
-        # ament index
-        (
-            'share/ament_index/resource_index/packages',
-            ['resource/' + package_name],
-        ),
-        # package.xml
-        (
-            'share/' + package_name,
-            ['package.xml'],
-        ),
-        # launch files
-        (
-            os.path.join('share', package_name, 'launch'),
-            glob('launch/*.launch.py'),
-        ),
+        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
+        ("share/" + package_name, ["package.xml"]),
+        (os.path.join("share", package_name, "launch"), glob("launch/*.launch.py")),
     ],
-
-    install_requires=['setuptools'],
+    install_requires=["setuptools", "numpy"],
     zip_safe=True,
-
-    maintainer='quddnr',
-    maintainer_email='quddnr@todo.todo',
-
-    description='MPPI offboard orchestrator (state-based, modular)',
-    license='TODO',
-
-    extras_require={
-        'test': ['pytest'],
-    },
-
+    maintainer="quddnr",
+    maintainer_email="quddnr@todo.todo",
+    description="Single-node MPPI offboard mission (takeoff->mppi->land) for PX4 via MAVROS2",
+    license="MIT",
+    tests_require=["pytest"],
     entry_points={
-        'console_scripts': [
-            # 큰 틀 (상태 머신 오케스트레이터)
-            'mppi_node = mppi.mppi_node:main',
+        "console_scripts": [
+            "mppi_node = mppi.mppi_node:main",
         ],
     },
 )
