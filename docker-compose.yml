@@ -1,0 +1,47 @@
+services:
+  sim:
+    build:
+      context: .
+      dockerfile: docker/sim/Dockerfile
+      args:
+        PX4_VERSION: v1.15.4
+    image: av-drone-sim:latest
+    network_mode: host
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      PX4_SIM_MODEL: ${PX4_SIM_MODEL:-gz_x500}
+      PX4_GZ_WORLD: ${PX4_GZ_WORLD:-default}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - sim-home:/root
+    working_dir: /opt/PX4-Autopilot
+    init: true
+    stdin_open: true
+    tty: true
+    command: ["/opt/PX4-Autopilot/docker/sim/entrypoint.sh"]
+
+  ros:
+    build:
+      context: .
+      dockerfile: docker/ros/Dockerfile
+    image: av-drone-ros:latest
+    network_mode: host
+    environment:
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: "0"
+    volumes:
+      - .:/workspace/AV_Drone
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    working_dir: /workspace/AV_Drone
+    init: true
+    stdin_open: true
+    tty: true
+    depends_on:
+      - sim
+    command: ["sleep", "infinity"]
+
+volumes:
+  sim-home:
