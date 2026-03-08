@@ -34,6 +34,7 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_sensor_data
 
 from geometry_msgs.msg import TwistStamped
@@ -308,12 +309,11 @@ class MPPIOffboardNode(Node):
 
         # -------------------------
         # 장애물 파라미터(월드와 동일해야 함)
-        #  - 빈 리스트([])로 declare하면 BYTE_ARRAY로 잡히는 케이스가 있어서
-        #    None으로 선언해 override 타입(DOUBLE_ARRAY)을 그대로 받도록 한다.
+        #  - 배열 타입을 명시적으로 선언해 ROS 2 deprecation warning을 피한다.
         # -------------------------
-        self.declare_parameter("obs_x", None)
-        self.declare_parameter("obs_y", None)
-        self.declare_parameter("obs_r", None)
+        self.declare_parameter("obs_x", Parameter.Type.DOUBLE_ARRAY)
+        self.declare_parameter("obs_y", Parameter.Type.DOUBLE_ARRAY)
+        self.declare_parameter("obs_r", Parameter.Type.DOUBLE_ARRAY)
 
         # -------------------------
         # MPPI 파라미터

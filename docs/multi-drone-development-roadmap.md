@@ -9,6 +9,34 @@
 - Gazebo 센서를 붙여 인지 파이프라인을 추가하려는 사람
 - 구현 순서를 정해야 하는 팀
 
+## 현재 구현 상태
+
+현재 저장소에는 로드맵 전체가 구현된 것은 아니지만, 다음 기초공사가 반영되어 있다.
+
+- `drone_bringup`: 단일 드론 자율주행 launch/YAML
+- `drone_control`: MAVROS vehicle interface와 autonomy manager
+- `drone_perception`: LiDAR nearest obstacle scaffold
+- `drone_planning`: obstacle-aware local planner scaffold
+- `drone_safety`: timeout/emergency-stop fail-safe scaffold
+- `drone_metrics`: artifacts 기반 metrics logger scaffold
+
+즉, 현재 상태는 `단일 드론 + 센서 자율주행 파이프라인의 뼈대`까지는 들어간 상태고, 실제 Gazebo 센서 모델 연결과 planner 고도화가 다음 단계다.
+
+추가 메모:
+
+- 라이다 연동 과정에서 `sim` 컨테이너를 `focal`에서 `jammy` 기준으로 옮기는 작업을 진행 중이다.
+- 변경 배경과 세부 내용은 [change.md](/home/deepblue/AV_Drone/docs/change.md)에 따로 정리했다.
+
+## 지금 바로 다음에 할 일
+
+로드맵 관점에서 현재 가장 먼저 끝내야 하는 일은 아래다.
+
+1. `/drone1/scan` 발행 확인
+2. perception/safety 파이프라인 정상 동작 확인
+3. `single_drone_autonomy`에 takeoff/offboard 로직 추가
+4. 단순 obstacle world 추가
+5. 센서 기반 회피 성능을 metrics로 기록
+
 ## 1. 최종 목표 정의
 
 최종 목표는 다음과 같다.

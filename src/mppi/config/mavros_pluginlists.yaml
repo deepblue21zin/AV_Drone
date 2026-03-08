@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    plugin_denylist:
+      - guided_target
+      - image_pub
+      - vibration
+      - distance_sensor
+      - rangefinder
+      - wheel_odometry
+

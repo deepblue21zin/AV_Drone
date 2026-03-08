@@ -11,12 +11,22 @@
 - 현재 저장소의 ROS 2 패키지 구조와 MAVROS 인터페이스를 그대로 유지한다.
 - 이후 `Dockerfile`, `docker-compose.yml`, `entrypoint.sh`, 실행 스크립트로 바로 구현 가능해야 한다.
 
+변경 이력과 배경 설명:
+
+- [change.md](/home/deepblue/AV_Drone/docs/change.md)
+
 ## 2. 현재 코드 기준 전제
 
 현재 저장소는 ROS 2 workspace 형태이며 다음 패키지를 포함한다.
 
 - `src/mppi`
 - `src/offboard_control`
+- `src/drone_bringup`
+- `src/drone_control`
+- `src/drone_perception`
+- `src/drone_planning`
+- `src/drone_safety`
+- `src/drone_metrics`
 
 코드상 제어 인터페이스는 `px4_ros_com`이 아니라 `MAVROS` 기준이다.
 
@@ -55,6 +65,12 @@
 - PX4 SITL + Gazebo Classic 조합이 문서와 사례가 가장 많다.
 - 현재 코드가 `mavros` launch 및 `mavros_msgs`를 직접 사용하므로 Humble 계열 구성이 가장 단순하다.
 
+현재 운영 메모:
+
+- `ros` 컨테이너는 이미 `Ubuntu 22.04 + ROS 2 Humble` 기준이다.
+- `sim` 컨테이너도 라이다의 ROS 2 연동을 위해 같은 기준으로 맞추는 중이다.
+- 초기에는 PX4 제공 `focal` 기반 이미지로 시작했지만, 센서를 ROS 2 토픽으로 직접 발행하기 위해 `jammy` 기준으로 재정렬하고 있다.
+
 ## 4. 전체 아키텍처
 
 Docker Compose 기준 2개 서비스로 구성한다.
@@ -80,6 +96,7 @@ Docker Compose 기준 2개 서비스로 구성한다.
 - ROS 2 workspace 빌드
 - MAVROS 실행
 - `mppi` 또는 `offboard_control` 노드 실행
+- `drone_bringup` 기반 단일 드론 자율주행 파이프라인 실행
 
 책임:
 
@@ -189,6 +206,12 @@ workspace 빌드 대상:
 
 - `src/mppi`
 - `src/offboard_control`
+- `src/drone_bringup`
+- `src/drone_control`
+- `src/drone_perception`
+- `src/drone_planning`
+- `src/drone_safety`
+- `src/drone_metrics`
 
 ### 8.2 `sim` 서비스 설치 항목
 

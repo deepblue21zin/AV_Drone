@@ -10,9 +10,10 @@ services:
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
-      PX4_SIM_MODEL: ${PX4_SIM_MODEL:-gz_x500}
+      PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}
       PX4_GZ_WORLD: ${PX4_GZ_WORLD:-default}
     volumes:
+      - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - sim-home:/root
     working_dir: /opt/PX4-Autopilot

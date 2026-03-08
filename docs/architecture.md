@@ -9,6 +9,8 @@
 - MPPI 노드는 어떤 상태 머신으로 움직이는가
 - 어떤 파일을 수정하면 어떤 동작이 달라지는가
 
+최근 구조 변경 배경은 [change.md](/home/deepblue/AV_Drone/docs/change.md)에 정리돼 있다.
+
 ## 1. 아키텍처 요약
 
 이 프로젝트는 크게 두 층으로 나뉜다.
@@ -32,6 +34,12 @@
 - MAVROS
 - `mppi` 패키지
 - `offboard_control` 패키지
+- `drone_bringup`
+- `drone_control`
+- `drone_perception`
+- `drone_planning`
+- `drone_safety`
+- `drone_metrics`
 
 역할:
 
@@ -52,7 +60,9 @@ compose
    ├─ ROS 2 runtime
    ├─ MAVROS
    ├─ mppi node
-   └─ offboard_control node
+   ├─ offboard_control node
+   ├─ perception/planning/control pipeline
+   └─ safety/metrics pipeline
 ```
 
 런타임 시작 순서를 시퀀스 관점에서 보면 아래와 같다.
@@ -104,6 +114,12 @@ Host/User         Docker Compose         sim container         ros container    
 - `make px4_sitl gazebo-classic` 실행
 - Gazebo world와 PX4 SITL을 함께 기동
 
+현재 메모:
+
+- 기존에는 PX4 제공 `focal` 개발 이미지를 사용했었다.
+- 현재는 라이다의 ROS 2 직접 연동을 위해 `Ubuntu 22.04 + ROS 2 Humble + Gazebo ROS` 기준으로 전환 중이다.
+- 기본 실행 타깃은 `gazebo-classic_iris_rplidar`로 맞춰져 있다.
+
 ### `ros` 컨테이너
 
 관련 파일:
@@ -139,7 +155,10 @@ PX4와 MAVROS 연결 기준:
 
 ## 4. 코드 패키지 구조
 
-이 저장소의 핵심 ROS 2 패키지는 두 개다.
+이 저장소에는 현재 두 종류의 패키지가 공존한다.
+
+- 기존 단일 드론 MPPI 데모 패키지
+- 새 센서 기반 단일 드론 자율주행 뼈대 패키지
 
 ### 4.1 `mppi`
 
@@ -179,7 +198,80 @@ PX4와 MAVROS 연결 기준:
 - [src/offboard_control/launch/offboard_control.launch.py](/home/deepblue/AV_Drone/src/offboard_control/launch/offboard_control.launch.py)
 - [src/offboard_control/offboard_control/offboard_takeoff_node.py](/home/deepblue/AV_Drone/src/offboard_control/offboard_control/offboard_takeoff_node.py)
 
+### 4.3 `drone_bringup`
+
+경로:
+
+- [src/drone_bringup](/home/deepblue/AV_Drone/src/drone_bringup)
+
+역할:
+
+- 센서 기반 단일 드론 자율주행 launch 구성
+- 노드 파라미터 YAML 관리
+
+주요 파일:
+
+- [src/drone_bringup/launch/single_drone_autonomy.launch.py](/home/deepblue/AV_Drone/src/drone_bringup/launch/single_drone_autonomy.launch.py)
+- [src/drone_bringup/config/drone1_autonomy.yaml](/home/deepblue/AV_Drone/src/drone_bringup/config/drone1_autonomy.yaml)
+
+### 4.4 `drone_control`
+
+- [src/drone_control/drone_control/autonomy_manager_node.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/autonomy_manager_node.py)
+- [src/drone_control/drone_control/vehicle_interface.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/vehicle_interface.py)
+
+역할:
+
+- safe command만 PX4 offboard velocity setpoint로 전달
+- MAVROS 서비스와 publisher/subscriber 래핑
+
+### 4.5 `drone_perception`
+
+- [src/drone_perception/drone_perception/lidar_obstacle_node.py](/home/deepblue/AV_Drone/src/drone_perception/drone_perception/lidar_obstacle_node.py)
+
+역할:
+
+- `LaserScan`에서 nearest obstacle distance 추출
+
+### 4.6 `drone_planning`
+
+- [src/drone_planning/drone_planning/local_planner_node.py](/home/deepblue/AV_Drone/src/drone_planning/drone_planning/local_planner_node.py)
+
+역할:
+
+- perception 결과를 기반으로 자율주행용 velocity command 생성
+
+### 4.7 `drone_safety`
+
+- [src/drone_safety/drone_safety/safety_monitor_node.py](/home/deepblue/AV_Drone/src/drone_safety/drone_safety/safety_monitor_node.py)
+
+역할:
+
+- pose timeout
+- scan timeout
+- planner command timeout
+- obstacle emergency stop
+
+상황을 감시하고, 이상 시 zero velocity fail-safe를 발행
+
+### 4.8 `drone_metrics`
+
+- [src/drone_metrics/drone_metrics/metrics_logger_node.py](/home/deepblue/AV_Drone/src/drone_metrics/drone_metrics/metrics_logger_node.py)
+
+역할:
+
+- runtime metrics를 `artifacts/`에 저장
+- `metrics.csv`, `events.log`, `summary.json`, `metadata.json` 생성
+
 ## 5. Launch 구조
+
+## 현재 우선 작업
+
+현재 아키텍처 관점에서 가장 중요한 작업은 아래 순서다.
+
+1. `sim` 컨테이너에서 ROS 2 호환 라이다 토픽 `/drone1/scan`을 실제로 발행하게 만들기
+2. `single_drone_autonomy.launch.py`의 perception/safety/control 경로가 그 토픽을 소비하는지 확인하기
+3. `autonomy_manager`에 takeoff/offboard 미션 상태 머신을 추가해 실제 비행 구조로 올리기
+4. obstacle world를 넣고 센서 기반 회피를 검증하기
 
 ### `mppi.launch.py`
 
@@ -211,6 +303,23 @@ PX4와 MAVROS 연결 기준:
 이 launch는 매우 단순하다.
 
 - `offboard_takeoff` 실행 파일 하나만 띄운다.
+
+### `single_drone_autonomy.launch.py`
+
+관련 파일:
+
+- [src/drone_bringup/launch/single_drone_autonomy.launch.py](/home/deepblue/AV_Drone/src/drone_bringup/launch/single_drone_autonomy.launch.py)
+
+이 launch는 현재 센서 기반 단일 드론 자율주행의 뼈대다.
+
+포함 노드:
+
+1. MAVROS
+2. `lidar_obstacle_node`
+3. `local_planner_node`
+4. `safety_monitor_node`
+5. `autonomy_manager_node`
+6. `metrics_logger_node`
 
 ## 6. `mppi_node.py` 상세 구조
 

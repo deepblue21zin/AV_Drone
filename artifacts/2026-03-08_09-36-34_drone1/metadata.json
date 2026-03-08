@@ -1,0 +1,12 @@
+{
+  "started_at": "2026-03-08T09:36:34",
+  "git_commit": "unknown",
+  "drone_name": "drone1",
+  "state_topic": "/mavros/state",
+  "pose_topic": "/mavros/local_position/pose",
+  "planner_cmd_topic": "/drone1/autonomy/cmd_vel",
+  "safe_cmd_topic": "/drone1/safety/cmd_vel",
+  "nearest_obstacle_topic": "/drone1/perception/nearest_obstacle_distance",
+  "safety_event_topic": "/drone1/safety/event",
+  "goal_reached_topic": "/drone1/mission/goal_reached"
+}

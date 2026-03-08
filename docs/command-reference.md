@@ -181,6 +181,7 @@ colcon build
 ```bash
 colcon build --packages-select mppi
 colcon build --packages-select offboard_control
+colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics
 ```
 
 심볼릭 설치로 빌드:
@@ -208,6 +209,16 @@ ros2 launch mppi mppi.launch.py
 ```bash
 ros2 launch offboard_control offboard_control.launch.py
 ```
+
+센서 기반 단일 드론 자율주행 뼈대 실행:
+
+```bash
+ros2 launch drone_bringup single_drone_autonomy.launch.py
+```
+
+라이다 관련 변경 배경 문서:
+
+- [change.md](/home/deepblue/AV_Drone/docs/change.md)
 
 ## 9. ROS 2 기본 점검 명령
 
@@ -238,7 +249,13 @@ ros2 service list
 패키지 목록:
 
 ```bash
-ros2 pkg list | grep -E 'mppi|offboard_control|mavros'
+ros2 pkg list | grep -E 'mppi|offboard_control|drone_|mavros'
+```
+
+새 파이프라인 노드 목록 확인:
+
+```bash
+ros2 node list | grep -E 'lidar_obstacle|local_planner|safety_monitor|autonomy_manager|metrics_logger'
 ```
 
 ## 10. 자주 확인하는 토픽
@@ -265,6 +282,30 @@ ros2 topic echo /mavros/local_position/velocity_local
 
 ```bash
 ros2 topic echo /mavros/setpoint_velocity/cmd_vel
+```
+
+planner command:
+
+```bash
+ros2 topic echo /drone1/autonomy/cmd_vel
+```
+
+safe command:
+
+```bash
+ros2 topic echo /drone1/safety/cmd_vel
+```
+
+가장 가까운 장애물 거리:
+
+```bash
+ros2 topic echo /drone1/perception/nearest_obstacle_distance
+```
+
+안전 이벤트:
+
+```bash
+ros2 topic echo /drone1/safety/event
 ```
 
 배터리 상태:
@@ -446,6 +487,13 @@ MPPI 미션 진행 신호:
 - `PHASE => WAIT_LANDED`
 - `PHASE => DONE`
 
+센서 기반 자율주행 뼈대 정상 신호:
+
+- `Perception scaffold ready`
+- `Planner scaffold ready`
+- `Safety monitor ready`
+- `Metrics logger writing artifacts to ...`
+
 ## 18. 자주 보는 경고와 해석
 
 `Time jump detected`:
@@ -462,7 +510,23 @@ MPPI 미션 진행 신호:
 - 글로벌 원점이 없을 때 일부 MAVROS 플러그인에서 발생한다.
 - 현재 프로젝트는 로컬 좌표계 기반 비행이라 직접 치명적이지 않을 수 있다.
 
-## 19. 자주 쓰는 Git 명령
+## 19. artifacts 확인
+
+metrics logger가 실행 중이면 결과 파일은 아래에 쌓인다.
+
+```bash
+ls -la /workspace/AV_Drone/artifacts
+find /workspace/AV_Drone/artifacts -maxdepth 2 -type f | sort
+```
+
+대표 파일:
+
+- `metadata.json`
+- `metrics.csv`
+- `summary.json`
+- `events.log`
+
+## 20. 자주 쓰는 Git 명령
 
 현재 변경 사항 확인:
 
@@ -489,7 +553,7 @@ git diff README.md
 git diff src/mppi/mppi/mppi_node.py
 ```
 
-## 20. 추천 작업 루틴
+## 21. 추천 작업 루틴
 
 ### 루틴 1. 새 환경에서 처음 시작
 

@@ -1,0 +1,15 @@
+{
+  "runtime_s": 770.015,
+  "connected": true,
+  "armed": true,
+  "mode": "OFFBOARD",
+  "pose_count": 0,
+  "planner_cmd_count": 15400,
+  "safe_cmd_count": 15400,
+  "safety_event_count": 0,
+  "goal_reached": false,
+  "closest_obstacle_m": Infinity,
+  "pose_period_mean_s": null,
+  "pose_period_p99_s": null,
+  "pose_period_worst_s": null
+}

@@ -10,12 +10,23 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # MAVROS (PX4 SITL)
     mavros_share = get_package_share_directory("mavros")
-    mavros_launch = os.path.join(mavros_share, "launch", "px4.launch")
+    mavros_launch = os.path.join(mavros_share, "launch", "node.launch")
+    mppi_share = get_package_share_directory("mppi")
+    pluginlists_yaml = os.path.join(mppi_share, "config", "mavros_pluginlists.yaml")
+    config_yaml = os.path.join(mppi_share, "config", "mavros_config.yaml")
 
     mavros = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(mavros_launch),
         launch_arguments={
+            "pluginlists_yaml": pluginlists_yaml,
+            "config_yaml": config_yaml,
             "fcu_url": "udp://:14540@127.0.0.1:14580",
+            "gcs_url": "",
+            "tgt_system": "1",
+            "tgt_component": "1",
+            "fcu_protocol": "v2.0",
+            "respawn_mavros": "false",
+            "namespace": "mavros",
         }.items(),
     )
 
