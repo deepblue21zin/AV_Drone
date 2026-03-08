@@ -1,0 +1,23 @@
+/**:
+  ros__parameters:
+    drone_name: "drone1"
+    mavros_namespace: "/mavros"
+    scan_topic: "/drone1/scan"
+    pose_topic: "/mavros/local_position/pose"
+    state_topic: "/mavros/state"
+    autonomy_cmd_topic: "/drone1/autonomy/cmd_vel"
+    safe_cmd_topic: "/drone1/safety/cmd_vel"
+    nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
+    safety_event_topic: "/drone1/safety/event"
+    goal_reached_topic: "/drone1/mission/goal_reached"
+    fcu_url: "udp://:14540@127.0.0.1:14580"
+    goal_x: 10.0
+    goal_y: 0.0
+    goal_z: 3.0
+    cruise_speed: 1.0
+    obstacle_stop_distance: 2.0
+    pose_timeout_sec: 0.5
+    scan_timeout_sec: 0.5
+    planner_cmd_timeout_sec: 0.5
+    emergency_stop_distance: 1.0
+    artifacts_root: "/workspace/AV_Drone/artifacts"

@@ -1,0 +1,36 @@
+/**:
+  ros__parameters:
+    startup_px4_usb_quirk: false
+
+/**/time:
+  ros__parameters:
+    time_ref_source: "fcu"
+    timesync_mode: MAVLINK
+    timesync_avg_alpha: 0.6
+    timesync_rate: 0.0
+    system_time_rate: 1.0
+
+/**/global_position:
+  ros__parameters:
+    frame_id: "map"
+    child_frame_id: "base_link"
+    rot_covariance: 99999.0
+    gps_uere: 1.0
+    use_relative_alt: true
+    tf.send: false
+    tf.frame_id: "map"
+    tf.global_frame_id: "earth"
+    tf.child_frame_id: "base_link"
+
+/**/local_position:
+  ros__parameters:
+    frame_id: "map"
+    tf.send: false
+    tf.frame_id: "map"
+    tf.child_frame_id: "base_link"
+    tf.send_fcu: false
+
+/**/setpoint_velocity:
+  ros__parameters:
+    mav_frame: LOCAL_NED
+
