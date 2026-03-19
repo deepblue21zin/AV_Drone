@@ -17,6 +17,25 @@
 
 - [baseline_summary_example.json](/home/deepblue/AV_Drone/docs/examples/baseline_summary_example.json)
 
+## 이 README로 보는 순서
+
+이 README는 현재 저장소를 처음 보는 사람도 아래 순서로 이해할 수 있게 작성했다.
+
+1. 이 저장소가 무엇을 목표로 하는지 이해한다.
+2. 현재 무엇이 구현됐고 무엇이 아직 안 됐는지 본다.
+3. `sim` / `ros` Docker 구조와 활성 패키지 구성을 본다.
+4. 로컬 빌드 방식 또는 Docker Hub pull 방식 중 하나로 환경을 맞춘다.
+5. `single_drone_autonomy.launch.py`를 실행하고 smoke test로 baseline을 검증한다.
+6. 논문/교수님 발표용 설명은 [project_overview.html](/home/deepblue/AV_Drone/docs/project_overview.html)에서 본다.
+
+문서 역할은 다음처럼 나뉜다.
+
+- 실행/배포/재현: 이 README
+- 발표/논문 방향 설명: [project_overview.html](/home/deepblue/AV_Drone/docs/project_overview.html)
+- 상세 코드/런타임 구조: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
+- 명령어 치트시트: [command-reference.md](/home/deepblue/AV_Drone/docs/command-reference.md)
+- 현재 문제/제약: [problem.md](/home/deepblue/AV_Drone/docs/problem.md)
+
 ## 연구 목표
 
 이 저장소가 최종적으로 향하는 주제는 다음이다.
@@ -147,6 +166,199 @@ AV_Drone/
 - [drone_safety](/home/deepblue/AV_Drone/src/drone_safety): timeout / obstacle emergency stop 처리
 - [drone_metrics](/home/deepblue/AV_Drone/src/drone_metrics): `summary.json`, `metrics.csv`, `events.log` 저장
 - [mppi](/home/deepblue/AV_Drone/src/mppi): 이전 단일 드론 MPPI baseline. 현재는 연구용 비교/참고 경로로 유지
+
+## Docker 이미지에 포함되는 것
+
+현재 Docker 구조는 `sim` 이미지, `ros` 이미지, 그리고 실행 시 bind mount 되는 저장소 코드로 나뉜다.
+
+- `sim` 이미지:
+  - `Ubuntu 22.04`
+  - `PX4-Autopilot`
+  - `Gazebo Classic`
+  - `ROS 2 runtime for gazebo_ros plugins`
+  - PX4/Gazebo 빌드 의존성
+- `ros` 이미지:
+  - `Ubuntu 22.04`
+  - `ROS 2 Humble Desktop`
+  - `MAVROS`
+  - `colcon`, `rosdep` 등 ROS 개발 도구
+- 저장소에서 bind mount 되는 것:
+  - `src/` 패키지
+  - `sim_assets/` 아래 custom model/world
+  - `docs/`, `scripts/`
+
+중요:
+
+- Docker 이미지는 현재 기준으로 `환경 세팅 묶음`이다.
+- 하지만 이 저장소는 source bind mount 구조이므로, 이미지만 받아서는 부족하고 git repo도 같이 있어야 한다.
+- 즉 팀 배포 기준은 `git repo + Docker 이미지` 조합이다.
+
+## 배포/재현 방법 선택
+
+현재 팀원이 환경을 맞추는 방법은 두 가지다.
+
+### 방법 A. 저장소 기준 로컬 빌드
+
+가장 단순하고 안전한 방식이다.
+
+- 저장소 clone
+- 로컬에서 `docker compose build`
+- 실행
+
+장점:
+
+- 항상 현재 저장소 코드와 이미지 정의가 일치한다.
+- Docker Hub 계정/권한 없이도 된다.
+
+### 방법 B. Docker Hub 이미지 pull + 저장소 코드 사용
+
+빌드 시간을 줄이고 싶을 때 쓰는 방식이다.
+
+- 저장소 clone
+- 미리 올려둔 `sim`, `ros` 이미지를 pull
+- 현재 compose가 기대하는 로컬 이름으로 tag
+- 실행
+
+장점:
+
+- 팀원이 PX4/Gazebo 이미지를 오래 빌드하지 않아도 된다.
+
+주의:
+
+- 이 프로젝트는 bind mount 구조라서, Docker Hub 이미지만으로는 실행되지 않는다.
+- 반드시 git repo를 같이 받아야 한다.
+
+## Docker Hub에서 이미지 받아서 실행하는 방법
+
+아래 예시는 Docker Hub 사용자명이 `<dockerhub-user>`이고, 환경 태그가 `2026-03-20`인 경우다.
+
+### 1. 저장소 clone
+
+```bash
+git clone <your-fork-or-repo-url>
+cd AV_Drone
+```
+
+### 2. Docker Hub 로그인과 이미지 pull
+
+```bash
+docker login
+docker pull <dockerhub-user>/av-drone-sim:2026-03-20
+docker pull <dockerhub-user>/av-drone-ros:2026-03-20
+```
+
+### 3. 현재 compose가 기대하는 로컬 이름으로 tag
+
+현재 [docker-compose.yml](/home/deepblue/AV_Drone/docker-compose.yml)은 기본적으로 아래 로컬 이미지 이름을 사용한다.
+
+- `av-drone-sim:latest`
+- `av-drone-ros:latest`
+
+그래서 pull한 이미지를 아래처럼 다시 tag 하면 compose 수정 없이 바로 쓸 수 있다.
+
+```bash
+docker tag <dockerhub-user>/av-drone-sim:2026-03-20 av-drone-sim:latest
+docker tag <dockerhub-user>/av-drone-ros:2026-03-20 av-drone-ros:latest
+```
+
+### 4. GUI 권한 열기
+
+```bash
+echo $DISPLAY
+xhost +local:docker
+```
+
+### 5. 컨테이너 실행
+
+```bash
+docker compose up -d sim ros
+docker compose ps
+```
+
+### 6. ROS 워크스페이스 빌드와 실행
+
+```bash
+docker compose exec ros bash
+source /opt/ros/humble/setup.bash
+cd /workspace/AV_Drone
+colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics
+source install/setup.bash
+ros2 launch drone_bringup single_drone_autonomy.launch.py
+```
+
+### 7. smoke test
+
+호스트에서:
+
+```bash
+./scripts/smoke_test_single_drone.sh
+```
+
+## 특정 git commit 기준으로 환경을 그대로 재현하는 방법
+
+논문, 발표, 포트폴리오용으로는 `코드 상태`와 `이미지 환경`을 같이 고정하는 편이 맞다.
+
+권장 조합:
+
+- git commit hash: 코드 버전 고정
+- Docker image tag: 환경 버전 고정
+
+예:
+
+- 코드: `git checkout <commit-hash>`
+- 이미지: `2026-03-20`
+
+### 방법 1. 해당 commit에서 로컬 빌드
+
+가장 재현성이 높다.
+
+```bash
+git clone <your-fork-or-repo-url>
+cd AV_Drone
+git checkout <commit-hash>
+docker compose build sim ros
+docker compose up -d sim ros
+```
+
+이 방식은 해당 commit에 들어있는 Dockerfile과 compose 정의를 그대로 빌드하므로 가장 정확하다.
+
+### 방법 2. 해당 commit + 고정 tag 이미지 사용
+
+빌드 시간을 줄이고 싶을 때 쓴다.
+
+```bash
+git clone <your-fork-or-repo-url>
+cd AV_Drone
+git checkout <commit-hash>
+docker pull <dockerhub-user>/av-drone-sim:2026-03-20
+docker pull <dockerhub-user>/av-drone-ros:2026-03-20
+docker tag <dockerhub-user>/av-drone-sim:2026-03-20 av-drone-sim:latest
+docker tag <dockerhub-user>/av-drone-ros:2026-03-20 av-drone-ros:latest
+docker compose up -d sim ros
+```
+
+메모:
+
+- 이 방식은 `그 commit이 기대하는 이미지 환경`과 `pull한 tag`가 서로 맞아야 한다.
+- Dockerfile이나 entrypoint가 바뀐 시점이라면, 가능하면 같은 시점 tag를 써야 한다.
+
+## 팀에 공유할 때 권장하는 버전 표기
+
+`latest`만 쓰지 말고, 아래 두 개를 같이 운영하는 게 좋다.
+
+- `latest`: 가장 최근 팀 개발용
+- `2026-03-20` 같은 고정 tag: 발표/논문/재현성용
+
+예:
+
+```bash
+docker tag av-drone-sim:latest <dockerhub-user>/av-drone-sim:2026-03-20
+docker tag av-drone-sim:latest <dockerhub-user>/av-drone-sim:latest
+docker push <dockerhub-user>/av-drone-sim:2026-03-20
+docker push <dockerhub-user>/av-drone-sim:latest
+```
+
+이미지 환경이 의미 있게 바뀌면 새 날짜 tag를 추가하면 된다.
 
 ## 팀 인수인계 실행 절차
 
