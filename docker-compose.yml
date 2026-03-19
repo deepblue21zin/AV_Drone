@@ -7,15 +7,23 @@ services:
         PX4_VERSION: v1.15.4
     image: av-drone-sim:latest
     network_mode: host
+    ipc: host
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: "0"
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
       PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}
-      PX4_GZ_WORLD: ${PX4_GZ_WORLD:-default}
+      PX4_SITL_WORLD: ${PX4_SITL_WORLD:-obstacle_demo}
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/shm:/dev/shm
       - sim-home:/root
+    devices:
+      - /dev/dri:/dev/dri
     working_dir: /opt/PX4-Autopilot
     init: true
     stdin_open: true
@@ -28,14 +36,18 @@ services:
       dockerfile: docker/ros/Dockerfile
     image: av-drone-ros:latest
     network_mode: host
+    ipc: host
     environment:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/shm:/dev/shm
     working_dir: /workspace/AV_Drone
     init: true
     stdin_open: true
