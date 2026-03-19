@@ -17,7 +17,18 @@ px4_sitl_default/
 *.ulg
 *.log
 
+# ===== Runtime artifacts =====
+artifacts/
+
+# ===== Generated experiment outputs =====
+experiments/index.csv
+experiments/index.md
+experiments/ledger.csv
+experiments/ledger.md
+experiments/scenario_table.csv
+experiments/scenario_table.md
+experiments/plots/
+
 # ===== OS =====
 .DS_Store
 Thumbs.db
-
