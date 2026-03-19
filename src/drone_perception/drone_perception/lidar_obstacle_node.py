@@ -4,6 +4,7 @@ import math
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32
 
@@ -21,7 +22,9 @@ class LidarObstacleNode(Node):
         obstacle_topic = str(self.get_parameter("nearest_obstacle_topic").value)
 
         self.pub = self.create_publisher(Float32, obstacle_topic, 10)
-        self.create_subscription(LaserScan, scan_topic, self._on_scan, 10)
+        self.create_subscription(
+            LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data
+        )
         self.get_logger().info(
             f"Perception scaffold ready: scan={scan_topic}, nearest_obstacle={obstacle_topic}"
         )
@@ -37,4 +40,3 @@ def main(args=None):
     node = LidarObstacleNode()
     rclpy.spin(node)
     rclpy.shutdown()
-

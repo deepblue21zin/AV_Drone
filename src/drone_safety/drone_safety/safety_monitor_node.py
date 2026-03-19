@@ -5,6 +5,7 @@ import time
 import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import String
 
@@ -22,6 +23,7 @@ class SafetyMonitorNode(Node):
         self.declare_parameter("scan_timeout_sec", 0.5)
         self.declare_parameter("planner_cmd_timeout_sec", 0.5)
         self.declare_parameter("emergency_stop_distance", 1.0)
+        self.declare_parameter("startup_grace_sec", 3.0)
 
         self.last_pose_t = None
         self.last_scan_t = None
@@ -29,6 +31,7 @@ class SafetyMonitorNode(Node):
         self.last_scan_min = float("inf")
         self.latest_cmd = TwistStamped()
         self.last_reason = "startup_hold"
+        self._node_start_time = time.time()
 
         pose_topic = str(self.get_parameter("pose_topic").value)
         scan_topic = str(self.get_parameter("scan_topic").value)
@@ -39,8 +42,12 @@ class SafetyMonitorNode(Node):
         self.safe_cmd_pub = self.create_publisher(TwistStamped, safe_cmd_topic, 10)
         self.event_pub = self.create_publisher(String, safety_event_topic, 10)
 
-        self.create_subscription(PoseStamped, pose_topic, self._on_pose, 10)
-        self.create_subscription(LaserScan, scan_topic, self._on_scan, 10)
+        self.create_subscription(
+            PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data
+        )
+        self.create_subscription(
+            LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data
+        )
         self.create_subscription(TwistStamped, planner_cmd_topic, self._on_cmd, 10)
         self.create_timer(0.05, self._tick)
 
@@ -79,6 +86,12 @@ class SafetyMonitorNode(Node):
         scan_timeout = float(self.get_parameter("scan_timeout_sec").value)
         cmd_timeout = float(self.get_parameter("planner_cmd_timeout_sec").value)
         emergency_stop_distance = float(self.get_parameter("emergency_stop_distance").value)
+        startup_grace = float(self.get_parameter("startup_grace_sec").value)
+
+        if (now - self._node_start_time) < startup_grace:
+            self._emit_event("startup_grace")
+            self.safe_cmd_pub.publish(self._zero_cmd())
+            return
 
         if self.last_pose_t is None or (now - self.last_pose_t) > pose_timeout:
             self._emit_event("pose_timeout")
@@ -111,4 +124,3 @@ def main(args=None):
     node = SafetyMonitorNode()
     rclpy.spin(node)
     rclpy.shutdown()
-

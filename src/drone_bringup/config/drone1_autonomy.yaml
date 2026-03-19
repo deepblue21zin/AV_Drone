@@ -1,23 +1,34 @@
 /**:
   ros__parameters:
     drone_name: "drone1"
+    scenario_name: "single_drone_obstacle_demo"
     mavros_namespace: "/mavros"
     scan_topic: "/drone1/scan"
     pose_topic: "/mavros/local_position/pose"
     state_topic: "/mavros/state"
     autonomy_cmd_topic: "/drone1/autonomy/cmd_vel"
     safe_cmd_topic: "/drone1/safety/cmd_vel"
+    mission_phase_topic: "/drone1/mission/phase"
     nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
     safety_event_topic: "/drone1/safety/event"
     goal_reached_topic: "/drone1/mission/goal_reached"
     fcu_url: "udp://:14540@127.0.0.1:14580"
+    takeoff_z: 3.0
     goal_x: 10.0
     goal_y: 0.0
     goal_z: 3.0
-    cruise_speed: 1.0
+    goal_tol_xy: 1.0
+    goal_latch_enabled: true
+    cruise_speed: 0.5
     obstacle_stop_distance: 2.0
+    hover_sec_after_takeoff: 2.0
+    kp_z: 1.2
+    vz_max: 1.0
+    cmd_rate_hz: 20.0
+    prestream_setpoints: 40
     pose_timeout_sec: 0.5
     scan_timeout_sec: 0.5
     planner_cmd_timeout_sec: 0.5
+    startup_grace_sec: 3.0
     emergency_stop_distance: 1.0
     artifacts_root: "/workspace/AV_Drone/artifacts"
