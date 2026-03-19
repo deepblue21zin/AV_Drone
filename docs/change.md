@@ -1,5 +1,7 @@
 # Change Log and Rationale
 
+날짜별 상세 작업 로그는 [updates/README.md](/home/deepblue/AV_Drone/docs/updates/README.md) 아래에 계속 누적한다.
+
 ## 1. 왜 `20.04`였는가
 
 처음 `sim` 컨테이너는 아래 베이스 이미지를 사용하고 있었다.
@@ -141,17 +143,13 @@
 
 현재 기준으로 확인된 사실:
 
-- `iris_rplidar` 모델로 PX4 SITL 기체는 실제로 뜬다.
-- Gazebo에서 라이다가 달린 모델이 로드되는 것까지는 확인했다.
-- `sim` 이미지는 `22.04 + Humble + gazebo_ros` 구조로 마이그레이션 중이다.
+- `sim` 컨테이너는 `Ubuntu 22.04 + ROS 2 Humble` 기준으로 정리됐다.
+- `iris_rplidar` 모델로 PX4 SITL 기체가 정상 기동한다.
+- `/drone1/scan` 실수신이 확인됐다.
+- `single_drone_autonomy.launch.py` 기준 단일 드론 baseline이 `HOVER_AT_GOAL`까지 도달한다.
+- obstacle world 기준 artifact에서 `goal_reached=true`, `closest_obstacle_m` finite 값이 확인됐다.
 
-아직 최종 확인이 남은 것:
-
-- `docker compose build sim` 완료
-- `docker compose up sim` 후 `ros2 topic info /drone1/scan`
-- `ros2 topic echo /drone1/scan --once`
-
-즉, 현재는 "구조 변경 완료, 최종 센서 발행 검증 진행 중" 상태다.
+즉, 이 마이그레이션은 “진행 중”이 아니라 현재 baseline에서 실제로 사용 중인 상태다.
 
 ## 5. 왜 이 변경이 중요한가
 

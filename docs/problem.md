@@ -15,20 +15,27 @@
 
 ## 2. 현재 핵심 문제 요약
 
-현재 가장 큰 문제는 아래 두 가지다.
+2026-03-20 기준으로 기존 핵심 문제 두 가지는 baseline 수준에서 해결됐다.
 
-1. 라이다 토픽은 ROS 2 그래프에 등록되지만 실제 `LaserScan` 샘플 수신이 안정적으로 확인되지 않는다.
-2. `single_drone_autonomy.launch.py`는 아직 실제 이륙 가능한 오프보드 미션 상태 머신이 없어서 Gazebo에서 드론이 움직이지 않는다.
+1. `/drone1/scan` 실수신과 obstacle world 연동이 확인됐다.
+2. `goal_reached` 판정은 latch 방식으로 안정화됐고, 최신 artifact에서 `mission_phase=HOVER_AT_GOAL`, `goal_reached=true`가 확인됐다.
+
+현재 남은 핵심 문제는 아래와 같다.
+
+1. obstacle world는 동작하지만 아직 연구용 시나리오로는 단순하다.
+2. Gazebo GUI는 호스트 X11 권한 상태에 따라 headless로 실행될 수 있다.
+3. multi-UAV, failure injection, task reallocation은 아직 미구현이다.
 
 즉, 현재 상태는 아래처럼 정리할 수 있다.
 
 - Gazebo 센서 모델: 붙음
 - ROS 2 토픽 이름: 보임
-- 실제 scan payload 수신: 미검증/실패 상태
+- 실제 scan payload 수신: 확인 완료
 - MAVROS 연결: 살아 있음
-- 실제 takeoff mission: 아직 없음
+- 실제 takeoff mission: 확인 완료
+- 최신 baseline artifact: 보관 완료
 
-## 3. 문제 1: `/drone1/scan`은 보이지만 실제 scan 데이터 확인이 안 됨
+## 3. 문제 1: `/drone1/scan`은 실제로 수신되지만 obstacle world가 아직 없음
 
 ### 3.1 증거
 
@@ -56,35 +63,37 @@ Gazebo 컨테이너에서 확인된 사항:
 
 - `gazebo_ros_node`가 뜨는 로그가 있었기 때문에 `gazebo_ros` 계열 플러그인 자체는 로드되었다고 볼 수 있다.
 
-### 3.2 현재까지 관찰된 이상 징후
+### 3.2 현재 확인된 정상 동작
 
-다음 명령은 기대처럼 동작하지 않았다.
+다음 명령으로 실제 scan payload 수신을 확인했다.
 
 ```bash
 ros2 topic echo /drone1/scan --once
 ros2 topic hz /drone1/scan
 ```
 
-의미:
+확인 결과:
 
-- 토픽 discovery는 되는데
-- 실제 sample delivery는 확인되지 않았다
+- `LaserScan` 메시지가 실제 출력됨
+- 약 `10Hz`로 안정적으로 수신됨
+- `frame_id: rplidar_link`
 
-즉 현재는 `토픽 등록 성공`과 `데이터 수신 성공`을 구분해야 한다.
+즉 `토픽 등록 성공`뿐 아니라 `데이터 수신 성공`도 확인됐다.
 
 ### 3.3 해석
 
-현재 가장 가능성 높은 원인은 아래 중 하나다.
+현재 해석은 아래와 같다.
 
-1. `sim` 컨테이너에서 발행된 ROS 2 scan 데이터가 `ros` 컨테이너 subscriber까지 DDS transport로 정상 전달되지 않는다.
-2. publisher는 등록되지만 QoS 또는 transport 문제로 실제 샘플 수신이 막힌다.
-3. Gazebo sensor plugin이 토픽 endpoint는 만들지만 sample forwarding이 완전히 살아 있지 않다.
+1. Docker transport와 QoS 보강이 실제 sample delivery 안정화에 도움이 된 것으로 보인다.
+2. 현재 scan이 대부분 `inf`인 것은 장애물이 가까이 없거나, 라이다 범위 내에 물체가 없는 환경이기 때문이다.
 
-현재 우선순위상 가장 의심되는 것은 `Docker container 간 DDS/IPC/shared-memory 설정 문제`다.
+즉 이제 scan 자체는 막힌 문제가 아니고, 다음 단계는 `장애물이 실제로 보이는 world`를 구성해 perception/planner 반응을 검증하는 것이다.
 
 ## 4. 문제 2: Gazebo에서 드론이 실제로 움직이지 않음
 
-### 4.1 증거
+이 문제는 baseline 수준에서 해결됐다.
+
+### 4.1 해결 전 증거
 
 실제 관찰:
 
@@ -101,7 +110,7 @@ artifact에서도 관련 근거가 보인다.
 
 참고 파일:
 
-- [summary.json](/home/deepblue/AV_Drone/artifacts/2026-03-08_10-46-13_drone1/summary.json)
+- 로컬 artifact 예: `artifacts/2026-03-08_10-46-13_drone1/summary.json`
 
 확인된 값:
 
@@ -111,47 +120,28 @@ artifact에서도 관련 근거가 보인다.
 - `"pose_count": 0`
 - `"closest_obstacle_m": Infinity`
 
-### 4.2 해석
+### 4.2 해결 후 상태
 
-현재 드론이 안 움직이는 이유는 단일 원인이 아니다.
+최신 baseline 실행에서는 아래가 확인됐다.
 
-#### 이유 A. `single_drone_autonomy.launch.py`는 아직 완전한 비행 launch가 아님
+- `/drone1/mission/phase = HOVER_AT_GOAL`
+- `/drone1/mission/goal_reached = true`
+- `/mavros/local_position/pose` 정상 수신
+- 최신 artifact:
+  - [baseline_summary_example.json](/home/deepblue/AV_Drone/docs/examples/baseline_summary_example.json)
 
-현재 `autonomy_manager`는 주로 아래만 수행한다.
+확인된 값:
 
-- velocity setpoint 주기 발행
-- `OFFBOARD` 요청
-- `arm` 요청
+- `"connected": true`
+- `"armed": true`
+- `"mode": "OFFBOARD"`
+- `"mission_phase": "HOVER_AT_GOAL"`
+- `"goal_reached": true`
+- `"pose_count": 22916`
+- `"scan_count": 3855`
+- `"closest_obstacle_m": 0.2117559313774109`
 
-하지만 기존 `mppi` 데모처럼 아래 상태 머신은 아직 없다.
-
-- setpoint pre-stream
-- arm 후 이륙 고도 상승
-- hover
-- planner 기반 수평 이동
-- 착륙
-
-즉 지금 구조는 `오프보드 bridge + safety gate`에 가깝고, `실제 비행 mission manager`는 아직 아니다.
-
-#### 이유 B. pose와 scan이 실제 데이터로 안정적으로 들어오지 않음
-
-artifact에 `pose_count: 0`가 나온다.
-
-의미:
-
-- `metrics_logger` 기준으로는 pose callback이 실제로 증가하지 않았다.
-- 따라서 safety/control 입장에서는 정상 자율비행 조건이 충족되지 않는다.
-
-#### 이유 C. safety 구조상 입력이 불완전하면 정지 명령으로 빠질 가능성이 높음
-
-현재 `safety_monitor`는 아래 상황에서 zero velocity를 내보낸다.
-
-- `pose_timeout`
-- `scan_timeout`
-- `planner_cmd_timeout`
-- `emergency_stop_obstacle`
-
-즉 센서나 위치 입력이 미완전하면 의도적으로 기체를 움직이지 않게 만든 구조다.
+즉 현재는 “드론이 움직이지 않음”이 아니라, “단일 드론 baseline은 됐고 다음은 obstacle course 고도화와 멀티드론 확장” 단계다.
 
 ## 5. 현재까지의 근거 정리
 
@@ -164,76 +154,31 @@ artifact에 `pose_count: 0`가 나온다.
 
 ### 아직 안 풀린 것
 
-- `/drone1/scan` 실제 메시지 수신 확인
-- `/mavros/local_position/pose` 실제 데이터 카운트 증가
-- takeoff 가능한 상태 머신 부재
-- PX4 preflight/arming 안정화
+- 연구용 obstacle course 고도화
+- 멀티드론 namespace/spawn 구조
+- failure injection과 orphan task 재할당
+- X11 권한 미설정 시 Gazebo GUI 미출력 가능성
 
 ## 6. 다음 해결 순서
 
 현재는 아래 순서로 가는 것이 가장 합리적이다.
 
-### 6.1 1단계: DDS/IPC 전달 문제 점검
+### 6.1 1단계: obstacle world 고도화
 
 목표:
 
-- `/drone1/scan`에 실제 메시지가 들어오게 만들기
+- 라이다가 더 다양한 장애물 형태를 읽음
+- 회피 경로가 더 분명히 드러나는 world 구성
+- `closest_obstacle_m`, 성공률, time-to-goal 비교
 
-우선 검토할 수정:
-
-- `docker-compose.yml`에 `ipc: host` 추가
-- 필요 시 ROS 2 shared memory 관련 환경변수 조정
-- 컨테이너 간 DDS transport 설정 명시
-
-성공 기준:
-
-```bash
-ros2 topic echo /drone1/scan --once
-ros2 topic hz /drone1/scan
-```
-
-이 두 명령이 정상적으로 데이터를 보여야 한다.
-
-### 6.2 2단계: pose 수신 확인
+### 6.2 2단계: multi-UAV 구조 추가
 
 목표:
 
-- `/mavros/local_position/pose`가 실제로 들어오는지 확인
-- `metrics_logger`의 `pose_count`가 증가하는지 확인
+- `drone1`, `drone2`, `drone3`, `drone4` namespace 분리
+- 포트, spawn 위치, MAVROS instance 분리
 
-성공 기준:
-
-- artifact summary에서 `pose_count > 0`
-- `pose_period_mean_s`, `pose_period_p99_s`가 실제 값으로 채워짐
-
-### 6.3 3단계: `autonomy_manager`를 실제 mission manager로 확장
-
-현재는 arm/offboard 요청만 하는 구조다.
-
-추가해야 할 것:
-
-- setpoint pre-stream 단계
-- arm 성공 확인
-- takeoff 고도 목표
-- hover
-- 이후 planner command 적용
-
-성공 기준:
-
-- Gazebo에서 드론이 실제로 상승
-- PX4 상태가 안정적으로 `OFFBOARD + armed`
-
-### 6.4 4단계: obstacle world 추가
-
-센서와 takeoff가 모두 정상화되면 다음은 장애물 world를 넣는다.
-
-목표:
-
-- 라이다가 실제 장애물을 읽음
-- nearest obstacle distance가 바뀜
-- planner가 회피 명령을 생성
-
-### 6.5 5단계: metrics/failsafe를 정량 검증으로 강화
+### 6.3 3단계: failure-aware mission continuation 구현
 
 이 단계부터는 취업용 정량 지표를 강화한다.
 
@@ -269,7 +214,7 @@ find artifacts -maxdepth 2 -type f | sort
 
 최신 실행 결과:
 
-- [summary.json](/home/deepblue/AV_Drone/artifacts/2026-03-08_10-46-13_drone1/summary.json)
+- [baseline_summary_example.json](/home/deepblue/AV_Drone/docs/examples/baseline_summary_example.json)
 
 ## 8. 운영 원칙
 

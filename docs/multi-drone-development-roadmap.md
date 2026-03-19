@@ -24,7 +24,8 @@
 
 추가 메모:
 
-- 라이다 연동 과정에서 `sim` 컨테이너를 `focal`에서 `jammy` 기준으로 옮기는 작업을 진행 중이다.
+- 라이다 연동과 obstacle world baseline은 완료됐다.
+- 현재는 `single-UAV baseline`이 살아 있는 상태에서, 이를 `multi-UAV failure-aware mission continuation` 연구 플랫폼으로 올리는 단계다.
 - 변경 배경과 세부 내용은 [change.md](/home/deepblue/AV_Drone/docs/change.md)에 따로 정리했다.
 
 ## 지금 바로 다음에 할 일
@@ -32,10 +33,10 @@
 로드맵 관점에서 현재 가장 먼저 끝내야 하는 일은 아래다.
 
 1. `/drone1/scan` 발행 확인
-2. perception/safety 파이프라인 정상 동작 확인
-3. `single_drone_autonomy`에 takeoff/offboard 로직 추가
-4. 단순 obstacle world 추가
-5. 센서 기반 회피 성능을 metrics로 기록
+2. obstacle course를 더 연구용 시나리오로 고도화
+3. 2대/4대 namespace 구조 추가
+4. failure injection 추가
+5. 센서 기반 회피 성능을 metrics로 고도화
 
 ## 1. 최종 목표 정의
 
@@ -145,8 +146,6 @@ src/
 │  ├─ models/
 │  ├─ sensors/
 │  └─ package.xml
-└─ offboard_control/
-   └─ ...
 ```
 
 핵심 아이디어는 역할 분리다.
@@ -465,7 +464,6 @@ src/
 │  ├─ models/
 │  ├─ sensors/
 │  └─ package.xml
-└─ offboard_control/
 ```
 
 ## 8. 개발 로드맵

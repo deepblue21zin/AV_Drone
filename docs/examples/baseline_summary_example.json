@@ -1,0 +1,27 @@
+{
+  "runtime_s": 971.103,
+  "connected": true,
+  "armed": true,
+  "mode": "OFFBOARD",
+  "mission_phase": "HOVER_AT_GOAL",
+  "pose_count": 49171,
+  "scan_count": 8231,
+  "planner_cmd_count": 38836,
+  "safe_cmd_count": 38833,
+  "safety_event_count": 20,
+  "safety_reason_counts": {
+    "startup_grace": 1,
+    "pose_timeout": 1,
+    "normal": 10,
+    "emergency_stop_obstacle": 8
+  },
+  "goal_reached": true,
+  "current_obstacle_m": "Infinity",
+  "closest_obstacle_m": 0.2117559313774109,
+  "pose_period_mean_s": 0.016685875111390403,
+  "pose_period_p99_s": 0.0380094051361084,
+  "pose_period_worst_s": 0.14913082122802734,
+  "scan_period_mean_s": 0.10010727445525938,
+  "scan_period_p99_s": 0.10906672477722168,
+  "scan_period_worst_s": 0.2000429630279541
+}

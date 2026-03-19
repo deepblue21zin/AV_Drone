@@ -1,154 +1,60 @@
 # AV_Drone Command Reference
 
-이 문서는 `/home/deepblue/AV_Drone` 프로젝트를 실행, 빌드, 디버깅할 때 자주 사용하는 명령어를 정리한 실무용 레퍼런스다.  
-기준 환경은 `Docker Compose + ROS 2 Humble + PX4 SITL + Gazebo Classic + MAVROS`다.
+이 문서는 현재 저장소의 `active path` 기준 명령만 남긴 실행 치트시트다.  
+기준은 `single_drone_autonomy.launch.py` 기반 단일 드론 baseline이다.
 
-중요 원칙:
-
-- 호스트에서 치는 명령과 컨테이너 안에서 치는 명령을 구분한다.
-- `sim`은 PX4/Gazebo 컨테이너다.
-- `ros`는 ROS 2 작업 컨테이너다.
-- ROS 관련 명령은 기본적으로 `ros` 컨테이너 안에서 실행한다.
-
-## 1. 자주 쓰는 기본 경로
-
-호스트 프로젝트 경로:
+## 1. 호스트 기본 경로
 
 ```bash
 cd /home/deepblue/AV_Drone
 ```
 
-ROS 컨테이너 내부 프로젝트 경로:
+## 2. Docker 기본 명령
+
+전체 상태:
 
 ```bash
-cd /workspace/AV_Drone
+docker compose ps
+docker compose logs -f sim
+docker compose logs -f ros
 ```
 
-## 2. 호스트에서 먼저 확인할 것
-
-Docker 동작 확인:
+이미지 빌드:
 
 ```bash
-docker --version
-docker compose version
-docker run hello-world
+docker compose build sim
+docker compose build ros
 ```
 
-X11 확인:
+서비스 기동 / 종료:
+
+```bash
+docker compose up -d sim ros
+docker compose down
+```
+
+컨테이너 진입:
+
+```bash
+docker compose exec ros bash
+docker compose exec sim bash
+```
+
+## 3. Gazebo GUI 관련
+
+호스트에서 GUI 허용:
 
 ```bash
 echo $DISPLAY
 xhost +local:docker
 ```
 
-## 3. Docker Compose 기본 명령
+주의:
 
-전체 이미지 빌드:
+- GUI가 안 떠도 headless 실행 자체는 가능하다.
+- `sim` 컨테이너는 `Up` 상태라도 내부 PX4/Gazebo build가 더 진행될 수 있다.
 
-```bash
-docker compose build
-```
-
-ROS 이미지만 다시 빌드:
-
-```bash
-docker compose build ros
-```
-
-SIM 이미지만 다시 빌드:
-
-```bash
-docker compose build sim
-```
-
-캐시 없이 전체 다시 빌드:
-
-```bash
-docker compose build --no-cache
-```
-
-서비스 기동:
-
-```bash
-docker compose up -d sim
-docker compose up -d ros
-```
-
-서비스 종료:
-
-```bash
-docker compose down
-```
-
-서비스 상태 확인:
-
-```bash
-docker compose ps
-```
-
-## 4. 로그 확인 명령
-
-SIM 로그 보기:
-
-```bash
-docker compose logs -f sim
-```
-
-ROS 로그 보기:
-
-```bash
-docker compose logs -f ros
-```
-
-최근 로그만 보기:
-
-```bash
-docker compose logs --tail=100 sim
-docker compose logs --tail=100 ros
-```
-
-## 5. 컨테이너 접속
-
-ROS 컨테이너 진입:
-
-```bash
-docker compose exec ros bash
-```
-
-SIM 컨테이너 진입:
-
-```bash
-docker compose exec sim bash
-```
-
-현재 실행 중인 컨테이너 확인:
-
-```bash
-docker ps
-```
-
-특정 컨테이너 내부 진입:
-
-```bash
-docker exec -it <container_name> bash
-```
-
-## 6. ROS 컨테이너에 들어간 뒤 가장 먼저 할 것
-
-기본 환경 로드:
-
-```bash
-source /opt/ros/humble/setup.bash
-cd /workspace/AV_Drone
-```
-
-빌드가 이미 끝난 경우 install 환경까지 로드:
-
-```bash
-source install/setup.bash
-```
-
-한 번에 정리하면:
+## 4. ROS 컨테이너 진입 후 기본 환경
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -156,475 +62,172 @@ cd /workspace/AV_Drone
 source install/setup.bash
 ```
 
-## 7. 의존성 설치와 워크스페이스 빌드
-
-`rosdep` DB 갱신:
+패키지 빌드:
 
 ```bash
-rosdep update
-```
-
-의존성 설치:
-
-```bash
-rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics
+source install/setup.bash
 ```
 
 전체 빌드:
 
 ```bash
 colcon build
-```
-
-특정 패키지만 빌드:
-
-```bash
-colcon build --packages-select mppi
-colcon build --packages-select offboard_control
-colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics
-```
-
-심볼릭 설치로 빌드:
-
-```bash
-colcon build --symlink-install
-```
-
-빌드 후 환경 반영:
-
-```bash
 source install/setup.bash
 ```
 
-## 8. 주요 실행 명령
+## 5. 현재 주 실행 명령
 
-MPPI 실행:
-
-```bash
-ros2 launch mppi mppi.launch.py
-```
-
-단순 오프보드 이륙 테스트:
-
-```bash
-ros2 launch offboard_control offboard_control.launch.py
-```
-
-센서 기반 단일 드론 자율주행 뼈대 실행:
+단일 드론 baseline 실행:
 
 ```bash
 ros2 launch drone_bringup single_drone_autonomy.launch.py
 ```
 
-라이다 관련 변경 배경 문서:
-
-- [change.md](/home/deepblue/AV_Drone/docs/change.md)
-
-## 9. ROS 2 기본 점검 명령
-
-토픽 목록:
-
-```bash
-ros2 topic list
-```
-
-MAVROS 관련 토픽만 보기:
-
-```bash
-ros2 topic list | grep mavros
-```
-
-노드 목록:
-
-```bash
-ros2 node list
-```
-
-서비스 목록:
-
-```bash
-ros2 service list
-```
-
-패키지 목록:
-
-```bash
-ros2 pkg list | grep -E 'mppi|offboard_control|drone_|mavros'
-```
-
-새 파이프라인 노드 목록 확인:
-
-```bash
-ros2 node list | grep -E 'lidar_obstacle|local_planner|safety_monitor|autonomy_manager|metrics_logger'
-```
-
-## 10. 자주 확인하는 토픽
-
-비행 상태:
-
-```bash
-ros2 topic echo /mavros/state
-```
-
-로컬 위치:
-
-```bash
-ros2 topic echo /mavros/local_position/pose
-```
-
-로컬 속도:
-
-```bash
-ros2 topic echo /mavros/local_position/velocity_local
-```
-
-속도 셋포인트:
-
-```bash
-ros2 topic echo /mavros/setpoint_velocity/cmd_vel
-```
-
-planner command:
-
-```bash
-ros2 topic echo /drone1/autonomy/cmd_vel
-```
-
-safe command:
-
-```bash
-ros2 topic echo /drone1/safety/cmd_vel
-```
-
-가장 가까운 장애물 거리:
-
-```bash
-ros2 topic echo /drone1/perception/nearest_obstacle_distance
-```
-
-안전 이벤트:
-
-```bash
-ros2 topic echo /drone1/safety/event
-```
-
-배터리 상태:
-
-```bash
-ros2 topic echo /mavros/battery
-```
-
-## 11. 토픽/서비스 타입 확인
-
-토픽 정보:
-
-```bash
-ros2 topic info /mavros/state
-ros2 topic info /mavros/local_position/pose
-```
-
-서비스 정보:
-
-```bash
-ros2 service type /mavros/set_mode
-ros2 service type /mavros/cmd/arming
-```
-
-메시지 정의 확인:
-
-```bash
-ros2 interface show mavros_msgs/msg/State
-ros2 interface show geometry_msgs/msg/PoseStamped
-```
-
-서비스 정의 확인:
-
-```bash
-ros2 interface show mavros_msgs/srv/SetMode
-ros2 interface show mavros_msgs/srv/CommandBool
-```
-
-## 12. MAVROS 연결 확인용 핵심 명령
-
-MAVROS 토픽이 살아있는지 보기:
-
-```bash
-ros2 topic list | grep mavros
-```
-
-PX4 heartbeat 연결 확인:
-
-```bash
-ros2 topic echo /mavros/state
-```
-
-확인 포인트:
-
-- `connected: true`
-- `armed: true/false`
-- `mode: OFFBOARD` 또는 그 이전 모드
-
-관련 서비스 확인:
-
-```bash
-ros2 service list | grep mavros
-```
-
-주요 서비스:
-
-- `/mavros/set_mode`
-- `/mavros/cmd/arming`
-
-## 13. 노드와 프로세스 확인
-
-현재 노드 목록:
-
-```bash
-ros2 node list
-```
-
-특정 노드 정보:
-
-```bash
-ros2 node info /mavros/mavros
-ros2 node info /mppi
-```
-
-컨테이너 안 프로세스 확인:
-
-```bash
-ps -ef
-```
-
-## 14. 패키지 실행 파일 확인
-
-패키지 실행 파일 목록:
-
-```bash
-ros2 pkg executables mppi
-ros2 pkg executables offboard_control
-```
-
-예상 결과:
-
-- `mppi mppi_node`
-- `offboard_control offboard_takeoff`
-
-## 15. 빌드 산출물 정리
-
-ROS workspace 빌드 산출물:
-
-- `build/`
-- `install/`
-- `log/`
-
-정리:
-
-```bash
-rm -rf build install log
-```
-
-주의:
-
-- 이 명령은 빌드 결과를 지운다.
-- 소스코드는 지우지 않는다.
-
-정리 후 다시 빌드:
-
-```bash
-colcon build
-source install/setup.bash
-```
-
-## 16. 자주 쓰는 디버깅 명령
-
-MAVROS 로그가 보고 싶을 때:
+legacy MPPI baseline:
 
 ```bash
 ros2 launch mppi mppi.launch.py
 ```
 
-그 상태에서 다른 터미널에서 ROS 컨테이너 진입:
+현재 팀 인수인계와 baseline 검증은 `drone_bringup` 경로 기준으로 본다.
+
+## 6. 핵심 topic 확인
+
+LiDAR:
 
 ```bash
-docker compose exec ros bash
+ros2 topic echo /drone1/scan --once
+ros2 topic hz /drone1/scan
 ```
 
-노드가 살아있는지 확인:
+mission / pose:
 
 ```bash
-ros2 node list
-```
-
-토픽 주기 확인:
-
-```bash
-ros2 topic hz /mavros/local_position/pose
-ros2 topic hz /mavros/setpoint_velocity/cmd_vel
-```
-
-토픽 한 번만 보기:
-
-```bash
-ros2 topic echo /mavros/state --once
+ros2 topic echo /drone1/mission/phase --once
+ros2 topic echo /drone1/mission/goal_reached --once
 ros2 topic echo /mavros/local_position/pose --once
 ```
 
-## 17. 자주 보는 성공 로그
+planner / perception:
 
-MAVROS 연결 성공 신호:
+```bash
+ros2 topic echo /drone1/perception/nearest_obstacle_distance --once
+ros2 topic echo /drone1/safety/cmd_vel --once
+```
 
+MAVROS:
+
+```bash
+ros2 topic echo /mavros/state --once
+ros2 node list | grep mavros
+```
+
+## 7. smoke test
+
+호스트에서:
+
+```bash
+./scripts/smoke_test_single_drone.sh
+```
+
+문제/수정/메모까지 같이 기록:
+
+```bash
+./scripts/smoke_test_single_drone.sh \
+  --scenario single_drone_obstacle_demo \
+  --issue "planner did not react to obstacle" \
+  --fix "updated world loading and planner logic" \
+  --notes "baseline revalidated"
+```
+
+이 스크립트는 아래를 자동 검증한다.
+
+- `sim`, `ros` 컨테이너 실행
+- `sim` runtime readiness
+- `/autonomy_manager`, `/metrics_logger` 실행
+- `/drone1/scan` 수신
+- `/mavros/local_position/pose` 수신
+- `HOVER_AT_GOAL`
+- `goal_reached=true`
+- 최신 artifact 요약 필드
+- `experiments/index.csv` 누적
+- `experiments/scenario_table.csv` 집계
+- `experiments/ledger.csv` 기록
+- `experiments/plots/<run_id>/` 그래프 생성
+
+메모:
+
+- 위 `experiments/` 산출물은 실행 후 생성되는 generated output이며 `.gitignore`에 포함했다.
+
+## 8. artifact 확인
+
+최신 artifact 찾기:
+
+```bash
+ls -1dt artifacts/*_drone1 | head -n1
+```
+
+summary 확인:
+
+```bash
+LATEST="$(ls -1dt artifacts/*_drone1 | head -n1)"
+cat "${LATEST}/summary.json"
+```
+
+찾아볼 핵심 값:
+
+- `mission_phase`
+- `goal_reached`
+- `pose_count`
+- `scan_count`
+- `closest_obstacle_m`
+
+문서용 고정 예시:
+
+```bash
+cat docs/examples/baseline_summary_example.json
+```
+
+실험 장부 재생성:
+
+```bash
+python3 scripts/update_experiment_registry.py --scan-artifacts artifacts
+```
+
+최신 artifact 그래프 생성:
+
+```bash
+LATEST="$(ls -1dt artifacts/*_drone1 | head -n1)"
+python3 scripts/generate_artifact_plots.py --artifact "${LATEST}"
+```
+
+## 9. sim 내부 센서 확인
+
+`sim` 컨테이너 안에서:
+
+```bash
+gz topic -l | grep -E 'scan|laser|lidar'
+```
+
+현재 기대하는 Gazebo topic 예:
+
+- `/gazebo/default/iris_rplidar/rplidar/link/laser/scan`
+
+## 10. 자주 보는 정상 로그
+
+- `Startup script returned successfully`
 - `CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot`
-
-MPPI 미션 진행 신호:
-
 - `PHASE => OFFBOARD_ARM`
 - `PHASE => TAKEOFF`
 - `PHASE => HOVER_AFTER_TAKEOFF`
-- `PHASE => MPPI_GO`
+- `PHASE => FOLLOW_PLAN`
 - `PHASE => HOVER_AT_GOAL`
-- `PHASE => LAND`
-- `PHASE => WAIT_LANDED`
-- `PHASE => DONE`
 
-센서 기반 자율주행 뼈대 정상 신호:
+## 11. 문서
 
-- `Perception scaffold ready`
-- `Planner scaffold ready`
-- `Safety monitor ready`
-- `Metrics logger writing artifacts to ...`
-
-## 18. 자주 보는 경고와 해석
-
-`Time jump detected`:
-
-- Docker 환경이나 시뮬레이션 부하에서 발생할 수 있다.
-- 무조건 치명적 오류는 아니다.
-
-`RTT too high for timesync`:
-
-- SITL과 컨테이너 타이밍 차이 때문에 생길 수 있다.
-
-`PositionTargetGlobal failed because no origin`:
-
-- 글로벌 원점이 없을 때 일부 MAVROS 플러그인에서 발생한다.
-- 현재 프로젝트는 로컬 좌표계 기반 비행이라 직접 치명적이지 않을 수 있다.
-
-## 19. artifacts 확인
-
-metrics logger가 실행 중이면 결과 파일은 아래에 쌓인다.
-
-```bash
-ls -la /workspace/AV_Drone/artifacts
-find /workspace/AV_Drone/artifacts -maxdepth 2 -type f | sort
-```
-
-대표 파일:
-
-- `metadata.json`
-- `metrics.csv`
-- `summary.json`
-- `events.log`
-
-## 20. 자주 쓰는 Git 명령
-
-현재 변경 사항 확인:
-
-```bash
-git status
-```
-
-변경 파일만 간단히 보기:
-
-```bash
-git status --short
-```
-
-변경 내용 보기:
-
-```bash
-git diff
-```
-
-특정 파일만 보기:
-
-```bash
-git diff README.md
-git diff src/mppi/mppi/mppi_node.py
-```
-
-## 21. 추천 작업 루틴
-
-### 루틴 1. 새 환경에서 처음 시작
-
-```bash
-cd /home/deepblue/AV_Drone
-docker compose build
-docker compose up -d sim
-docker compose up -d ros
-docker compose exec ros bash
-```
-
-컨테이너 안:
-
-```bash
-source /opt/ros/humble/setup.bash
-cd /workspace/AV_Drone
-rosdep update
-rosdep install --from-paths src --ignore-src -r -y
-colcon build
-source install/setup.bash
-ros2 launch mppi mppi.launch.py
-```
-
-### 루틴 2. 코드만 수정한 뒤 다시 실행
-
-호스트:
-
-```bash
-docker compose up -d sim
-docker compose up -d ros
-docker compose exec ros bash
-```
-
-컨테이너 안:
-
-```bash
-source /opt/ros/humble/setup.bash
-cd /workspace/AV_Drone
-colcon build --packages-select mppi
-source install/setup.bash
-ros2 launch mppi mppi.launch.py
-```
-
-### 루틴 3. 실행 상태 확인만 할 때
-
-호스트:
-
-```bash
-docker compose ps
-docker compose logs --tail=100 sim
-docker compose logs --tail=100 ros
-```
-
-컨테이너 안:
-
-```bash
-ros2 node list
-ros2 topic list | grep mavros
-ros2 topic echo /mavros/state --once
-```
-
-## 21. 관련 문서
-
-발표/개요 문서:
-
-- [README.md](/home/deepblue/AV_Drone/README.md)
-
-Docker 환경 명세:
-
-- [docs/docker-environment-spec.md](/home/deepblue/AV_Drone/docs/docker-environment-spec.md)
-
-이 문서:
-
-- [docs/command-reference.md](/home/deepblue/AV_Drone/docs/command-reference.md)
+- 개요/온보딩: [README.md](/home/deepblue/AV_Drone/README.md)
+- 구조: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
+- Docker 명세: [docker-environment-spec.md](/home/deepblue/AV_Drone/docs/docker-environment-spec.md)
+- 로드맵: [multi-drone-development-roadmap.md](/home/deepblue/AV_Drone/docs/multi-drone-development-roadmap.md)
+- 문제 기록: [problem.md](/home/deepblue/AV_Drone/docs/problem.md)
