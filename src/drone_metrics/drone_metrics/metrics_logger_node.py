@@ -50,8 +50,12 @@ class MetricsLoggerNode(Node):
         self.git_commit = git_context["git_commit"]
         self.git_branch = git_context["git_branch"]
         self.git_dirty = git_context["git_dirty"]
-        self.px4_sitl_world = os.environ.get("PX4_SITL_WORLD", "unknown")
+        self.px4_gz_world = os.environ.get(
+            "PX4_GZ_WORLD", os.environ.get("PX4_SITL_WORLD", "unknown")
+        )
+        self.px4_gz_model_name = os.environ.get("PX4_GZ_MODEL_NAME", "unknown")
         self.px4_sim_target = os.environ.get("PX4_SIM_TARGET", "unknown")
+        self.px4_sim_model = os.environ.get("PX4_SIM_MODEL", "unknown")
 
         self.start_time = time.time()
         self.state_connected = False
@@ -145,8 +149,10 @@ class MetricsLoggerNode(Node):
             "git_dirty": self.git_dirty,
             "drone_name": str(self.get_parameter("drone_name").value),
             "scenario_name": self.scenario_name,
-            "px4_sitl_world": self.px4_sitl_world,
+            "px4_gz_world": self.px4_gz_world,
+            "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
+            "px4_sim_model": self.px4_sim_model,
             "state_topic": str(self.get_parameter("state_topic").value),
             "pose_topic": str(self.get_parameter("pose_topic").value),
             "scan_topic": str(self.get_parameter("scan_topic").value),
@@ -271,8 +277,10 @@ class MetricsLoggerNode(Node):
             "git_branch": self.git_branch,
             "git_dirty": self.git_dirty,
             "scenario_name": self.scenario_name,
-            "px4_sitl_world": self.px4_sitl_world,
+            "px4_gz_world": self.px4_gz_world,
+            "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
+            "px4_sim_model": self.px4_sim_model,
             "connected": self.state_connected,
             "armed": self.state_armed,
             "mode": self.state_mode,
