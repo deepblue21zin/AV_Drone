@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AV_Drone Current State Guide</title>
+  <style>
+    :root {
+      --bg:#0c1220; --bg2:#111827; --panel:#ffffff; --ink:#16202a; --muted:#64748b; --line:#dde5ee;
+      --blue:#2563eb; --teal:#0f766e; --orange:#ea580c; --purple:#7c3aed; --green:#15803d; --red:#b91c1c;
+      --soft:#f8fbff; --shadow:0 22px 50px rgba(15,23,42,.12); --mono:"SFMono-Regular",Consolas,monospace; --sans:"Pretendard","Noto Sans KR",sans-serif;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;color:var(--ink);font-family:var(--sans);line-height:1.65;background:linear-gradient(180deg,#eef4fa 0%,#f8fafc 40%,#eef2f7 100%)}
+    .hero{background:radial-gradient(circle at top left, rgba(37,99,235,.18), transparent 30%), radial-gradient(circle at top right, rgba(124,58,237,.12), transparent 25%), linear-gradient(180deg,#0f172a 0%,#111827 100%); color:#f8fbff; padding:34px 0 42px}
+    .page{width:min(1240px,calc(100% - 32px));margin:0 auto} .hero .page{display:grid;gap:18px}
+    .eyebrow{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:999px;background:rgba(148,163,184,.14);border:1px solid rgba(226,232,240,.16);font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;width:max-content}
+    h1,h2,h3{margin:0 0 12px;line-height:1.15;letter-spacing:-.03em} h1{font-size:clamp(2.3rem,4.8vw,4.5rem);max-width:14ch} h2{font-size:1.9rem} h3{font-size:1.08rem} p{margin:0 0 14px}
+    .hero p{max-width:76ch;color:#cbd5e1;font-size:1.03rem} nav{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px} nav a{text-decoration:none;color:#ecf2ff;padding:10px 13px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+    .section{background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:30px;margin:22px auto} .grid{display:grid;gap:18px} .grid.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))} .grid.three{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))} .grid.code{grid-template-columns:320px 1fr}
+    .card{background:var(--soft);border:1px solid var(--line);border-radius:22px;padding:20px} .chipbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px} .chip{padding:9px 12px;border-radius:999px;background:#eef4ff;border:1px solid #d9e7ff;font-size:.92rem}
+    .metric{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff} .metric .k{font-size:.77rem;text-transform:uppercase;color:var(--muted);letter-spacing:.08em} .metric .v{font-size:1.42rem;font-weight:800;margin-top:6px}
+    .good{color:var(--green)} .note{color:var(--blue)} .warn{color:var(--orange)} .risk{color:var(--red)} .muted{color:var(--muted)}
+    .diagram{background:linear-gradient(180deg,#f9fcff 0%,#f2f7fb 100%);border:1px solid var(--line);border-radius:24px;padding:18px}
+    .runtime-wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:18px} @media(max-width:980px){.runtime-wrap,.grid.code{grid-template-columns:1fr}}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0} button{border:none;border-radius:999px;padding:10px 14px;font:inherit;background:#0f172a;color:#fff;cursor:pointer} button.secondary{background:#e8eef5;color:#16202a} button:disabled{opacity:.55;cursor:default}
+    .runtime-status{display:grid;gap:14px;align-content:start} .stagebox{padding:18px;border-radius:18px;background:#0f172a;color:#e8eef7;min-height:160px} .phase-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px} .phase-pill{padding:8px 10px;border-radius:999px;background:#1e293b;color:#cbd5e1;font-size:.83rem} .phase-pill.active{background:#2563eb;color:#fff}
+    .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;color:var(--muted);margin-top:10px} .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+    .code-list{display:grid;gap:10px;align-content:start} .code-btn{text-align:left;padding:14px 14px;border-radius:16px;border:1px solid var(--line);background:#fff;cursor:pointer} .code-btn.active{background:#eff6ff;border-color:#93c5fd;box-shadow:inset 0 0 0 1px #60a5fa} .code-btn small{display:block;color:var(--muted);margin-top:4px}
+    .code-view{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:#fff} .code-head{padding:18px 20px;border-bottom:1px solid var(--line);background:#f7fbff} .code-meta{display:flex;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:.92rem}
+    pre{margin:0;padding:20px;background:#0f172a;color:#e8eef7;overflow:auto;max-height:700px;font-family:var(--mono);font-size:.9rem;line-height:1.55} code{font-family:var(--mono)}
+    .concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px} .concept{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff}
+    .steps{counter-reset:step;display:grid;gap:14px} .step{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;padding:16px 18px;border:1px solid var(--line);border-radius:18px;background:#fff} .step::before{counter-increment:step;content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#0f172a;color:#fff;font-weight:800}
+    .callout{padding:18px;border-radius:18px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
+    .small{font-size:.92rem}
+    svg text{font-family:var(--sans)}
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="page">
+      <div class="eyebrow">Interactive Guide • Current Baseline • First-time Reader Friendly</div>
+      <h1>AV_Drone Current State Guide</h1>
+      <p>이 문서는 <strong>지금 저장소를 처음 보는 사람</strong>이 바로 이해할 수 있게 만든 설명서다. 코드 구조, 노드 상호작용, 필수 개념, Docker 환경, 재현 방법, artifact 기반 기록 방식을 한 화면에서 따라갈 수 있도록 구성했다.</p>
+      <nav>
+        <a href="#snapshot">한눈에 보기</a>
+        <a href="#runtime">동작 시뮬레이션</a>
+        <a href="#code">코드 탐색</a>
+        <a href="#concepts">필수 개념</a>
+        <a href="#repro">재현 방법</a>
+        <a href="project_overview.html">연구 개요 보기</a>
+      </nav>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="snapshot">
+      <h2>지금 상태 한눈에 보기</h2>
+      <div class="grid three">
+        <div class="metric"><div class="k">Simulator</div><div class="v">Gazebo Sim Harmonic</div></div>
+        <div class="metric"><div class="k">Flight Stack</div><div class="v">PX4 SITL + MAVROS</div></div>
+        <div class="metric"><div class="k">Current Goal</div><div class="v">Single-UAV Baseline</div></div>
+        <div class="metric"><div class="k">Reference Run</div><div class="v">2026-03-20_09-17-49_drone1</div></div>
+        <div class="metric"><div class="k">Verified Phase</div><div class="v good">HOVER_AT_GOAL</div></div>
+        <div class="metric"><div class="k">Goal Reached</div><div class="v good">True</div></div>
+      </div>
+      <div class="grid two" style="margin-top:20px">
+        <div class="card">
+          <h3>이 프로젝트가 지금 하는 일</h3>
+          <ul>
+            <li>`sim` 컨테이너에서 PX4 SITL + Gazebo Sim server를 실행한다.</li>
+            <li>`ros` 컨테이너에서 MAVROS와 autonomy 노드를 실행한다.</li>
+            <li>host에서 Gazebo GUI만 따로 띄워 시뮬레이션 화면을 본다.</li>
+            <li>실행마다 artifact를 저장하고, smoke test와 experiment ledger로 기록을 남긴다.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>지금 baseline의 한계</h3>
+          <ul>
+            <li>현재 planner는 `직진 + 가까우면 정지`에 가깝다.</li>
+            <li>멀티드론, failure injection, reallocation은 아직 없다.</li>
+            <li>현재 목표는 연구 본체가 아니라 재현 가능한 baseline을 안정화하는 것이다.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="chipbar">
+        <div class="chip">Current YAML: `goal_x=8.0`, `cruise_speed=1.0`, `takeoff_z=3.0`</div>
+        <div class="chip">GUI path: host Gazebo GUI + CPU software rendering</div>
+        <div class="chip">Reproducibility: git commit + artifact + smoke test</div>
+      </div>
+    </section>
+
+    <section class="section" id="runtime">
+      <h2>코드 동작 과정을 동적으로 보기</h2>
+      <p class="muted">아래 애니메이션은 현재 코드 기준의 실제 흐름을 단순화한 것이다. 버튼을 눌러 단계별로 따라가거나 자동 재생할 수 있다.</p>
+      <div class="runtime-wrap">
+        <div class="diagram">
+          <svg id="runtimeSvg" viewBox="0 0 960 430" width="100%" aria-label="runtime animation">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#8aa1ba"></path>
+              </marker>
+            </defs>
+            <rect x="18" y="18" width="924" height="394" rx="22" fill="#fbfdff" stroke="#d9e6f2"></rect>
+            <g id="linkLayer">
+              <path id="host-sim" d="M170 110 C 240 110, 250 110, 310 110" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="sim-mavros" d="M430 150 C 500 150, 520 150, 570 150" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="world-perception" d="M430 95 C 505 95, 555 95, 620 95" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="perception-planner" d="M730 95 C 785 95, 810 120, 810 155" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="planner-safety" d="M810 205 C 810 242, 785 265, 730 265" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="safety-control" d="M620 265 C 555 265, 530 265, 470 265" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="control-mavros" d="M360 265 C 310 265, 285 215, 285 170" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="mavros-sim" d="M285 170 C 285 225, 315 290, 390 320" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="mavros-control" d="M640 150 C 560 150, 520 200, 470 240" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="mavros-metrics" d="M655 150 C 760 150, 825 110, 868 82" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="perception-metrics" d="M730 95 C 800 70, 830 70, 868 82" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="planner-metrics" d="M820 180 C 850 160, 860 120, 868 82" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="safety-metrics" d="M730 265 C 820 240, 850 170, 868 82" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+              <path id="metrics-artifacts" d="M885 100 C 900 150, 900 235, 885 295" fill="none" stroke="#c7d5e3" stroke-width="3" marker-end="url(#arrow)" />
+            </g>
+            <g id="nodeLayer">
+              <rect id="node-host" x="52" y="76" width="118" height="68" rx="16" fill="#eff6ff" stroke="#8bb5ef" stroke-width="2"></rect>
+              <text x="111" y="103" text-anchor="middle" font-size="16" font-weight="800" fill="#1f4b7c">Host GUI</text>
+              <text x="111" y="124" text-anchor="middle" font-size="12" fill="#51667c">gz sim -g</text>
+
+              <rect id="node-sim" x="310" y="78" width="140" height="68" rx="16" fill="#eefcf4" stroke="#77c08f" stroke-width="2"></rect>
+              <text x="380" y="103" text-anchor="middle" font-size="16" font-weight="800" fill="#1b6b3e">sim container</text>
+              <text x="380" y="124" text-anchor="middle" font-size="12" fill="#51667c">PX4 + Gazebo server</text>
+
+              <rect id="node-world" x="310" y="292" width="140" height="68" rx="16" fill="#fff7ed" stroke="#f1b06f" stroke-width="2"></rect>
+              <text x="380" y="317" text-anchor="middle" font-size="16" font-weight="800" fill="#9a5a13">World</text>
+              <text x="380" y="338" text-anchor="middle" font-size="12" fill="#51667c">scan + scene + physics</text>
+
+              <rect id="node-mavros" x="570" y="116" width="140" height="68" rx="16" fill="#f5f3ff" stroke="#b39cf7" stroke-width="2"></rect>
+              <text x="640" y="141" text-anchor="middle" font-size="16" font-weight="800" fill="#6d28d9">MAVROS</text>
+              <text x="640" y="162" text-anchor="middle" font-size="12" fill="#51667c">state / pose / service</text>
+
+              <rect id="node-perception" x="620" y="60" width="140" height="68" rx="16" fill="#ecfeff" stroke="#4fd1d9" stroke-width="2"></rect>
+              <text x="690" y="85" text-anchor="middle" font-size="16" font-weight="800" fill="#0f766e">Perception</text>
+              <text x="690" y="106" text-anchor="middle" font-size="12" fill="#51667c">nearest obstacle</text>
+
+              <rect id="node-planner" x="760" y="150" width="140" height="68" rx="16" fill="#eff6ff" stroke="#78a6f0" stroke-width="2"></rect>
+              <text x="830" y="175" text-anchor="middle" font-size="16" font-weight="800" fill="#2563eb">Planner</text>
+              <text x="830" y="196" text-anchor="middle" font-size="12" fill="#51667c">goal direction cmd</text>
+
+              <rect id="node-safety" x="620" y="230" width="140" height="68" rx="16" fill="#fff7ed" stroke="#f1b06f" stroke-width="2"></rect>
+              <text x="690" y="255" text-anchor="middle" font-size="16" font-weight="800" fill="#c2410c">Safety</text>
+              <text x="690" y="276" text-anchor="middle" font-size="12" fill="#51667c">gate / stop / timeout</text>
+
+              <rect id="node-control" x="330" y="230" width="140" height="68" rx="16" fill="#eefcf4" stroke="#77c08f" stroke-width="2"></rect>
+              <text x="400" y="255" text-anchor="middle" font-size="16" font-weight="800" fill="#15803d">Control</text>
+              <text x="400" y="276" text-anchor="middle" font-size="12" fill="#51667c">offboard state machine</text>
+
+              <rect id="node-metrics" x="838" y="48" width="86" height="68" rx="16" fill="#fff1f2" stroke="#fda4af" stroke-width="2"></rect>
+              <text x="881" y="75" text-anchor="middle" font-size="15" font-weight="800" fill="#be123c">Metrics</text>
+              <text x="881" y="96" text-anchor="middle" font-size="12" fill="#51667c">artifact</text>
+
+              <rect id="node-artifacts" x="834" y="295" width="94" height="70" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"></rect>
+              <text x="881" y="322" text-anchor="middle" font-size="15" font-weight="800" fill="#334155">Artifacts</text>
+              <text x="881" y="344" text-anchor="middle" font-size="12" fill="#51667c">summary / csv</text>
+            </g>
+            <circle id="packet" cx="180" cy="132" r="8" fill="#2563eb"></circle>
+            <path id="dronePath" d="M120 255 L120 132 L470 132" fill="none" stroke="#d6e0ea" stroke-width="3" stroke-dasharray="6 6"></path>
+            <g id="droneIcon" transform="translate(120 255)">
+              <circle r="13" fill="#0f172a"></circle>
+              <path d="M -4 0 L 4 0 M 0 -4 L 0 4" stroke="#f8fafc" stroke-width="2"></path>
+            </g>
+          </svg>
+          <div class="controls">
+            <button id="prevBtn" class="secondary">이전 단계</button>
+            <button id="playBtn">자동 재생</button>
+            <button id="nextBtn" class="secondary">다음 단계</button>
+          </div>
+          <div class="legend">
+            <span><span class="dot" style="background:#2563eb"></span>현재 메시지 흐름</span>
+            <span><span class="dot" style="background:#15803d"></span>활성 노드</span>
+            <span><span class="dot" style="background:#c2410c"></span>안전/제어 경계</span>
+          </div>
+        </div>
+        <div class="runtime-status">
+          <div class="stagebox">
+            <div class="eyebrow" style="background:rgba(37,99,235,.12);color:#dbeafe;border:none">Runtime State</div>
+            <h3 id="stageTitle">1. Sim Server Boot</h3>
+            <p id="stageText">sim 컨테이너가 PX4 SITL과 Gazebo Sim 서버를 띄운다.</p>
+            <p class="small"><strong>현재 phase:</strong> <span id="phaseName">WAIT_STREAM</span></p>
+            <p class="small"><strong>핵심 포인트:</strong> <span id="stageBadge">sim server only</span></p>
+            <div class="phase-pills" id="phasePills">
+              <span class="phase-pill" data-phase="WAIT_STREAM">WAIT_STREAM</span>
+              <span class="phase-pill" data-phase="OFFBOARD_ARM">OFFBOARD_ARM</span>
+              <span class="phase-pill" data-phase="TAKEOFF">TAKEOFF</span>
+              <span class="phase-pill" data-phase="HOVER_AFTER_TAKEOFF">HOVER_AFTER_TAKEOFF</span>
+              <span class="phase-pill" data-phase="FOLLOW_PLAN">FOLLOW_PLAN</span>
+              <span class="phase-pill" data-phase="HOVER_AT_GOAL">HOVER_AT_GOAL</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>이 애니메이션이 보여주는 것</h3>
+            <ul>
+              <li>노드가 어떤 순서로 활성화되는지</li>
+              <li>어떤 정보가 어디로 흘러가는지</li>
+              <li>비행 phase가 어떻게 바뀌는지</li>
+              <li>artifact가 어느 단계에서 기록되는지</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="code">
+      <h2>클릭해서 보는 코드 탐색</h2>
+      <p class="muted">왼쪽 파일을 누르면 오른쪽에 역할 설명과 코드가 나온다. 처음 보는 사람은 `docker-compose.yml -> launch -> yaml -> control -> metrics` 순서로 보는 것이 가장 빠르다.</p>
+      <div class="grid code">
+        <div class="code-list" id="codeList"></div>
+        <div class="code-view">
+          <div class="code-head">
+            <h3 id="codeTitle">docker-compose.yml</h3>
+            <p id="codeRole"></p>
+            <div class="code-meta">
+              <span id="codePath"></span>
+              <a id="codeLink" href="#" target="_blank" rel="noopener">파일 열기</a>
+            </div>
+            <p class="small muted" id="codeFocus"></p>
+          </div>
+          <pre><code id="codeBlock"></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="concepts">
+      <h2>이 프로젝트를 이해하려면 꼭 알아야 하는 개념</h2>
+      <div class="concepts">
+        <div class="concept"><h3>PX4 SITL</h3><p>실제 드론 FCU 대신 PC 안에서 PX4를 실행하는 방식이다. 비행 제어 로직은 PX4가 담당하고, 우리는 ROS에서 setpoint를 보낸다.</p></div><div class="concept"><h3>Gazebo Sim Harmonic</h3><p>현재 Gazebo 계열의 장기 유지 버전이다. Classic보다 구조가 현대적이고, server / GUI / transport 분리가 명확하다.</p></div><div class="concept"><h3>MAVROS</h3><p>ROS 2와 PX4를 연결하는 브리지다. state, pose, mode, arming, velocity setpoint를 주고받는다.</p></div><div class="concept"><h3>OFFBOARD</h3><p>PX4가 외부 컴퓨터에서 보낸 setpoint를 따라 움직이는 모드다. 현재 autonomy_manager가 이 모드 진입을 담당한다.</p></div><div class="concept"><h3>LaserScan</h3><p>2D LiDAR range 배열이다. 현재 perception은 full map을 만들지 않고, 가장 가까운 range만 뽑아 planner에 넘긴다.</p></div><div class="concept"><h3>Bind Mount</h3><p>Docker 이미지 안에 코드를 baked 하지 않고, 호스트 저장소를 컨테이너에 그대로 마운트하는 방식이다. 그래서 repo clone이 필수다.</p></div><div class="concept"><h3>Artifact / Run ID</h3><p>실행마다 `artifacts/&lt;timestamp&gt;_drone1/` 폴더가 생기고, metadata / summary / csv / event log가 저장된다.</p></div><div class="concept"><h3>Git Context</h3><p>metrics_logger는 git commit / branch / dirty 상태를 같이 저장한다. 그래서 “어떤 코드에서 나온 결과인지”를 나중에 연결할 수 있다.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="repro">
+      <h2>환경 세팅과 재현성</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>왜 재현성이 중요한가</h3>
+          <p>이 저장소는 단순 실행용이 아니라, 나중에 논문/포트폴리오에서 <strong>“어떤 코드 상태에서 어떤 결과가 나왔는지”</strong>를 연결할 수 있어야 한다. 그래서 runtime artifact에는 git commit, branch, dirty 상태와 run_id가 같이 저장된다.</p>
+          <ul>
+            <li>코드: git clone 또는 특정 commit checkout</li>
+            <li>환경: Docker image build 또는 Docker Hub pull</li>
+            <li>결과: artifacts / experiments ledger</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>현재 재현 경로</h3>
+          <div class="steps">
+            <div class="step"><div><strong>Clone</strong><br><code>git clone https://github.com/deepblue21zin/AV_Drone.git</code></div></div>
+            <div class="step"><div><strong>Build or Pull</strong><br><code>docker compose build sim ros</code> 또는 Docker Hub pull 후 local tag</div></div>
+            <div class="step"><div><strong>Run sim</strong><br><code>docker compose up -d --force-recreate sim</code></div></div>
+            <div class="step"><div><strong>Run host GUI</strong><br><code>./scripts/run_host_gz_gui.sh</code></div></div>
+            <div class="step"><div><strong>Run ros</strong><br><code>docker compose up -d ros</code> -> <code>ros2 launch drone_bringup single_drone_autonomy.launch.py</code></div></div>
+            <div class="step"><div><strong>Validate</strong><br><code>./scripts/smoke_test_single_drone.sh</code></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:18px">
+        <div class="card">
+          <h3>직접 build 방식</h3>
+          <pre><code>git clone https://github.com/deepblue21zin/AV_Drone.git
+cd AV_Drone
+xhost +local:docker
+docker compose build sim
+docker compose build ros
+docker compose up -d --force-recreate sim
+docker compose up -d ros</code></pre>
+        </div>
+        <div class="card">
+          <h3>Docker Hub pull 방식</h3>
+          <pre><code>git clone https://github.com/deepblue21zin/AV_Drone.git
+cd AV_Drone
+docker pull deepblue2121/av-drone-sim:2026-03-20
+docker pull deepblue2121/av-drone-ros:2026-03-20
+docker tag deepblue2121/av-drone-sim:2026-03-20 av-drone-sim:latest
+docker tag deepblue2121/av-drone-ros:2026-03-20 av-drone-ros:latest</code></pre>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:18px">
+        현재 구조는 <strong>bind mount 기반</strong>이다. 즉 Docker 이미지만 받아서는 충분하지 않고, 반드시 git 저장소도 같이 clone 해야 한다. 이미지에는 “환경”이 들어가고, 실제 프로젝트 코드는 저장소에서 들어간다.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>실행 결과는 어디에 남나</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>Artifacts</h3>
+          <pre><code>artifacts/&lt;timestamp&gt;_drone1/
+├─ metadata.json
+├─ metrics.csv
+├─ summary.json
+└─ events.log</code></pre>
+          <p class="small muted">`metrics_logger_node.py`가 자동으로 만든다. `summary.json`에는 mode, phase, counts, p99 주기, git commit이 들어간다.</p>
+        </div>
+        <div class="card">
+          <h3>Experiments</h3>
+          <pre><code>experiments/
+├─ index.csv
+├─ scenario_table.csv
+├─ ledger.csv
+└─ plots/&lt;run_id&gt;/</code></pre>
+          <p class="small muted">smoke test와 후처리 스크립트가 장부와 그래프를 만든다. 취업/논문에서 “문제 -> 수정 -> 결과”를 보여줄 수 있는 기반이다.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const codeEntries = [{"id": "compose", "title": "docker-compose.yml", "path": "docker-compose.yml", "role": "전체 런타임을 `sim` / `ros`로 분리하고, host network / host ipc / bind mount를 설정한다.", "focus": "실행 구조를 가장 먼저 이해해야 할 때 보는 파일이다. 지금 구조의 핵심은 `sim`은 PX4 + Gazebo 서버, `ros`는 MAVROS + autonomy stack, GUI는 host에서 별도 실행이라는 점이다.", "link": "../docker-compose.yml", "code": "services:\n  sim:\n    build:\n      context: .\n      dockerfile: docker/sim/Dockerfile\n      args:\n        PX4_VERSION: v1.15.4\n    image: av-drone-sim:latest\n    network_mode: host\n    ipc: host\n    environment:\n      HEADLESS: ${HEADLESS:-1}\n      QT_X11_NO_MITSHM: \"1\"\n      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-1}\n      GALLIUM_DRIVER: ${GALLIUM_DRIVER:-llvmpipe}\n      MESA_LOADER_DRIVER_OVERRIDE: ${MESA_LOADER_DRIVER_OVERRIDE:-swrast}\n      QT_OPENGL: ${QT_OPENGL:-software}\n      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-/tmp/runtime-root}\n      GZ_RENDER_ENGINE: ${GZ_RENDER_ENGINE:-ogre2}\n      PX4_GZ_SIM_RENDER_ENGINE: ${PX4_GZ_SIM_RENDER_ENGINE:-ogre2}\n      GZ_PARTITION: ${GZ_PARTITION:-av_drone}\n      IGN_PARTITION: ${IGN_PARTITION:-av_drone}\n      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}\n      ROS_LOCALHOST_ONLY: \"0\"\n      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}\n      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}\n      PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gz_x500}\n      PX4_GZ_WORLD: ${PX4_GZ_WORLD:-obstacle_demo}\n      PX4_GZ_MODEL_NAME: ${PX4_GZ_MODEL_NAME:-drone1}\n    volumes:\n      - .:/workspace/AV_Drone\n      - .:/home/deepblue/AV_Drone\n      - /tmp/.X11-unix:/tmp/.X11-unix:rw\n      - /dev/shm:/dev/shm\n      - sim-home:/root\n    working_dir: /opt/PX4-Autopilot\n    init: true\n    stdin_open: true\n    tty: true\n    command: [\"/opt/PX4-Autopilot/docker/sim/entrypoint.sh\"]\n\n  ros:\n    build:\n      context: .\n      dockerfile: docker/ros/Dockerfile\n    image: av-drone-ros:latest\n    network_mode: host\n    ipc: host\n    environment:\n      QT_X11_NO_MITSHM: \"1\"\n      GZ_PARTITION: ${GZ_PARTITION:-av_drone}\n      IGN_PARTITION: ${IGN_PARTITION:-av_drone}\n      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}\n      ROS_LOCALHOST_ONLY: \"0\"\n      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}\n      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}\n    volumes:\n      - .:/workspace/AV_Drone\n      - /tmp/.X11-unix:/tmp/.X11-unix:rw\n      - /dev/shm:/dev/shm\n    working_dir: /workspace/AV_Drone\n    init: true\n    stdin_open: true\n    tty: true\n    depends_on:\n      - sim\n    command: [\"sleep\", \"infinity\"]\n\nvolumes:\n  sim-home:\n"}, {"id": "entrypoint", "title": "docker/sim/entrypoint.sh", "path": "docker/sim/entrypoint.sh", "role": "커스텀 world / model / GUI config를 PX4 Gazebo Sim 경로로 복사하고, shared model cache를 만든 뒤 PX4 SITL을 띄운다.", "focus": "왜 host GUI가 blank였다가 고쳐졌는지 이해하려면 이 파일을 봐야 한다. host와 container가 같은 model path를 볼 수 있게 `.cache/gz/models`를 만든다.", "link": "../docker/sim/entrypoint.sh", "code": "#!/usr/bin/env bash\nset -e\n\nif [ -f /opt/ros/humble/setup.bash ]; then\n  source /opt/ros/humble/setup.bash\nfi\n\nexport XDG_RUNTIME_DIR=\"${XDG_RUNTIME_DIR:-/tmp/runtime-root}\"\nmkdir -p \"${XDG_RUNTIME_DIR}\"\nchmod 700 \"${XDG_RUNTIME_DIR}\" || true\n\ncd /opt/PX4-Autopilot\n\n# Reset cached Gazebo GUI layouts and force a known-good camera view.\nrm -f /root/.gz/sim/8/gui.config /root/.gz/sim/7/gui.config\n\nCUSTOM_GZ_MODEL_DIR=\"/workspace/AV_Drone/sim_assets/gz/models\"\nCUSTOM_GZ_WORLD_DIR=\"/workspace/AV_Drone/sim_assets/gz/worlds\"\nCUSTOM_GZ_GUI_CONFIG=\"/workspace/AV_Drone/sim_assets/gz/gui/gui.config\"\nPX4_GZ_MODEL_DIR=\"/opt/PX4-Autopilot/Tools/simulation/gz/models\"\nPX4_GZ_WORLD_DIR=\"/opt/PX4-Autopilot/Tools/simulation/gz/worlds\"\n\nif [ -d \"${CUSTOM_GZ_MODEL_DIR}\" ]; then\n  rsync -a \"${CUSTOM_GZ_MODEL_DIR}/\" \"${PX4_GZ_MODEL_DIR}/\"\nfi\n\nif [ -d \"${CUSTOM_GZ_WORLD_DIR}\" ]; then\n  find \"${CUSTOM_GZ_WORLD_DIR}\" -maxdepth 1 -type f -name \"*.sdf\" -exec cp {} \"${PX4_GZ_WORLD_DIR}/\" \\;\nfi\n\nif [ -f \"${CUSTOM_GZ_GUI_CONFIG}\" ]; then\n  mkdir -p /root/.gz/sim/8\n  cp \"${CUSTOM_GZ_GUI_CONFIG}\" /root/.gz/sim/8/gui.config\nfi\n\nexport PX4_GZ_WORLD=\"${PX4_GZ_WORLD:-obstacle_demo}\"\nexport PX4_GZ_MODEL_NAME=\"${PX4_GZ_MODEL_NAME:-drone1}\"\nexport PX4_GZ_SIM_RENDER_ENGINE=\"${PX4_GZ_SIM_RENDER_ENGINE:-ogre2}\"\n\nHOST_SHARED_ROOT=\"${HOST_SHARED_ROOT:-/home/deepblue/AV_Drone}\"\nSHARED_GZ_CACHE_DIR=\"${HOST_SHARED_ROOT}/.cache/gz/models\"\nmkdir -p \"${SHARED_GZ_CACHE_DIR}\"\n\nfor model_name in x500 x500_base; do\n  if [ -d \"${PX4_GZ_MODEL_DIR}/${model_name}\" ]; then\n    rsync -a \"${PX4_GZ_MODEL_DIR}/${model_name}/\" \"${SHARED_GZ_CACHE_DIR}/${model_name}/\"\n  fi\ndone\n\nif [ -n \"${HEADLESS:-}\" ]; then\n  unset DISPLAY\nfi\nexport GZ_SIM_RESOURCE_PATH=\"${SHARED_GZ_CACHE_DIR}:${HOST_SHARED_ROOT}/sim_assets/gz/models:${HOST_SHARED_ROOT}/sim_assets/gz/worlds:${GZ_SIM_RESOURCE_PATH:-}\"\n\nSIM_TARGET=\"${PX4_SIM_TARGET:-gz_x500}\"\n\nexec make px4_sitl \"${SIM_TARGET}\"\n"}, {"id": "hostgui", "title": "scripts/run_host_gz_gui.sh", "path": "scripts/run_host_gz_gui.sh", "role": "Gazebo GUI만 host에서 실행한다. 현재는 CPU software rendering으로 고정해 AMD/Wayland blank-window 문제를 피한다.", "focus": "현재 GUI가 왜 container가 아니라 host에서 뜨는지, 왜 GPU 대신 CPU rendering을 쓰는지 보여준다.", "link": "../scripts/run_host_gz_gui.sh", "code": "#!/usr/bin/env bash\nset -euo pipefail\n\nROOT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")/..\" && pwd)\"\nCACHE_DIR=\"${ROOT_DIR}/.cache/gz/models\"\nGZ_MODEL_EXPORT_DIR=\"/opt/PX4-Autopilot/Tools/simulation/gz/models\"\nRENDER_ENGINE=\"${PX4_GZ_GUI_RENDER_ENGINE:-ogre}\"\nPARTITION=\"${GZ_PARTITION:-av_drone}\"\n\nfail() {\n  echo \"[FAIL] $1\" >&2\n  exit 1\n}\n\ninfo() {\n  echo \"[INFO] $1\"\n}\n\nif ! command -v gz >/dev/null 2>&1; then\n  fail \"host machine does not have 'gz' installed. Install Gazebo Sim Harmonic on the host first.\"\nfi\n\nif ! docker compose ps --services --status running | grep -qx sim; then\n  fail \"docker compose service 'sim' is not running\"\nfi\n\nmkdir -p \"${CACHE_DIR}\"\n\nfor model_name in x500 x500_base; do\n  if [ ! -d \"${CACHE_DIR}/${model_name}\" ]; then\n    info \"syncing ${model_name} model from sim container into host cache\"\n    docker compose exec -T sim bash -lc \"tar -C '${GZ_MODEL_EXPORT_DIR}' -cf - ${model_name}\" | tar -C \"${CACHE_DIR}\" -xf -\n  fi\ndone\n\n# Host Gazebo GUI is forced into CPU software rendering.\n# This is slower, but it avoids the Wayland + AMD + render-node issues that\n# were producing a blank gray window.\nexport QT_QPA_PLATFORM=\"xcb\"\nexport GDK_BACKEND=\"x11\"\nexport XDG_SESSION_TYPE=\"x11\"\nunset WAYLAND_DISPLAY\nunset QT_QUICK_BACKEND\nexport LIBGL_ALWAYS_SOFTWARE=1\nexport GALLIUM_DRIVER=\"llvmpipe\"\nexport MESA_LOADER_DRIVER_OVERRIDE=\"swrast\"\n\nexport GZ_PARTITION=\"${PARTITION}\"\nexport IGN_PARTITION=\"${PARTITION}\"\nexport GZ_SIM_RESOURCE_PATH=\"${CACHE_DIR}:${ROOT_DIR}/sim_assets/gz/models:${ROOT_DIR}/sim_assets/gz/worlds${GZ_SIM_RESOURCE_PATH:+:${GZ_SIM_RESOURCE_PATH}}\"\n\ninfo \"starting host Gazebo GUI in CPU software-rendering mode\"\ninfo \"GZ_PARTITION=${GZ_PARTITION}\"\ninfo \"GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH}\"\ninfo \"QT_QPA_PLATFORM=${QT_QPA_PLATFORM}\"\ninfo \"GDK_BACKEND=${GDK_BACKEND}\"\ninfo \"XDG_SESSION_TYPE=${XDG_SESSION_TYPE}\"\ninfo \"PX4_GZ_GUI_RENDER_ENGINE=${RENDER_ENGINE}\"\ninfo \"LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE}\"\ninfo \"GALLIUM_DRIVER=${GALLIUM_DRIVER}\"\ninfo \"MESA_LOADER_DRIVER_OVERRIDE=${MESA_LOADER_DRIVER_OVERRIDE}\"\n\nexec gz sim --render-engine \"${RENDER_ENGINE}\" -g --gui-config \"${ROOT_DIR}/sim_assets/gz/gui/gui.config\"\n"}, {"id": "launch", "title": "single_drone_autonomy.launch.py", "path": "src/drone_bringup/launch/single_drone_autonomy.launch.py", "role": "MAVROS, perception, planning, safety, control, metrics를 한 번에 실행하는 진입점이다.", "focus": "현재 baseline이 실제로 어떤 ROS 2 노드들로 구성되는지 보여준다.", "link": "../src/drone_bringup/launch/single_drone_autonomy.launch.py", "code": "import os\n\nfrom ament_index_python.packages import get_package_share_directory\nfrom launch import LaunchDescription\nfrom launch.actions import IncludeLaunchDescription\nfrom launch.launch_description_sources import AnyLaunchDescriptionSource\nfrom launch_ros.actions import Node\n\n\ndef generate_launch_description():\n    bringup_share = get_package_share_directory(\"drone_bringup\")\n    mavros_share = get_package_share_directory(\"mavros\")\n    mavros_launch = os.path.join(mavros_share, \"launch\", \"node.launch\")\n\n    pluginlists_yaml = os.path.join(bringup_share, \"config\", \"mavros_pluginlists.yaml\")\n    mavros_config_yaml = os.path.join(bringup_share, \"config\", \"mavros_config.yaml\")\n    autonomy_yaml = os.path.join(bringup_share, \"config\", \"drone1_autonomy.yaml\")\n\n    mavros = IncludeLaunchDescription(\n        AnyLaunchDescriptionSource(mavros_launch),\n        launch_arguments={\n            \"pluginlists_yaml\": pluginlists_yaml,\n            \"config_yaml\": mavros_config_yaml,\n            \"fcu_url\": \"udp://:14540@127.0.0.1:14580\",\n            \"gcs_url\": \"\",\n            \"tgt_system\": \"1\",\n            \"tgt_component\": \"1\",\n            \"fcu_protocol\": \"v2.0\",\n            \"respawn_mavros\": \"false\",\n            \"namespace\": \"mavros\",\n        }.items(),\n    )\n\n    perception = Node(\n        package=\"drone_perception\",\n        executable=\"lidar_obstacle_node\",\n        name=\"lidar_obstacle\",\n        output=\"screen\",\n        parameters=[autonomy_yaml],\n    )\n\n    planner = Node(\n        package=\"drone_planning\",\n        executable=\"local_planner_node\",\n        name=\"local_planner\",\n        output=\"screen\",\n        parameters=[autonomy_yaml],\n    )\n\n    safety = Node(\n        package=\"drone_safety\",\n        executable=\"safety_monitor\",\n        name=\"safety_monitor\",\n        output=\"screen\",\n        parameters=[autonomy_yaml],\n    )\n\n    controller = Node(\n        package=\"drone_control\",\n        executable=\"autonomy_manager\",\n        name=\"autonomy_manager\",\n        output=\"screen\",\n        parameters=[autonomy_yaml],\n    )\n\n    metrics = Node(\n        package=\"drone_metrics\",\n        executable=\"metrics_logger\",\n        name=\"metrics_logger\",\n        output=\"screen\",\n        parameters=[autonomy_yaml],\n    )\n\n    return LaunchDescription([mavros, perception, planner, safety, controller, metrics])\n"}, {"id": "yaml", "title": "drone1_autonomy.yaml", "path": "src/drone_bringup/config/drone1_autonomy.yaml", "role": "goal, takeoff height, speed, stop threshold, artifact 저장 위치 등 baseline 파라미터를 정의한다.", "focus": "지금 화면에서 왜 드론이 천천히 보이는지, 어떤 값이 비행 행태를 바꾸는지 확인하는 파일이다.", "link": "../src/drone_bringup/config/drone1_autonomy.yaml", "code": "/**:\n  ros__parameters:\n    drone_name: \"drone1\"\n    scenario_name: \"single_drone_obstacle_demo\"\n    mavros_namespace: \"/mavros\"\n    scan_topic: \"/drone1/scan\"\n    pose_topic: \"/mavros/local_position/pose\"\n    state_topic: \"/mavros/state\"\n    autonomy_cmd_topic: \"/drone1/autonomy/cmd_vel\"\n    safe_cmd_topic: \"/drone1/safety/cmd_vel\"\n    mission_phase_topic: \"/drone1/mission/phase\"\n    nearest_obstacle_topic: \"/drone1/perception/nearest_obstacle_distance\"\n    safety_event_topic: \"/drone1/safety/event\"\n    goal_reached_topic: \"/drone1/mission/goal_reached\"\n    fcu_url: \"udp://:14540@127.0.0.1:14580\"\n    takeoff_z: 3.0\n    goal_x: 8.0\n    goal_y: 0.0\n    goal_z: 3.0\n    goal_tol_xy: 1.0\n    goal_latch_enabled: true\n    cruise_speed: 1.0\n    obstacle_stop_distance: 2.0\n    hover_sec_after_takeoff: 2.0\n    kp_z: 1.2\n    vz_max: 1.0\n    cmd_rate_hz: 20.0\n    prestream_setpoints: 40\n    pose_timeout_sec: 0.5\n    scan_timeout_sec: 0.5\n    planner_cmd_timeout_sec: 0.5\n    startup_grace_sec: 3.0\n    emergency_stop_distance: 1.0\n    artifacts_root: \"/workspace/AV_Drone/artifacts\"\n"}, {"id": "perception", "title": "lidar_obstacle_node.py", "path": "src/drone_perception/drone_perception/lidar_obstacle_node.py", "role": "`LaserScan`을 받아 유효한 range 중 최소값만 골라 `nearest_obstacle_distance`로 publish한다.", "focus": "현재 perception은 매우 단순하다. point cloud 처리나 semantic map이 아니라 nearest distance reduction 단계다.", "link": "../src/drone_perception/drone_perception/lidar_obstacle_node.py", "code": "#!/usr/bin/env python3\n\nimport math\n\nimport rclpy\nfrom rclpy.node import Node\nfrom rclpy.qos import qos_profile_sensor_data\nfrom sensor_msgs.msg import LaserScan\nfrom std_msgs.msg import Float32\n\n\nclass LidarObstacleNode(Node):\n    def __init__(self):\n        super().__init__(\"lidar_obstacle\")\n\n        self.declare_parameter(\"scan_topic\", \"/drone1/scan\")\n        self.declare_parameter(\n            \"nearest_obstacle_topic\", \"/drone1/perception/nearest_obstacle_distance\"\n        )\n\n        scan_topic = str(self.get_parameter(\"scan_topic\").value)\n        obstacle_topic = str(self.get_parameter(\"nearest_obstacle_topic\").value)\n\n        self.pub = self.create_publisher(Float32, obstacle_topic, 10)\n        self.create_subscription(\n            LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data\n        )\n        self.get_logger().info(\n            f\"Perception scaffold ready: scan={scan_topic}, nearest_obstacle={obstacle_topic}\"\n        )\n\n    def _on_scan(self, msg: LaserScan):\n        valid_ranges = [r for r in msg.ranges if math.isfinite(r) and r >= msg.range_min]\n        nearest = min(valid_ranges) if valid_ranges else float(\"inf\")\n        self.pub.publish(Float32(data=float(nearest)))\n\n\ndef main(args=None):\n    rclpy.init(args=args)\n    node = LidarObstacleNode()\n    rclpy.spin(node)\n    rclpy.shutdown()\n"}, {"id": "planner", "title": "local_planner_node.py", "path": "src/drone_planning/drone_planning/local_planner_node.py", "role": "pose와 goal을 보고 직선 방향 속도를 만든다. 장애물이 stop distance 안이면 정지한다.", "focus": "현재 planner는 `회피 planner`가 아니라 `직진 + 가까우면 정지` baseline이라는 점이 중요하다.", "link": "../src/drone_planning/drone_planning/local_planner_node.py", "code": "#!/usr/bin/env python3\n\nimport math\n\nimport rclpy\nfrom geometry_msgs.msg import TwistStamped\nfrom rclpy.node import Node\nfrom rclpy.qos import qos_profile_sensor_data\nfrom geometry_msgs.msg import PoseStamped\nfrom std_msgs.msg import Bool, Float32\n\n\nclass LocalPlannerNode(Node):\n    def __init__(self):\n        super().__init__(\"local_planner\")\n\n        self.declare_parameter(\n            \"nearest_obstacle_topic\", \"/drone1/perception/nearest_obstacle_distance\"\n        )\n        self.declare_parameter(\"pose_topic\", \"/mavros/local_position/pose\")\n        self.declare_parameter(\"autonomy_cmd_topic\", \"/drone1/autonomy/cmd_vel\")\n        self.declare_parameter(\"goal_reached_topic\", \"/drone1/mission/goal_reached\")\n        self.declare_parameter(\"goal_x\", 10.0)\n        self.declare_parameter(\"goal_y\", 0.0)\n        self.declare_parameter(\"goal_tol_xy\", 0.6)\n        self.declare_parameter(\"cruise_speed\", 1.0)\n        self.declare_parameter(\"obstacle_stop_distance\", 2.0)\n        self.declare_parameter(\"goal_latch_enabled\", True)\n\n        self.nearest_obstacle = float(\"inf\")\n        self.have_obstacle_update = False\n        self.pose = None\n        self.goal_latched = False\n        self.autonomy_cmd_topic = str(self.get_parameter(\"autonomy_cmd_topic\").value)\n        nearest_topic = str(self.get_parameter(\"nearest_obstacle_topic\").value)\n        pose_topic = str(self.get_parameter(\"pose_topic\").value)\n        goal_reached_topic = str(self.get_parameter(\"goal_reached_topic\").value)\n\n        self.cmd_pub = self.create_publisher(TwistStamped, self.autonomy_cmd_topic, 10)\n        self.goal_pub = self.create_publisher(Bool, goal_reached_topic, 10)\n        self.create_subscription(Float32, nearest_topic, self._on_obstacle, 10)\n        self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)\n        self.create_timer(0.05, self._tick)\n\n        self.get_logger().info(\n            f\"Planner scaffold ready: nearest_obstacle={nearest_topic}, pose={pose_topic}, cmd_out={self.autonomy_cmd_topic}, goal_reached={goal_reached_topic}\"\n        )\n\n    def _on_obstacle(self, msg: Float32):\n        self.nearest_obstacle = float(msg.data)\n        self.have_obstacle_update = True\n\n    def _on_pose(self, msg: PoseStamped):\n        self.pose = msg\n\n    def _tick(self):\n        goal_x = float(self.get_parameter(\"goal_x\").value)\n        goal_y = float(self.get_parameter(\"goal_y\").value)\n        goal_tol_xy = float(self.get_parameter(\"goal_tol_xy\").value)\n        cruise_speed = float(self.get_parameter(\"cruise_speed\").value)\n        stop_distance = float(self.get_parameter(\"obstacle_stop_distance\").value)\n        goal_latch_enabled = bool(self.get_parameter(\"goal_latch_enabled\").value)\n\n        msg = TwistStamped()\n        msg.header.stamp = self.get_clock().now().to_msg()\n        msg.header.frame_id = \"map\"\n\n        goal_reached = self.goal_latched if goal_latch_enabled else False\n\n        if self.pose is None or not self.have_obstacle_update:\n            msg.twist.linear.x = 0.0\n            msg.twist.linear.y = 0.0\n            msg.twist.linear.z = 0.0\n        else:\n            px = float(self.pose.pose.position.x)\n            py = float(self.pose.pose.position.y)\n            dx = goal_x - px\n            dy = goal_y - py\n            dist = math.hypot(dx, dy)\n\n            if dist <= goal_tol_xy:\n                goal_reached = True\n                if goal_latch_enabled and not self.goal_latched:\n                    self.goal_latched = True\n                    self.get_logger().info(\n                        f\"Goal latched at xy distance {dist:.2f} m\"\n                    )\n            elif self.nearest_obstacle > stop_distance:\n                msg.twist.linear.x = cruise_speed * dx / max(dist, 1e-6)\n                msg.twist.linear.y = cruise_speed * dy / max(dist, 1e-6)\n                msg.twist.linear.z = 0.0\n\n        msg.twist.angular.z = 0.0\n        self.cmd_pub.publish(msg)\n        self.goal_pub.publish(Bool(data=goal_reached))\n\n\ndef main(args=None):\n    rclpy.init(args=args)\n    node = LocalPlannerNode()\n    rclpy.spin(node)\n    rclpy.shutdown()\n"}, {"id": "safety", "title": "safety_monitor_node.py", "path": "src/drone_safety/drone_safety/safety_monitor_node.py", "role": "pose / scan / planner command timeout과 emergency stop threshold를 감시해 safe command만 통과시킨다.", "focus": "연구 확장 전 baseline에서 safety gate가 어떤 역할을 하는지 보여준다.", "link": "../src/drone_safety/drone_safety/safety_monitor_node.py", "code": "#!/usr/bin/env python3\n\nimport time\n\nimport rclpy\nfrom geometry_msgs.msg import PoseStamped, TwistStamped\nfrom rclpy.node import Node\nfrom rclpy.qos import qos_profile_sensor_data\nfrom sensor_msgs.msg import LaserScan\nfrom std_msgs.msg import String\n\n\nclass SafetyMonitorNode(Node):\n    def __init__(self):\n        super().__init__(\"safety_monitor\")\n\n        self.declare_parameter(\"pose_topic\", \"/mavros/local_position/pose\")\n        self.declare_parameter(\"scan_topic\", \"/drone1/scan\")\n        self.declare_parameter(\"planner_cmd_topic\", \"/drone1/autonomy/cmd_vel\")\n        self.declare_parameter(\"safe_cmd_topic\", \"/drone1/safety/cmd_vel\")\n        self.declare_parameter(\"safety_event_topic\", \"/drone1/safety/event\")\n        self.declare_parameter(\"pose_timeout_sec\", 0.5)\n        self.declare_parameter(\"scan_timeout_sec\", 0.5)\n        self.declare_parameter(\"planner_cmd_timeout_sec\", 0.5)\n        self.declare_parameter(\"emergency_stop_distance\", 1.0)\n        self.declare_parameter(\"startup_grace_sec\", 3.0)\n\n        self.last_pose_t = None\n        self.last_scan_t = None\n        self.last_cmd_t = None\n        self.last_scan_min = float(\"inf\")\n        self.latest_cmd = TwistStamped()\n        self.last_reason = \"startup_hold\"\n        self._node_start_time = time.time()\n\n        pose_topic = str(self.get_parameter(\"pose_topic\").value)\n        scan_topic = str(self.get_parameter(\"scan_topic\").value)\n        planner_cmd_topic = str(self.get_parameter(\"planner_cmd_topic\").value)\n        safe_cmd_topic = str(self.get_parameter(\"safe_cmd_topic\").value)\n        safety_event_topic = str(self.get_parameter(\"safety_event_topic\").value)\n\n        self.safe_cmd_pub = self.create_publisher(TwistStamped, safe_cmd_topic, 10)\n        self.event_pub = self.create_publisher(String, safety_event_topic, 10)\n\n        self.create_subscription(\n            PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data\n        )\n        self.create_subscription(\n            LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data\n        )\n        self.create_subscription(TwistStamped, planner_cmd_topic, self._on_cmd, 10)\n        self.create_timer(0.05, self._tick)\n\n        self.get_logger().info(\n            f\"Safety monitor ready: pose={pose_topic}, scan={scan_topic}, planner_cmd={planner_cmd_topic}, safe_cmd={safe_cmd_topic}\"\n        )\n\n    def _on_pose(self, _msg: PoseStamped):\n        self.last_pose_t = time.time()\n\n    def _on_scan(self, msg: LaserScan):\n        self.last_scan_t = time.time()\n        valid = [r for r in msg.ranges if r >= msg.range_min and r <= msg.range_max]\n        self.last_scan_min = min(valid) if valid else float(\"inf\")\n\n    def _on_cmd(self, msg: TwistStamped):\n        self.last_cmd_t = time.time()\n        self.latest_cmd = msg\n\n    def _emit_event(self, reason: str):\n        if reason == self.last_reason:\n            return\n        self.last_reason = reason\n        self.event_pub.publish(String(data=reason))\n        self.get_logger().warn(f\"Safety state changed: {reason}\")\n\n    def _zero_cmd(self):\n        msg = TwistStamped()\n        msg.header.stamp = self.get_clock().now().to_msg()\n        msg.header.frame_id = \"map\"\n        return msg\n\n    def _tick(self):\n        now = time.time()\n        pose_timeout = float(self.get_parameter(\"pose_timeout_sec\").value)\n        scan_timeout = float(self.get_parameter(\"scan_timeout_sec\").value)\n        cmd_timeout = float(self.get_parameter(\"planner_cmd_timeout_sec\").value)\n        emergency_stop_distance = float(self.get_parameter(\"emergency_stop_distance\").value)\n        startup_grace = float(self.get_parameter(\"startup_grace_sec\").value)\n\n        if (now - self._node_start_time) < startup_grace:\n            self._emit_event(\"startup_grace\")\n            self.safe_cmd_pub.publish(self._zero_cmd())\n            return\n\n        if self.last_pose_t is None or (now - self.last_pose_t) > pose_timeout:\n            self._emit_event(\"pose_timeout\")\n            self.safe_cmd_pub.publish(self._zero_cmd())\n            return\n\n        if self.last_scan_t is None or (now - self.last_scan_t) > scan_timeout:\n            self._emit_event(\"scan_timeout\")\n            self.safe_cmd_pub.publish(self._zero_cmd())\n            return\n\n        if self.last_cmd_t is None or (now - self.last_cmd_t) > cmd_timeout:\n            self._emit_event(\"planner_cmd_timeout\")\n            self.safe_cmd_pub.publish(self._zero_cmd())\n            return\n\n        if self.last_scan_min <= emergency_stop_distance:\n            self._emit_event(\"emergency_stop_obstacle\")\n            self.safe_cmd_pub.publish(self._zero_cmd())\n            return\n\n        self._emit_event(\"normal\")\n        safe_cmd = self.latest_cmd\n        safe_cmd.header.stamp = self.get_clock().now().to_msg()\n        self.safe_cmd_pub.publish(safe_cmd)\n\n\ndef main(args=None):\n    rclpy.init(args=args)\n    node = SafetyMonitorNode()\n    rclpy.spin(node)\n    rclpy.shutdown()\n"}, {"id": "control", "title": "autonomy_manager_node.py", "path": "src/drone_control/drone_control/autonomy_manager_node.py", "role": "WAIT_STREAM -> OFFBOARD_ARM -> TAKEOFF -> HOVER_AFTER_TAKEOFF -> FOLLOW_PLAN -> HOVER_AT_GOAL 상태 머신을 수행한다.", "focus": "지금 드론이 실제로 어떻게 뜨고 목표점으로 가는지, 비행 상태 머신을 이해할 때 가장 중요한 파일이다.", "link": "../src/drone_control/drone_control/autonomy_manager_node.py", "code": "#!/usr/bin/env python3\n\nimport math\nimport time\n\nimport rclpy\nfrom geometry_msgs.msg import TwistStamped\nfrom mavros_msgs.srv import CommandBool, SetMode\nfrom rclpy.node import Node\nfrom std_msgs.msg import Bool, String\n\nfrom drone_control.vehicle_interface import VehicleInterface\n\n\ndef clamp(x: float, lo: float, hi: float) -> float:\n    return max(lo, min(hi, x))\n\n\ndef quat_to_yaw(qx: float, qy: float, qz: float, qw: float) -> float:\n    siny_cosp = 2.0 * (qw * qz + qx * qy)\n    cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)\n    return math.atan2(siny_cosp, cosy_cosp)\n\n\nclass AutonomyManagerNode(Node):\n    def __init__(self):\n        super().__init__(\"autonomy_manager\")\n\n        self.declare_parameter(\"mavros_namespace\", \"/mavros\")\n        self.declare_parameter(\"pose_topic\", \"/mavros/local_position/pose\")\n        self.declare_parameter(\"safe_cmd_topic\", \"/drone1/safety/cmd_vel\")\n        self.declare_parameter(\"goal_reached_topic\", \"/drone1/mission/goal_reached\")\n        self.declare_parameter(\"mission_phase_topic\", \"/drone1/mission/phase\")\n        self.declare_parameter(\"takeoff_z\", 3.0)\n        self.declare_parameter(\"goal_z\", 3.0)\n        self.declare_parameter(\"hover_sec_after_takeoff\", 2.0)\n        self.declare_parameter(\"kp_z\", 1.2)\n        self.declare_parameter(\"vz_max\", 1.0)\n        self.declare_parameter(\"cmd_rate_hz\", 20.0)\n        self.declare_parameter(\"pose_timeout_sec\", 0.5)\n        self.declare_parameter(\"prestream_setpoints\", 40)\n\n        pose_topic = str(self.get_parameter(\"pose_topic\").value)\n        self.vehicle = VehicleInterface(\n            self,\n            str(self.get_parameter(\"mavros_namespace\").value),\n            pose_topic=pose_topic,\n        )\n        self.safe_cmd_topic = str(self.get_parameter(\"safe_cmd_topic\").value)\n        self.goal_reached_topic = str(self.get_parameter(\"goal_reached_topic\").value)\n        self.phase_pub = self.create_publisher(\n            String, str(self.get_parameter(\"mission_phase_topic\").value), 10\n        )\n\n        self._latest_cmd = TwistStamped()\n        self._have_cmd = False\n        self._goal_reached = False\n        self._last_mode_req_t = 0.0\n        self._last_arm_req_t = 0.0\n        self._phase = \"WAIT_STREAM\"\n        self._phase_t0 = time.time()\n        self._prestream_count = 0\n\n        self.create_subscription(TwistStamped, self.safe_cmd_topic, self._on_cmd, 10)\n        self.create_subscription(Bool, self.goal_reached_topic, self._on_goal_reached, 10)\n\n        rate_hz = max(float(self.get_parameter(\"cmd_rate_hz\").value), 1.0)\n        self.create_timer(1.0 / rate_hz, self._tick)\n        self.create_timer(1.0, self._publish_phase_heartbeat)\n        self.phase_pub.publish(String(data=self._phase))\n\n        self.get_logger().info(\n            f\"Autonomy manager ready: pose={pose_topic}, safe_cmd={self.safe_cmd_topic}, goal_reached={self.goal_reached_topic}\"\n        )\n\n    def _on_cmd(self, msg: TwistStamped):\n        self._latest_cmd = msg\n        self._have_cmd = True\n\n    def _on_goal_reached(self, msg: Bool):\n        self._goal_reached = bool(msg.data)\n\n    def _request_mode(self, mode: str):\n        if not self.vehicle.mode_cli.service_is_ready():\n            return\n        req = SetMode.Request()\n        req.custom_mode = mode\n        self.vehicle.mode_cli.call_async(req)\n\n    def _request_arm(self, arm: bool):\n        if not self.vehicle.arm_cli.service_is_ready():\n            return\n        req = CommandBool.Request()\n        req.value = arm\n        self.vehicle.arm_cli.call_async(req)\n\n    def _publish_cmd(self, vx: float, vy: float, vz: float, yaw_rate: float):\n        msg = TwistStamped()\n        msg.header.stamp = self.get_clock().now().to_msg()\n        msg.header.frame_id = \"map\"\n        msg.twist.linear.x = float(vx)\n        msg.twist.linear.y = float(vy)\n        msg.twist.linear.z = float(vz)\n        msg.twist.angular.z = float(yaw_rate)\n        self.vehicle.publish_velocity(msg)\n\n    def _enter_phase(self, name: str):\n        if self._phase == name:\n            return\n        self._phase = name\n        self._phase_t0 = time.time()\n        self.phase_pub.publish(String(data=name))\n        self.get_logger().info(f\"PHASE => {name}\")\n\n    def _phase_elapsed(self) -> float:\n        return time.time() - self._phase_t0\n\n    def _publish_phase_heartbeat(self):\n        self.phase_pub.publish(String(data=self._phase))\n\n    def _get_xyz_yaw(self):\n        pose = self.vehicle.pose\n        p = pose.pose.position\n        q = pose.pose.orientation\n        yaw = quat_to_yaw(q.x, q.y, q.z, q.w)\n        return float(p.x), float(p.y), float(p.z), float(yaw)\n\n    def _tick(self):\n        now = time.time()\n        pose_timeout = float(self.get_parameter(\"pose_timeout_sec\").value)\n        takeoff_z = float(self.get_parameter(\"takeoff_z\").value)\n        goal_z = float(self.get_parameter(\"goal_z\").value)\n        hover_after_takeoff = float(self.get_parameter(\"hover_sec_after_takeoff\").value)\n        kp_z = float(self.get_parameter(\"kp_z\").value)\n        vz_max = float(self.get_parameter(\"vz_max\").value)\n        prestream_setpoints = int(self.get_parameter(\"prestream_setpoints\").value)\n\n        if not self.vehicle.state.connected:\n            return\n        if self.vehicle.pose is None or self.vehicle.pose_age() > pose_timeout:\n            return\n\n        _, _, z, _ = self._get_xyz_yaw()\n\n        if self._phase == \"WAIT_STREAM\":\n            # Pre-stream zero setpoints only until OFFBOARD can be requested.\n            self._publish_cmd(0.0, 0.0, 0.0, 0.0)\n            self._prestream_count += 1\n            if self._prestream_count >= prestream_setpoints:\n                self._enter_phase(\"OFFBOARD_ARM\")\n            return\n\n        if self._phase not in {\"WAIT_STREAM\", \"OFFBOARD_ARM\"}:\n            if self.vehicle.state.mode != \"OFFBOARD\" or not self.vehicle.state.armed:\n                self._enter_phase(\"OFFBOARD_ARM\")\n                return\n\n        if self._phase == \"OFFBOARD_ARM\":\n            self._publish_cmd(0.0, 0.0, 0.0, 0.0)\n            if self.vehicle.state.mode != \"OFFBOARD\":\n                if (now - self._last_mode_req_t) > 1.0:\n                    self._request_mode(\"OFFBOARD\")\n                    self._last_mode_req_t = now\n                    self.get_logger().info(\"Requesting OFFBOARD mode\")\n                return\n\n            if not self.vehicle.state.armed:\n                if (now - self._last_arm_req_t) > 1.0:\n                    self._request_arm(True)\n                    self._last_arm_req_t = now\n                    self.get_logger().info(\"Requesting arm\")\n                return\n\n            self._enter_phase(\"TAKEOFF\")\n            return\n\n        if self._phase == \"TAKEOFF\":\n            err_z = takeoff_z - z\n            vz_cmd = clamp(kp_z * err_z, -vz_max, vz_max)\n            if err_z > 0.2:\n                vz_cmd = clamp(vz_cmd, 0.2, vz_max)\n            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)\n\n            if z >= takeoff_z - 0.15:\n                self._enter_phase(\"HOVER_AFTER_TAKEOFF\")\n            return\n\n        if self._phase == \"HOVER_AFTER_TAKEOFF\":\n            err_z = takeoff_z - z\n            vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)\n            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)\n\n            if self._phase_elapsed() >= hover_after_takeoff:\n                self._enter_phase(\"FOLLOW_PLAN\")\n            return\n\n        if self._phase == \"FOLLOW_PLAN\":\n            if self._goal_reached:\n                self._enter_phase(\"HOVER_AT_GOAL\")\n                return\n\n            err_z = goal_z - z\n            vz_hold = clamp(kp_z * err_z, -vz_max, vz_max)\n            cmd = self._latest_cmd if self._have_cmd else TwistStamped()\n            self._publish_cmd(\n                cmd.twist.linear.x,\n                cmd.twist.linear.y,\n                vz_hold,\n                cmd.twist.angular.z,\n            )\n            return\n\n        if self._phase == \"HOVER_AT_GOAL\":\n            err_z = goal_z - z\n            vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)\n            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)\n\n\ndef main(args=None):\n    rclpy.init(args=args)\n    node = AutonomyManagerNode()\n    rclpy.spin(node)\n    rclpy.shutdown()\n"}, {"id": "metrics", "title": "metrics_logger_node.py", "path": "src/drone_metrics/drone_metrics/metrics_logger_node.py", "role": "run_id를 만들고, git commit / branch / dirty 상태와 runtime metrics를 artifact로 저장한다.", "focus": "이 프로젝트의 재현성과 포트폴리오 가치가 어디서 오는지 보여준다.", "link": "../src/drone_metrics/drone_metrics/metrics_logger_node.py", "code": "#!/usr/bin/env python3\n\nimport csv\nimport json\nimport os\nimport subprocess\nimport time\nfrom pathlib import Path\n\nimport rclpy\nfrom geometry_msgs.msg import PoseStamped, TwistStamped\nfrom mavros_msgs.msg import State\nfrom rclpy.node import Node\nfrom rclpy.qos import qos_profile_sensor_data\nfrom sensor_msgs.msg import LaserScan\nfrom std_msgs.msg import Bool, Float32, String\n\n\nclass MetricsLoggerNode(Node):\n    def __init__(self):\n        super().__init__(\"metrics_logger\")\n\n        self.declare_parameter(\"drone_name\", \"drone1\")\n        self.declare_parameter(\"scenario_name\", \"single_drone_obstacle_demo\")\n        self.declare_parameter(\"state_topic\", \"/mavros/state\")\n        self.declare_parameter(\"pose_topic\", \"/mavros/local_position/pose\")\n        self.declare_parameter(\"scan_topic\", \"/drone1/scan\")\n        self.declare_parameter(\"planner_cmd_topic\", \"/drone1/autonomy/cmd_vel\")\n        self.declare_parameter(\"safe_cmd_topic\", \"/drone1/safety/cmd_vel\")\n        self.declare_parameter(\"nearest_obstacle_topic\", \"/drone1/perception/nearest_obstacle_distance\")\n        self.declare_parameter(\"safety_event_topic\", \"/drone1/safety/event\")\n        self.declare_parameter(\"goal_reached_topic\", \"/drone1/mission/goal_reached\")\n        self.declare_parameter(\"mission_phase_topic\", \"/drone1/mission/phase\")\n        self.declare_parameter(\"artifacts_root\", \"/workspace/AV_Drone/artifacts\")\n\n        drone_name = str(self.get_parameter(\"drone_name\").value)\n        self.scenario_name = str(self.get_parameter(\"scenario_name\").value)\n        artifacts_root = Path(str(self.get_parameter(\"artifacts_root\").value))\n        ts = time.strftime(\"%Y-%m-%d_%H-%M-%S\")\n        self.run_id = f\"{ts}_{drone_name}\"\n        self.run_dir = artifacts_root / self.run_id\n        self.run_dir.mkdir(parents=True, exist_ok=True)\n\n        self.csv_path = self.run_dir / \"metrics.csv\"\n        self.events_path = self.run_dir / \"events.log\"\n        self.summary_path = self.run_dir / \"summary.json\"\n        self.metadata_path = self.run_dir / \"metadata.json\"\n\n        git_context = self._git_context()\n        self.git_commit = git_context[\"git_commit\"]\n        self.git_branch = git_context[\"git_branch\"]\n        self.git_dirty = git_context[\"git_dirty\"]\n        self.px4_gz_world = os.environ.get(\n            \"PX4_GZ_WORLD\", os.environ.get(\"PX4_SITL_WORLD\", \"unknown\")\n        )\n        self.px4_gz_model_name = os.environ.get(\"PX4_GZ_MODEL_NAME\", \"unknown\")\n        self.px4_sim_target = os.environ.get(\"PX4_SIM_TARGET\", \"unknown\")\n        self.px4_sim_model = os.environ.get(\"PX4_SIM_MODEL\", \"unknown\")\n\n        self.start_time = time.time()\n        self.state_connected = False\n        self.state_armed = False\n        self.state_mode = \"\"\n        self.pose_count = 0\n        self.scan_count = 0\n        self.planner_cmd_count = 0\n        self.safe_cmd_count = 0\n        self.safety_event_count = 0\n        self.goal_reached = False\n        self.current_obstacle = float(\"inf\")\n        self.closest_obstacle = float(\"inf\")\n        self.current_phase = \"startup\"\n        self.last_pose_time = None\n        self.last_scan_time = None\n        self.pose_periods = []\n        self.scan_periods = []\n        self.safety_reason_counts = {}\n\n        self._write_metadata()\n        self._init_csv()\n\n        self.create_subscription(State, str(self.get_parameter(\"state_topic\").value), self._on_state, 10)\n        self.create_subscription(\n            PoseStamped,\n            str(self.get_parameter(\"pose_topic\").value),\n            self._on_pose,\n            qos_profile_sensor_data,\n        )\n        self.create_subscription(\n            LaserScan,\n            str(self.get_parameter(\"scan_topic\").value),\n            self._on_scan,\n            qos_profile_sensor_data,\n        )\n        self.create_subscription(TwistStamped, str(self.get_parameter(\"planner_cmd_topic\").value), self._on_planner_cmd, 10)\n        self.create_subscription(TwistStamped, str(self.get_parameter(\"safe_cmd_topic\").value), self._on_safe_cmd, 10)\n        self.create_subscription(Float32, str(self.get_parameter(\"nearest_obstacle_topic\").value), self._on_obstacle, 10)\n        self.create_subscription(String, str(self.get_parameter(\"safety_event_topic\").value), self._on_safety_event, 10)\n        self.create_subscription(Bool, str(self.get_parameter(\"goal_reached_topic\").value), self._on_goal, 10)\n        self.create_subscription(String, str(self.get_parameter(\"mission_phase_topic\").value), self._on_phase, 10)\n\n        self.create_timer(1.0, self._write_periodic_row)\n\n        self.get_logger().info(f\"Metrics logger writing artifacts to {self.run_dir}\")\n\n    def _git_context(self):\n        git_prefix = [\"git\", \"-c\", \"safe.directory=/workspace/AV_Drone\"]\n        try:\n            commit = subprocess.run(\n                git_prefix + [\"rev-parse\", \"HEAD\"],\n                cwd=\"/workspace/AV_Drone\",\n                capture_output=True,\n                text=True,\n                check=True,\n            )\n            branch = subprocess.run(\n                git_prefix + [\"rev-parse\", \"--abbrev-ref\", \"HEAD\"],\n                cwd=\"/workspace/AV_Drone\",\n                capture_output=True,\n                text=True,\n                check=True,\n            )\n            dirty = subprocess.run(\n                git_prefix + [\"status\", \"--porcelain\"],\n                cwd=\"/workspace/AV_Drone\",\n                capture_output=True,\n                text=True,\n                check=True,\n            )\n            return {\n                \"git_commit\": commit.stdout.strip(),\n                \"git_branch\": branch.stdout.strip(),\n                \"git_dirty\": bool(dirty.stdout.strip()),\n            }\n        except Exception:\n            return {\n                \"git_commit\": \"unknown\",\n                \"git_branch\": \"unknown\",\n                \"git_dirty\": True,\n            }\n\n    def _write_metadata(self):\n        metadata = {\n            \"started_at\": time.strftime(\"%Y-%m-%dT%H:%M:%S\"),\n            \"run_id\": self.run_id,\n            \"artifact_dir\": str(self.run_dir),\n            \"git_commit\": self.git_commit,\n            \"git_branch\": self.git_branch,\n            \"git_dirty\": self.git_dirty,\n            \"drone_name\": str(self.get_parameter(\"drone_name\").value),\n            \"scenario_name\": self.scenario_name,\n            \"px4_gz_world\": self.px4_gz_world,\n            \"px4_gz_model_name\": self.px4_gz_model_name,\n            \"px4_sim_target\": self.px4_sim_target,\n            \"px4_sim_model\": self.px4_sim_model,\n            \"state_topic\": str(self.get_parameter(\"state_topic\").value),\n            \"pose_topic\": str(self.get_parameter(\"pose_topic\").value),\n            \"scan_topic\": str(self.get_parameter(\"scan_topic\").value),\n            \"planner_cmd_topic\": str(self.get_parameter(\"planner_cmd_topic\").value),\n            \"safe_cmd_topic\": str(self.get_parameter(\"safe_cmd_topic\").value),\n            \"nearest_obstacle_topic\": str(self.get_parameter(\"nearest_obstacle_topic\").value),\n            \"safety_event_topic\": str(self.get_parameter(\"safety_event_topic\").value),\n            \"goal_reached_topic\": str(self.get_parameter(\"goal_reached_topic\").value),\n            \"mission_phase_topic\": str(self.get_parameter(\"mission_phase_topic\").value),\n        }\n        self.metadata_path.write_text(json.dumps(metadata, indent=2))\n\n    def _init_csv(self):\n        with self.csv_path.open(\"w\", newline=\"\") as f:\n            writer = csv.writer(f)\n            writer.writerow([\n                \"t_sec\",\n                \"connected\",\n                \"armed\",\n                \"mode\",\n                \"pose_count\",\n                \"scan_count\",\n                \"planner_cmd_count\",\n                \"safe_cmd_count\",\n                \"current_obstacle_m\",\n                \"nearest_obstacle_m\",\n                \"safety_event_count\",\n                \"mission_phase\",\n                \"goal_reached\",\n            ])\n\n    def _append_event(self, text: str):\n        with self.events_path.open(\"a\") as f:\n            f.write(f\"{time.time() - self.start_time:.3f}s {text}\\n\")\n\n    def _on_state(self, msg: State):\n        self.state_connected = bool(msg.connected)\n        self.state_armed = bool(msg.armed)\n        self.state_mode = str(msg.mode)\n\n    def _on_pose(self, _msg: PoseStamped):\n        now = time.time()\n        if self.last_pose_time is not None:\n            self.pose_periods.append(now - self.last_pose_time)\n        self.last_pose_time = now\n        self.pose_count += 1\n\n    def _on_scan(self, _msg: LaserScan):\n        now = time.time()\n        if self.last_scan_time is not None:\n            self.scan_periods.append(now - self.last_scan_time)\n        self.last_scan_time = now\n        self.scan_count += 1\n\n    def _on_planner_cmd(self, _msg: TwistStamped):\n        self.planner_cmd_count += 1\n\n    def _on_safe_cmd(self, _msg: TwistStamped):\n        self.safe_cmd_count += 1\n\n    def _on_obstacle(self, msg: Float32):\n        self.current_obstacle = float(msg.data)\n        self.closest_obstacle = min(self.closest_obstacle, float(msg.data))\n\n    def _on_safety_event(self, msg: String):\n        self.safety_event_count += 1\n        self.safety_reason_counts[msg.data] = self.safety_reason_counts.get(msg.data, 0) + 1\n        self._append_event(msg.data)\n\n    def _on_goal(self, msg: Bool):\n        self.goal_reached = bool(msg.data)\n\n    def _on_phase(self, msg: String):\n        if msg.data != self.current_phase:\n            self.current_phase = msg.data\n            self._append_event(f\"phase={msg.data}\")\n\n    def _write_periodic_row(self):\n        with self.csv_path.open(\"a\", newline=\"\") as f:\n            writer = csv.writer(f)\n            writer.writerow([\n                round(time.time() - self.start_time, 3),\n                self.state_connected,\n                self.state_armed,\n                self.state_mode,\n                self.pose_count,\n                self.scan_count,\n                self.planner_cmd_count,\n                self.safe_cmd_count,\n                self.current_obstacle,\n                self.closest_obstacle,\n                self.safety_event_count,\n                self.current_phase,\n                self.goal_reached,\n            ])\n\n        if self.pose_periods:\n            mean_period = sum(self.pose_periods) / len(self.pose_periods)\n            p99_period = sorted(self.pose_periods)[min(len(self.pose_periods) - 1, int(len(self.pose_periods) * 0.99))]\n            worst_period = max(self.pose_periods)\n        else:\n            mean_period = None\n            p99_period = None\n            worst_period = None\n\n        if self.scan_periods:\n            scan_mean_period = sum(self.scan_periods) / len(self.scan_periods)\n            scan_p99_period = sorted(self.scan_periods)[\n                min(len(self.scan_periods) - 1, int(len(self.scan_periods) * 0.99))\n            ]\n            scan_worst_period = max(self.scan_periods)\n        else:\n            scan_mean_period = None\n            scan_p99_period = None\n            scan_worst_period = None\n\n        summary = {\n            \"runtime_s\": round(time.time() - self.start_time, 3),\n            \"run_id\": self.run_id,\n            \"artifact_dir\": str(self.run_dir),\n            \"git_commit\": self.git_commit,\n            \"git_branch\": self.git_branch,\n            \"git_dirty\": self.git_dirty,\n            \"scenario_name\": self.scenario_name,\n            \"px4_gz_world\": self.px4_gz_world,\n            \"px4_gz_model_name\": self.px4_gz_model_name,\n            \"px4_sim_target\": self.px4_sim_target,\n            \"px4_sim_model\": self.px4_sim_model,\n            \"connected\": self.state_connected,\n            \"armed\": self.state_armed,\n            \"mode\": self.state_mode,\n            \"mission_phase\": self.current_phase,\n            \"pose_count\": self.pose_count,\n            \"scan_count\": self.scan_count,\n            \"planner_cmd_count\": self.planner_cmd_count,\n            \"safe_cmd_count\": self.safe_cmd_count,\n            \"safety_event_count\": self.safety_event_count,\n            \"safety_reason_counts\": self.safety_reason_counts,\n            \"goal_reached\": self.goal_reached,\n            \"current_obstacle_m\": self.current_obstacle,\n            \"closest_obstacle_m\": self.closest_obstacle,\n            \"pose_period_mean_s\": mean_period,\n            \"pose_period_p99_s\": p99_period,\n            \"pose_period_worst_s\": worst_period,\n            \"scan_period_mean_s\": scan_mean_period,\n            \"scan_period_p99_s\": scan_p99_period,\n            \"scan_period_worst_s\": scan_worst_period,\n        }\n        self.summary_path.write_text(json.dumps(summary, indent=2))\n\n\ndef main(args=None):\n    rclpy.init(args=args)\n    node = MetricsLoggerNode()\n    rclpy.spin(node)\n    rclpy.shutdown()\n"}];
+    const runtimeStages = [{"title": "1. Sim Server Boot", "phase": "WAIT_STREAM", "text": "sim 컨테이너가 PX4 SITL과 Gazebo Sim 서버를 띄운다. host GUI는 여기에 나중에 붙는다.", "activeNodes": ["host", "sim", "world"], "activeLinks": ["host-sim"], "packet": {"x": 180, "y": 132}, "drone": {"x": 120, "y": 255}, "badge": "sim server only"}, {"title": "2. MAVROS Connect", "phase": "OFFBOARD_ARM", "text": "ros 컨테이너가 MAVROS를 띄우고 PX4 UDP endpoint에 연결한다. state / pose가 ROS 2로 들어오기 시작한다.", "activeNodes": ["sim", "mavros", "control", "metrics"], "activeLinks": ["sim-mavros", "mavros-control", "mavros-metrics"], "packet": {"x": 350, "y": 170}, "drone": {"x": 120, "y": 240}, "badge": "pose stream on"}, {"title": "3. LiDAR Scan", "phase": "OFFBOARD_ARM", "text": "Gazebo Sim이 `/drone1/scan`을 발행하고 perception 노드가 이를 받는다. 현재 scan은 2D LaserScan이다.", "activeNodes": ["world", "perception", "metrics"], "activeLinks": ["world-perception", "perception-metrics"], "packet": {"x": 450, "y": 118}, "drone": {"x": 120, "y": 230}, "badge": "LaserScan active"}, {"title": "4. Perception -> Planner", "phase": "TAKEOFF", "text": "perception은 scan 전체를 처리하지 않고 nearest obstacle distance만 planner에 넘긴다. planner는 pose와 goal을 보고 속도 명령을 만든다.", "activeNodes": ["perception", "planner", "metrics"], "activeLinks": ["perception-planner", "planner-metrics"], "packet": {"x": 596, "y": 170}, "drone": {"x": 120, "y": 185}, "badge": "reduce to nearest obstacle"}, {"title": "5. Safety Gate", "phase": "HOVER_AFTER_TAKEOFF", "text": "planner command는 바로 PX4로 가지 않는다. safety monitor가 pose timeout, scan timeout, obstacle threshold를 검사한 뒤 safe command를 만든다.", "activeNodes": ["planner", "safety", "metrics"], "activeLinks": ["planner-safety", "safety-metrics"], "packet": {"x": 735, "y": 210}, "drone": {"x": 120, "y": 132}, "badge": "command gated"}, {"title": "6. Control State Machine", "phase": "FOLLOW_PLAN", "text": "autonomy_manager가 OFFBOARD, arm, takeoff, hover를 마친 뒤 safe command를 PX4 velocity setpoint로 보낸다.", "activeNodes": ["safety", "control", "mavros", "sim"], "activeLinks": ["safety-control", "control-mavros", "mavros-sim"], "packet": {"x": 908, "y": 206}, "drone": {"x": 255, "y": 132}, "badge": "move to goal"}, {"title": "7. Artifact Logging", "phase": "HOVER_AT_GOAL", "text": "metrics logger가 git context, phase 변화, counts, obstacle distance를 artifact로 저장한다. 이후 smoke test와 experiments ledger가 후처리한다.", "activeNodes": ["metrics", "artifacts"], "activeLinks": ["metrics-artifacts"], "packet": {"x": 1050, "y": 150}, "drone": {"x": 470, "y": 132}, "badge": "artifact written"}];
+
+    const codeList = document.getElementById('codeList');
+    const codeTitle = document.getElementById('codeTitle');
+    const codeRole = document.getElementById('codeRole');
+    const codePath = document.getElementById('codePath');
+    const codeLink = document.getElementById('codeLink');
+    const codeFocus = document.getElementById('codeFocus');
+    const codeBlock = document.getElementById('codeBlock');
+
+    function selectCode(id) {
+      const entry = codeEntries.find(item => item.id === id) || codeEntries[0];
+      document.querySelectorAll('.code-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === id));
+      codeTitle.textContent = entry.title;
+      codeRole.textContent = entry.role;
+      codePath.textContent = entry.path;
+      codeLink.href = entry.link;
+      codeFocus.textContent = entry.focus;
+      codeBlock.textContent = entry.code;
+    }
+
+    codeEntries.forEach((entry, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'code-btn' + (index === 0 ? ' active' : '');
+      btn.dataset.id = entry.id;
+      btn.innerHTML = `<strong>${entry.title}</strong><small>${entry.path}</small>`;
+      btn.addEventListener('click', () => selectCode(entry.id));
+      codeList.appendChild(btn);
+    });
+    selectCode(codeEntries[0].id);
+
+    const nodeIds = ['host','sim','world','mavros','perception','planner','safety','control','metrics','artifacts'];
+    const linkIds = ['host-sim','sim-mavros','world-perception','perception-planner','planner-safety','safety-control','control-mavros','mavros-sim','mavros-control','mavros-metrics','perception-metrics','planner-metrics','safety-metrics','metrics-artifacts'];
+    const stageTitle = document.getElementById('stageTitle');
+    const stageText = document.getElementById('stageText');
+    const stageBadge = document.getElementById('stageBadge');
+    const phaseName = document.getElementById('phaseName');
+    const packet = document.getElementById('packet');
+    const droneIcon = document.getElementById('droneIcon');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const phasePills = Array.from(document.querySelectorAll('.phase-pill'));
+    let stageIndex = 0;
+    let timer = null;
+
+    function setStage(index) {
+      stageIndex = (index + runtimeStages.length) % runtimeStages.length;
+      const stage = runtimeStages[stageIndex];
+      stageTitle.textContent = stage.title;
+      stageText.textContent = stage.text;
+      stageBadge.textContent = stage.badge;
+      phaseName.textContent = stage.phase;
+      nodeIds.forEach(id => {
+        const el = document.getElementById('node-' + id);
+        if (!el) return;
+        el.style.filter = stage.activeNodes.includes(id) ? 'drop-shadow(0 0 10px rgba(37,99,235,.18))' : 'none';
+        el.style.strokeWidth = stage.activeNodes.includes(id) ? '3' : '2';
+      });
+      linkIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.setAttribute('stroke', stage.activeLinks.includes(id) ? '#2563eb' : '#c7d5e3');
+        el.setAttribute('stroke-width', stage.activeLinks.includes(id) ? '4' : '3');
+      });
+      packet.setAttribute('cx', stage.packet.x);
+      packet.setAttribute('cy', stage.packet.y);
+      droneIcon.setAttribute('transform', `translate(${stage.drone.x} ${stage.drone.y})`);
+      phasePills.forEach(p => p.classList.toggle('active', p.dataset.phase === stage.phase));
+    }
+
+    function play() {
+      if (timer) return;
+      playBtn.textContent = '일시정지';
+      timer = setInterval(() => setStage(stageIndex + 1), 3000);
+    }
+
+    function pause() {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = null;
+      playBtn.textContent = '자동 재생';
+    }
+
+    playBtn.addEventListener('click', () => timer ? pause() : play());
+    prevBtn.addEventListener('click', () => { pause(); setStage(stageIndex - 1); });
+    nextBtn.addEventListener('click', () => { pause(); setStage(stageIndex + 1); });
+    setStage(0);
+  </script>
+</body>
+</html>

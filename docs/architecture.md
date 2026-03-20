@@ -10,12 +10,13 @@ Host Ubuntu 22.04
 └─ Docker Compose
    ├─ sim
    │  ├─ PX4 SITL
-   │  ├─ Gazebo Classic
-   │  ├─ iris_rplidar model
-   │  └─ obstacle_demo.world
+   │  ├─ Gazebo Sim
+   │  ├─ x500_lidar model
+   │  └─ obstacle_demo.sdf
    └─ ros
       ├─ ROS 2 Humble
       ├─ MAVROS
+      ├─ ros_gz_bridge
       ├─ drone_bringup
       ├─ drone_control
       ├─ drone_perception
@@ -30,12 +31,13 @@ Host Ubuntu 22.04
 ## 2. 런타임 데이터 흐름
 
 ```text
-Gazebo Classic + PX4 SITL
+Gazebo Sim + PX4 SITL
   -> MAVROS
   -> /mavros/local_position/pose
   -> drone_control/autonomy_manager
 
-Gazebo LiDAR
+Gazebo Sim lidar topic
+  -> ros_gz_bridge/parameter_bridge
   -> /drone1/scan
   -> drone_perception/lidar_obstacle_node
   -> /drone1/perception/nearest_obstacle_distance
@@ -61,13 +63,13 @@ All state / scan / phase / event streams
 
 - [docker/sim/Dockerfile](/home/deepblue/AV_Drone/docker/sim/Dockerfile)
 - [docker/sim/entrypoint.sh](/home/deepblue/AV_Drone/docker/sim/entrypoint.sh)
-- [sim_assets/models/rplidar/model.sdf](/home/deepblue/AV_Drone/sim_assets/models/rplidar/model.sdf)
-- [sim_assets/worlds/obstacle_demo.world](/home/deepblue/AV_Drone/sim_assets/worlds/obstacle_demo.world)
+- [sim_assets/gz/models/x500_lidar/model.sdf](/home/deepblue/AV_Drone/sim_assets/gz/models/x500_lidar/model.sdf)
+- [sim_assets/gz/worlds/obstacle_demo.sdf](/home/deepblue/AV_Drone/sim_assets/gz/worlds/obstacle_demo.sdf)
 
 역할:
 
 - PX4 SITL 실행
-- Gazebo Classic 실행
+- Gazebo Sim 실행
 - custom LiDAR model 반영
 - custom world 반영
 
@@ -88,6 +90,7 @@ All state / scan / phase / event streams
 
 - ROS 2 Humble workspace 빌드
 - MAVROS 실행
+- Gazebo Sim `LaserScan -> ROS 2 LaserScan` bridge 실행
 - autonomy pipeline 실행
 - artifact 저장
 

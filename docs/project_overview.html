@@ -3,1127 +3,195 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AV_Drone Research Brief</title>
+  <title>AV_Drone Project Overview</title>
   <style>
     :root {
-      --bg: #f4efe5;
-      --paper: #fffdf9;
-      --ink: #1e1a14;
-      --muted: #6e675b;
-      --line: #d9cfbf;
-      --teal: #0f766e;
-      --orange: #b45309;
-      --red: #991b1b;
-      --blue: #1d4ed8;
-      --chip: #efe7d7;
-      --soft: #f8f2e7;
-      --shadow: 0 18px 42px rgba(56, 39, 9, 0.08);
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      --sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      --bg:#f6f5f1; --panel:#ffffff; --ink:#17202a; --muted:#5d6773; --line:#dde5ee;
+      --teal:#0f766e; --blue:#2563eb; --orange:#c2410c; --red:#b42318; --slate:#eef4f8;
+      --mono:"SFMono-Regular",Consolas,monospace; --sans:"Pretendard","Noto Sans KR",sans-serif;
+      --shadow:0 18px 40px rgba(15,23,42,.08);
     }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      color: var(--ink);
-      line-height: 1.62;
-      background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 26%),
-        radial-gradient(circle at top right, rgba(180, 83, 9, 0.14), transparent 22%),
-        linear-gradient(180deg, #f7f1e5 0%, #f4efe5 38%, #efe6d7 100%);
-    }
-
-    .shell {
-      width: min(1320px, calc(100% - 32px));
-      margin: 24px auto 80px;
-    }
-
-    .hero,
-    .panel,
-    .card,
-    .metric,
-    .roadmap-step,
-    .req-box,
-    .capture-card {
-      background: rgba(255, 253, 249, 0.94);
-      border: 1px solid rgba(100, 76, 31, 0.12);
-      box-shadow: var(--shadow);
-      border-radius: 24px;
-    }
-
-    .hero {
-      padding: 40px;
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(135deg, rgba(255, 253, 249, 0.98), rgba(246, 236, 215, 0.95));
-    }
-
-    .hero::after {
-      content: "";
-      position: absolute;
-      right: -6%;
-      bottom: -36%;
-      width: 380px;
-      height: 380px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(15, 118, 110, 0.18), rgba(15, 118, 110, 0.02) 58%, transparent 100%);
-      pointer-events: none;
-    }
-
-    .eyebrow,
-    .section-tag,
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border: 1px solid rgba(15, 118, 110, 0.12);
-      background: rgba(239, 231, 215, 0.86);
-      color: #4f483d;
-    }
-
-    .eyebrow { margin-bottom: 16px; }
-
-    h1, h2, h3, h4 { margin: 0 0 12px; line-height: 1.2; }
-
-    h1 {
-      font-size: clamp(2.5rem, 5vw, 4.6rem);
-      letter-spacing: -0.045em;
-      max-width: 12ch;
-    }
-
-    h2 {
-      font-size: 1.8rem;
-      letter-spacing: -0.03em;
-    }
-
-    h3 {
-      font-size: 1.08rem;
-      letter-spacing: -0.02em;
-    }
-
-    p { margin: 0 0 14px; }
-
-    .lede {
-      max-width: 74ch;
-      color: var(--muted);
-      font-size: 1.05rem;
-      margin-top: 14px;
-    }
-
-    .hero-grid,
-    .grid-2,
-    .grid-3,
-    .metric-strip,
-    .svg-grid,
-    .capture-grid,
-    .req-grid,
-    .roadmap-grid,
-    .idea-grid {
-      display: grid;
-      gap: 18px;
-      margin-top: 24px;
-    }
-
-    .hero-grid,
-    .grid-2,
-    .svg-grid,
-    .capture-grid,
-    .req-grid {
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    }
-
-    .grid-3,
-    .roadmap-grid,
-    .idea-grid {
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
-
-    .metric-strip {
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-
-    .metric,
-    .card,
-    .roadmap-step,
-    .req-box,
-    .capture-card {
-      padding: 20px;
-    }
-
-    .panel {
-      padding: 30px;
-      margin-top: 24px;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 18px 0 0;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: var(--chip);
-      border: 1px solid rgba(72, 52, 20, 0.1);
-      color: #463f34;
-      font-size: 0.92rem;
-    }
-
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 26px;
-    }
-
-    nav a {
-      text-decoration: none;
-      color: var(--ink);
-      padding: 9px 13px;
-      border-radius: 999px;
-      background: rgba(239, 231, 215, 0.8);
-      border: 1px solid rgba(100, 76, 31, 0.11);
-      font-size: 0.92rem;
-    }
-
-    .metric .label {
-      display: block;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .metric .value {
-      font-size: 1.52rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-
-    .good { color: var(--teal); }
-    .warn { color: var(--orange); }
-    .risk { color: var(--red); }
-    .note { color: var(--blue); }
-
-    .muted { color: var(--muted); }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 1px solid rgba(100, 76, 31, 0.12);
-      background: rgba(255, 253, 249, 0.84);
-    }
-
-    th, td {
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(100, 76, 31, 0.1);
-      text-align: left;
-      vertical-align: top;
-      font-size: 0.95rem;
-    }
-
-    th {
-      background: rgba(239, 231, 215, 0.68);
-      font-size: 0.86rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #5c5347;
-    }
-
-    tr:last-child td { border-bottom: 0; }
-
-    pre, code {
-      font-family: var(--mono);
-    }
-
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      padding: 18px;
-      border-radius: 18px;
-      background: #171410;
-      color: #f8f0de;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      overflow: auto;
-      font-size: 0.9rem;
-    }
-
-    ul, ol {
-      margin: 0;
-      padding-left: 18px;
-    }
-
-    .section-tag {
-      margin-bottom: 14px;
-    }
-
-    .svg-card {
-      padding: 18px;
-      border-radius: 22px;
-      background: rgba(250, 245, 236, 0.98);
-      border: 1px solid rgba(100, 76, 31, 0.1);
-    }
-
-    .svg-card svg {
-      width: 100%;
-      height: auto;
-      display: block;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #f8f4ec, #fbfaf6);
-      border: 1px solid rgba(100, 76, 31, 0.08);
-    }
-
-    .figure-caption {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .capture-frame {
-      min-height: 200px;
-      border-radius: 18px;
-      border: 1px dashed rgba(100, 76, 31, 0.22);
-      background:
-        linear-gradient(135deg, rgba(15, 118, 110, 0.05), rgba(180, 83, 9, 0.06)),
-        repeating-linear-gradient(45deg, transparent, transparent 16px, rgba(0, 0, 0, 0.02) 16px, rgba(0, 0, 0, 0.02) 32px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 20px;
-      color: #5a5042;
-      font-weight: 600;
-    }
-
-    .timeline {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .timeline-step {
-      flex: 1 1 130px;
-      padding: 12px;
-      border-radius: 16px;
-      background: var(--soft);
-      border: 1px solid rgba(100, 76, 31, 0.1);
-      font-size: 0.88rem;
-    }
-
-    .timeline-step strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-    }
-
-    .footer {
-      margin-top: 28px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(100, 76, 31, 0.1);
-      color: var(--muted);
-      font-size: 0.93rem;
-    }
-
-    @media (max-width: 760px) {
-      .hero,
-      .panel {
-        padding: 22px;
-      }
-    }
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#f7f8fa 0%,#eef2f6 100%);color:var(--ink);font-family:var(--sans);line-height:1.6}
+    .page{width:min(1180px,calc(100% - 32px));margin:24px auto 80px}
+    .hero,.section,.card{background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero,.section{padding:32px;margin-bottom:22px} .grid{display:grid;gap:18px} .grid.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))} .grid.three{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    h1,h2,h3{margin:0 0 12px;line-height:1.15;letter-spacing:-.03em} h1{font-size:clamp(2.1rem,4.6vw,4rem)} h2{font-size:1.8rem} h3{font-size:1.05rem}
+    p{margin:0 0 14px} .eyebrow{display:inline-block;padding:8px 12px;border-radius:999px;background:#eff6ff;color:#25497d;font-size:.82rem;font-weight:700;margin-bottom:18px}
+    .lede{font-size:1.05rem;color:var(--muted);max-width:72ch}
+    .chipbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px} .chip{padding:10px 12px;border:1px solid var(--line);border-radius:999px;background:var(--slate);font-size:.92rem}
+    .card{padding:20px} .metric{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fbfdff}
+    .metric .k{font-size:.78rem;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;margin-bottom:6px} .metric .v{font-size:1.42rem;font-weight:800}
+    .good{color:var(--teal)} .note{color:var(--blue)} .warn{color:var(--orange)} .risk{color:var(--red)} .muted{color:var(--muted)}
+    ul{margin:0;padding-left:18px} li{margin:0 0 8px} code,pre{font-family:var(--mono)} pre{margin:0;padding:16px;border-radius:18px;background:#101722;color:#e8eef7;overflow:auto}
+    .svgbox{background:#f7fbff;border:1px solid var(--line);border-radius:22px;padding:18px}
+    .flow-label{font-size:13px;fill:#54606d;font-weight:700} .flow-node{fill:#fff;stroke:#b8c7d8;stroke-width:1.5} .flow-accent{fill:#eff8ff;stroke:#78a6f0} .flow-green{fill:#effcf6;stroke:#68b88c} .flow-amber{fill:#fff7ed;stroke:#f0a15a}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);overflow:hidden;border-radius:18px} th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} th{background:#f6f9fc;color:#596574;font-size:.84rem;text-transform:uppercase;letter-spacing:.06em}
+    tr:last-child td{border-bottom:none}
+    nav{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px} nav a{text-decoration:none;color:var(--ink);padding:9px 12px;border-radius:999px;background:#f5f8fb;border:1px solid var(--line)}
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="page">
     <section class="hero">
-      <span class="eyebrow">Professor Briefing / Research Candidate / AV_Drone</span>
-      <h1>Failure-Aware Multi-UAV Mission Continuation으로 확장하기 위한 현재 기준선과 발표 자료</h1>
-      <p class="lede">
-        이 문서는 현재 구현된 <strong>PX4 SITL + Gazebo Classic + ROS 2 Humble + MAVROS + autonomy pipeline</strong>를
-        기반으로, 앞으로 발전시킬 연구 주제를 <strong>Failure-Aware Mission Continuation</strong>으로 정리한
-        교수님 발표용 HTML 문서다. 핵심은 “현재 무엇이 구현되었는가”, “그 구현이 논문으로 가기 위한 어떤 기준선을
-        제공하는가”, “앞으로 무엇을 어떤 순서로 구현할 것인가”를 한 번에 보여주는 것이다.
-      </p>
-
-      <div class="chips">
-        <div class="chip">단일 드론 비행 기준선 확보</div>
-        <div class="chip">LiDAR scan 실수신 확인</div>
-        <div class="chip">Safety / Metrics / Artifact 구조 포함</div>
-        <div class="chip">향후 4-UAV failure-aware 확장 목표</div>
-        <div class="chip">교수님 미팅용 self-contained HTML</div>
-      </div>
-
-      <div class="metric-strip">
-        <div class="metric">
-          <span class="label">현재 구현 수준</span>
-          <div class="value good">Single-UAV Baseline 확보</div>
-        </div>
-        <div class="metric">
-          <span class="label">실측 상태</span>
-          <div class="value good">LiDAR 10Hz / OFFBOARD / HOVER_AT_GOAL</div>
-        </div>
-        <div class="metric">
-          <span class="label">연구 주제 방향</span>
-          <div class="value note">A + C 통합형 Failure-Aware Continuation</div>
-        </div>
-        <div class="metric">
-          <span class="label">현재 핵심 미완성</span>
-          <div class="value warn">4-UAV / fault injection / orphan task / hazard model</div>
-        </div>
-        <div class="metric">
-          <span class="label">발표 메시지</span>
-          <div class="value risk">완성 논문 결과가 아니라 강한 연구 제안과 검증 플랫폼</div>
-        </div>
-      </div>
-
+      <div class="eyebrow">Current Baseline • Gazebo Sim Harmonic • Single UAV</div>
+      <h1>AV_Drone Project Overview</h1>
+      <p class="lede">현재 저장소는 <strong>단일 드론 baseline</strong>을 안정적으로 재현하고, 이후 <strong>failure-aware mission continuation</strong> 연구로 확장하기 위한 기준 환경으로 정리되어 있다. 지금은 Gazebo Classic이 아니라 <strong>Gazebo Sim Harmonic</strong>, `sim` / `ros` 분리 Docker 구조, host GUI, artifact 기반 재현성까지 갖춘 상태다.</p>
       <nav>
-        <a href="#thesis">연구 주제</a>
-        <a href="#baseline">현재 구현</a>
-        <a href="#architecture">전체 구조</a>
-        <a href="#code">코드 구조</a>
-        <a href="#evidence">실측 근거</a>
-        <a href="#gaps">현재 한계</a>
-        <a href="#plan">발전 계획</a>
-        <a href="#req">동적 시뮬레이션 목표 REQ</a>
-        <a href="#captures">발표 시각화</a>
+        <a href="#status">현재 상태</a>
+        <a href="#architecture">현재 구조</a>
+        <a href="#code-path">코드 동작 경로</a>
+        <a href="#reqs">연구 REQ</a>
+        <a href="#roadmap">로드맵</a>
+        <a href="current_state_guide.html">처음 보는 사람용 가이드</a>
       </nav>
     </section>
 
-    <section class="panel" id="thesis">
-      <span class="section-tag">1. Thesis Direction</span>
-      <h2>이 프로젝트를 어떤 논문 주제로 발전시킬 것인가</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h3>권장 주제 문장</h3>
-          <p>
-            <strong>단일 UAV가 failsafe로 이탈하는 상황에서, 남은 UAV들이 landing bubble/corridor를 위험영역으로
-            고려하면서 orphan task를 재할당받아 mission continuity를 유지하는 방법</strong>을 주제로 잡는 것이 가장 좋다.
-          </p>
-          <p class="muted">
-            즉 주제의 중심은 “MPPI를 썼다”가 아니라, <strong>fault-aware mission continuation system</strong>이다.
-          </p>
-        </div>
-        <div class="card">
-          <h3>발표용 한 줄 메시지</h3>
-          <p>
-            현재는 <strong>단일 드론 기준선과 측정 체계</strong>를 확보했고, 이를 바탕으로
-            <strong>multi-UAV fault-aware mission continuation</strong>으로 확장하려는 단계다.
-          </p>
-          <p class="muted">
-            교수님께는 “이미 동작하는 플랫폼 위에 연구 질문을 올린다”는 점을 강조하는 편이 좋다.
-          </p>
-        </div>
+    <section class="section" id="status">
+      <div class="eyebrow">Verified Baseline</div>
+      <h2>현재 확인된 기준선</h2>
+      <div class="grid three">
+        <div class="metric"><div class="k">Reference Run</div><div class="v">2026-03-20_09-17-49_drone1</div></div>
+        <div class="metric"><div class="k">Flight Mode</div><div class="v good">OFFBOARD</div></div>
+        <div class="metric"><div class="k">Mission Phase</div><div class="v good">HOVER_AT_GOAL</div></div>
+        <div class="metric"><div class="k">Goal Reached</div><div class="v good">True</div></div>
+        <div class="metric"><div class="k">Pose Count</div><div class="v">63789</div></div>
+        <div class="metric"><div class="k">Scan Count</div><div class="v">18580</div></div>
+        <div class="metric"><div class="k">Pose p99</div><div class="v">39.4 ms</div></div>
+        <div class="metric"><div class="k">Scan p99</div><div class="v">117.3 ms</div></div>
+        <div class="metric"><div class="k">Git Commit</div><div class="v">d7491691a3b9</div></div>
       </div>
-
-      <div class="grid-3">
-        <div class="card">
-          <h3>Main Research Question</h3>
-          <p>
-            한 대의 UAV가 offboard-loss 혹은 failsafe로 이탈했을 때, 남은 UAV가 <strong>secondary collision 없이</strong>
-            제한 시간 안에 임무를 얼마나 잘 이어갈 수 있는가?
-          </p>
-        </div>
-        <div class="card">
-          <h3>Sub Research Question</h3>
-          <p>
-            failed UAV 자체를 지우는 대신, 그 주변의 <strong>landing bubble / descent corridor</strong>를 위험영역으로
-            모델링하면 continuity와 safety가 실제로 좋아지는가?
-          </p>
-        </div>
-        <div class="card">
-          <h3>Expected Contribution</h3>
-          <p>
-            재현 가능한 PX4/ROS 2 환경 위에서 <strong>fault-aware reallocation + hazard-aware replanning + traceable metrics</strong>
-            를 하나의 시스템으로 검증한다.
-          </p>
-        </div>
+      <div class="card" style="margin-top:22px">
+        <h3>현재 데모 파라미터</h3>
+        <p><strong>takeoff_z=3.0</strong>, <strong>goal_x=8.0</strong>, <strong>goal_y=0.0</strong>, <strong>goal_z=3.0</strong>, <strong>cruise_speed=1.0</strong> 기준으로 단일 드론 baseline을 검증 중이다. 화면은 host Gazebo GUI를 <strong>CPU software rendering</strong>으로 띄워 안정성을 우선한다.</p>
       </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h3>교수님 앞에서 강조할 포인트</h3>
-        <ul>
-          <li>주제는 “드론 여러 대를 띄운다”가 아니라 “고장 후에도 임무를 지속하는가”다.</li>
-          <li>기여는 새 수식 하나보다도, <strong>hazard-aware continuation architecture</strong>와 그 정량 검증 체계에 있다.</li>
-          <li>현재 구현은 단일 드론이지만, 이미 Docker 기반 재현 환경, LiDAR 수신, phase/metrics logging까지 확보됐다.</li>
-        </ul>
+      <div class="grid two" style="margin-top:22px">
+        <div class="card">
+          <h3>현재 되는 것</h3>
+          <ul>
+            <li>`sim` / `ros` 분리 Docker 환경</li>
+            <li>Gazebo Sim Harmonic + PX4 SITL 실행</li>
+            <li>MAVROS 연결, OFFBOARD, arm, takeoff, goal follow</li>
+            <li>`/drone1/scan` 및 `/mavros/local_position/pose` 수신</li>
+            <li>artifact 저장 및 smoke test 검증</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>아직 남은 것</h3>
+          <ul>
+            <li>멀티드론 namespace / spawn 구조</li>
+            <li>fault injection</li>
+            <li>landing hazard bubble / corridor</li>
+            <li>orphan task extraction / reallocation</li>
+            <li>진짜 연구형 mission continuation 알고리즘</li>
+          </ul>
+        </div>
       </div>
     </section>
 
-    <section class="panel" id="baseline">
-      <span class="section-tag">2. Current Baseline</span>
-      <h2>현재 코드가 실제로 어디까지 구현되어 있는가</h2>
-      <div class="grid-2">
+    <section class="section" id="architecture">
+      <div class="eyebrow">Architecture</div>
+      <h2>현재 런타임 구조</h2>
+      <div class="svgbox">
+        <svg viewBox="0 0 1080 420" width="100%" role="img" aria-label="runtime architecture">
+          <rect x="28" y="42" width="1024" height="330" rx="22" fill="#ffffff" stroke="#d8e4f0"/>
+          <rect x="64" y="90" width="240" height="232" rx="18" class="flow-accent"/>
+          <text x="184" y="124" text-anchor="middle" font-size="22" fill="#1f4b7c" font-weight="800">Host Machine</text>
+          <text x="184" y="166" text-anchor="middle" class="flow-label">Gazebo Sim GUI</text>
+          <text x="184" y="194" text-anchor="middle" class="flow-label">CPU software rendering</text>
+          <text x="184" y="222" text-anchor="middle" class="flow-label">run_host_gz_gui.sh</text>
+          <text x="184" y="268" text-anchor="middle" class="flow-label">same shared model cache</text>
+
+          <rect x="356" y="74" width="304" height="264" rx="18" class="flow-green"/>
+          <text x="508" y="112" text-anchor="middle" font-size="22" fill="#185936" font-weight="800">sim container</text>
+          <text x="508" y="150" text-anchor="middle" class="flow-label">PX4 SITL</text>
+          <text x="508" y="178" text-anchor="middle" class="flow-label">Gazebo Sim Harmonic server</text>
+          <text x="508" y="206" text-anchor="middle" class="flow-label">world: obstacle_demo</text>
+          <text x="508" y="234" text-anchor="middle" class="flow-label">model cache sync -> .cache/gz/models</text>
+          <text x="508" y="280" text-anchor="middle" class="flow-label">PX4_GZ_WORLD=obstacle_demo</text>
+          <text x="508" y="306" text-anchor="middle" class="flow-label">PX4_GZ_MODEL_NAME=drone1</text>
+
+          <rect x="708" y="74" width="304" height="264" rx="18" class="flow-amber"/>
+          <text x="860" y="112" text-anchor="middle" font-size="22" fill="#8a4f08" font-weight="800">ros container</text>
+          <text x="860" y="150" text-anchor="middle" class="flow-label">ROS 2 Humble + MAVROS</text>
+          <text x="860" y="178" text-anchor="middle" class="flow-label">perception / planning / safety</text>
+          <text x="860" y="206" text-anchor="middle" class="flow-label">control / metrics</text>
+          <text x="860" y="252" text-anchor="middle" class="flow-label">colcon build + ros2 launch</text>
+          <text x="860" y="280" text-anchor="middle" class="flow-label">single_drone_autonomy.launch.py</text>
+
+          <line x1="304" y1="208" x2="356" y2="208" stroke="#7fa5d7" stroke-width="3" stroke-dasharray="8 8"/>
+          <line x1="660" y1="208" x2="708" y2="208" stroke="#e59e59" stroke-width="3" stroke-dasharray="8 8"/>
+          <text x="330" y="194" text-anchor="middle" class="flow-label">gz transport</text>
+          <text x="684" y="194" text-anchor="middle" class="flow-label">MAVROS / ROS 2</text>
+        </svg>
+      </div>
+      <div class="grid two">
         <div class="card">
-          <h3>이미 구현된 것</h3>
-          <ul>
-            <li>Docker Compose 기반 <code>sim</code> / <code>ros</code> 분리 실행 환경</li>
-            <li>PX4 SITL + Gazebo Classic + <code>iris_rplidar</code> 센서 모델 구성</li>
-            <li>MAVROS 기반 offboard 연결</li>
-            <li><code>/drone1/scan</code> LiDAR 실수신 확인</li>
-            <li>perception / planning / safety / control / metrics 구조 분리</li>
-            <li>artifact 자동 저장 구조</li>
-          </ul>
+          <h3>왜 GUI를 host로 뺐나</h3>
+          <p>Docker 안 Gazebo GUI는 AMD + Wayland 조합에서 반복적으로 blank gray window가 났다. 그래서 현재는 시뮬레이터 서버는 container에서 돌리고, GUI는 host에서 shared model cache를 통해 붙게 만들었다.</p>
         </div>
         <div class="card">
-          <h3>아직 구현되지 않은 것</h3>
-          <ul>
-            <li>4대 멀티드론 namespace / spawn / port 구조</li>
-            <li>fault injection handler</li>
-            <li>landing bubble / descent corridor hazard model</li>
-            <li>orphan task extraction / reallocation</li>
-            <li>B0/B1/P baseline 비교 실험</li>
-            <li>논문형 KPI 자동 비교 표와 통계 검정</li>
-          </ul>
+          <h3>왜 Harmonic인가</h3>
+          <p>Gazebo Classic은 레거시 계열이다. 지금 baseline은 이후 연구 확장을 위해 Gazebo Sim Harmonic을 기준으로 맞췄다. 구조가 현대적이고 장기 유지 관점에서 더 맞다.</p>
         </div>
       </div>
+    </section>
 
-      <div class="metric-strip">
-        <div class="metric">
-          <span class="label">Artifact Runtime</span>
-          <div class="value">533.101 s</div>
-        </div>
-        <div class="metric">
-          <span class="label">Mode / Arm</span>
-          <div class="value good">OFFBOARD / armed=true</div>
-        </div>
-        <div class="metric">
-          <span class="label">Mission Phase</span>
-          <div class="value good">HOVER_AT_GOAL</div>
-        </div>
-        <div class="metric">
-          <span class="label">Pose / Scan Count</span>
-          <div class="value">290,377 / 96,775</div>
-        </div>
-        <div class="metric">
-          <span class="label">Observed Scan Rate</span>
-          <div class="value good">약 10 Hz</div>
-        </div>
-      </div>
-
-      <table style="margin-top:18px;">
-        <tr><th>검증 항목</th><th>현재 상태</th><th>근거</th></tr>
-        <tr>
-          <td>LiDAR 수신</td>
-          <td class="good">확인</td>
-          <td><code>ros2 topic echo /drone1/scan --once</code> 및 <code>ros2 topic hz /drone1/scan</code> 결과</td>
-        </tr>
-        <tr>
-          <td>오프보드 상태</td>
-          <td class="good">확인</td>
-          <td><code>summary.json</code> 에서 <code>mode=OFFBOARD</code>, <code>armed=true</code></td>
-        </tr>
-        <tr>
-          <td>목표점 근처 도달</td>
-          <td class="good">확인</td>
-          <td>실측 pose와 artifact 기준으로 phase가 <code>HOVER_AT_GOAL</code>까지 진행됨</td>
-        </tr>
-        <tr>
-          <td>Mission success latch</td>
-          <td class="good">안정화 완료</td>
-          <td>최신 baseline artifact에서 <code>mission_phase=HOVER_AT_GOAL</code>, <code>goal_reached=true</code> 확인</td>
-        </tr>
-        <tr>
-          <td>멀티드론 fault experiment</td>
-          <td class="risk">미구현</td>
-          <td>현재는 single-UAV 기준선 확보 단계</td>
-        </tr>
+    <section class="section" id="code-path">
+      <div class="eyebrow">Code Path</div>
+      <h2>현재 코드가 실제로 움직이는 순서</h2>
+      <table>
+        <thead><tr><th>Step</th><th>Node / Layer</th><th>입력</th><th>출력</th><th>역할</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Gazebo Sim + PX4</td><td>world, model, physics</td><td>scan / pose / MAVLink</td><td>시뮬레이션과 비행제어를 동시에 돌린다.</td></tr>
+          <tr><td>2</td><td>MAVROS</td><td>PX4 MAVLink</td><td>ROS 2 state / pose / service API</td><td>PX4와 ROS 2를 연결한다.</td></tr>
+          <tr><td>3</td><td>drone_perception</td><td>/drone1/scan</td><td>/drone1/perception/nearest_obstacle_distance</td><td>LaserScan을 nearest obstacle scalar로 축약한다.</td></tr>
+          <tr><td>4</td><td>drone_planning</td><td>pose + nearest obstacle + goal</td><td>/drone1/autonomy/cmd_vel</td><td>goal 방향 속도 명령을 만든다.</td></tr>
+          <tr><td>5</td><td>drone_safety</td><td>planner cmd + pose + scan</td><td>/drone1/safety/cmd_vel</td><td>timeout과 emergency stop 조건을 검사한다.</td></tr>
+          <tr><td>6</td><td>drone_control</td><td>safe cmd + pose + MAVROS services</td><td>MAVROS velocity setpoint</td><td>OFFBOARD, arm, takeoff, follow_plan 상태 머신을 수행한다.</td></tr>
+          <tr><td>7</td><td>drone_metrics</td><td>all key topics</td><td>artifacts/</td><td>run metadata와 결과를 남긴다.</td></tr>
+        </tbody>
       </table>
     </section>
 
-    <section class="panel" id="architecture">
-      <span class="section-tag">3. Architecture</span>
-      <h2>현재 전체 구조는 어떻게 연결되어 있는가</h2>
-
-      <div class="svg-grid">
-        <div class="svg-card">
-          <h3>System Architecture</h3>
-          <svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="System Architecture Diagram">
-            <defs>
-              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="#5f5648"/>
-              </marker>
-            </defs>
-            <rect x="24" y="32" width="812" height="402" rx="26" fill="#fcf8f0" stroke="#d8cfbf"/>
-
-            <rect x="54" y="78" width="228" height="132" rx="20" fill="#eef5f3" stroke="#8dbdb8"/>
-            <text x="72" y="110" font-size="23" font-weight="700" fill="#175b54">sim container</text>
-            <text x="72" y="144" font-size="17" fill="#3f4d4a">PX4 SITL</text>
-            <text x="72" y="172" font-size="17" fill="#3f4d4a">Gazebo Classic</text>
-            <text x="72" y="200" font-size="17" fill="#3f4d4a">iris_rplidar model</text>
-
-            <rect x="318" y="58" width="234" height="172" rx="20" fill="#edf3fb" stroke="#96afd8"/>
-            <text x="336" y="92" font-size="23" font-weight="700" fill="#24457d">ros container</text>
-            <text x="336" y="126" font-size="17" fill="#3f4d4a">ROS 2 Humble</text>
-            <text x="336" y="154" font-size="17" fill="#3f4d4a">MAVROS</text>
-            <text x="336" y="182" font-size="17" fill="#3f4d4a">autonomy pipeline</text>
-            <text x="336" y="210" font-size="17" fill="#3f4d4a">artifact logger</text>
-
-            <rect x="592" y="78" width="208" height="132" rx="20" fill="#fbf2e8" stroke="#d5b18b"/>
-            <text x="610" y="110" font-size="23" font-weight="700" fill="#8f4e14">artifacts</text>
-            <text x="610" y="144" font-size="17" fill="#3f4d4a">metadata.json</text>
-            <text x="610" y="172" font-size="17" fill="#3f4d4a">metrics.csv</text>
-            <text x="610" y="200" font-size="17" fill="#3f4d4a">summary.json / events.log</text>
-
-            <rect x="168" y="282" width="548" height="102" rx="18" fill="#fffdf8" stroke="#d8cfbf"/>
-            <text x="190" y="316" font-size="21" font-weight="700" fill="#1f1c17">Autonomy Pipeline</text>
-            <text x="190" y="348" font-size="17" fill="#3f4d4a">LiDAR scan → nearest obstacle → local planner → safety monitor → autonomy manager → MAVROS velocity setpoint</text>
-
-            <line x1="282" y1="144" x2="318" y2="144" stroke="#5f5648" stroke-width="2.5" marker-end="url(#arrow)"/>
-            <text x="286" y="132" font-size="13" fill="#6e675b">MAVLink / ROS 2 bridge</text>
-
-            <line x1="552" y1="144" x2="592" y2="144" stroke="#5f5648" stroke-width="2.5" marker-end="url(#arrow)"/>
-            <text x="558" y="132" font-size="13" fill="#6e675b">periodic logging</text>
-
-            <line x1="434" y1="230" x2="434" y2="282" stroke="#5f5648" stroke-width="2.5" marker-end="url(#arrow)"/>
-            <text x="445" y="262" font-size="13" fill="#6e675b">topic graph</text>
-          </svg>
-          <div class="figure-caption">
-            현재 구조는 single-UAV 기준선 확보용이며, 논문 단계에서는 이 구조를 4-UAV namespace 기반으로 확장한다.
-          </div>
-        </div>
-
-        <div class="svg-card">
-          <h3>Execution Sequence</h3>
-          <svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Runtime Sequence Diagram">
-            <defs>
-              <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="#5f5648"/>
-              </marker>
-            </defs>
-            <rect x="24" y="24" width="812" height="420" rx="24" fill="#fcf8f0" stroke="#d8cfbf"/>
-            <text x="84" y="58" font-size="19" font-weight="700">Gazebo / PX4</text>
-            <text x="286" y="58" font-size="19" font-weight="700">MAVROS</text>
-            <text x="462" y="58" font-size="19" font-weight="700">Autonomy Manager</text>
-            <text x="690" y="58" font-size="19" font-weight="700">Metrics</text>
-
-            <line x1="120" y1="74" x2="120" y2="404" stroke="#c9bcaa" stroke-dasharray="6 6"/>
-            <line x1="318" y1="74" x2="318" y2="404" stroke="#c9bcaa" stroke-dasharray="6 6"/>
-            <line x1="538" y1="74" x2="538" y2="404" stroke="#c9bcaa" stroke-dasharray="6 6"/>
-            <line x1="728" y1="74" x2="728" y2="404" stroke="#c9bcaa" stroke-dasharray="6 6"/>
-
-            <text x="70" y="108" font-size="15">1. sim startup</text>
-            <line x1="132" y1="124" x2="306" y2="124" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="176" y="116" font-size="13">MAVLink heartbeat</text>
-
-            <line x1="330" y1="160" x2="526" y2="160" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="372" y="150" font-size="13">pose / state / scan ingress</text>
-
-            <line x1="550" y1="196" x2="330" y2="196" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="380" y="186" font-size="13">OFFBOARD request + velocity setpoint</text>
-
-            <line x1="550" y1="234" x2="716" y2="234" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="596" y="224" font-size="13">phase / counts / safety event</text>
-
-            <line x1="132" y1="272" x2="526" y2="272" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="258" y="262" font-size="13">/drone1/scan and local pose keep streaming</text>
-
-            <line x1="330" y1="310" x2="526" y2="310" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="394" y="300" font-size="13">state machine: WAIT_STREAM → TAKEOFF → FOLLOW_PLAN → HOVER_AT_GOAL</text>
-
-            <line x1="550" y1="348" x2="716" y2="348" stroke="#5f5648" stroke-width="2.2" marker-end="url(#arrow2)"/>
-            <text x="610" y="338" font-size="13">summary.json finalized</text>
-          </svg>
-          <div class="figure-caption">
-            현재는 single-UAV에서 phase progression과 artifact 저장까지 검증된 상태다. 논문 방향에서는 여기에 fault injection과 task reallocation이 추가된다.
-          </div>
-        </div>
+    <section class="section" id="reqs">
+      <div class="eyebrow">Research Requirements</div>
+      <h2>연구 주제를 달성하기 위한 REQ</h2>
+      <div class="grid two">
+        <div class="card"><h3>REQ-01 Baseline Reproducibility</h3><p>누가 clone / build / pull 해도 단일 드론 baseline이 다시 떠야 한다. 현재는 Docker + artifact + git context로 이 부분을 확보 중이다.</p></div>
+        <div class="card"><h3>REQ-02 State Observability</h3><p>pose, scan, phase, safety event, goal 상태가 기록되어야 한다. 그래야 failure-aware 연구로 확장했을 때 원인 분석이 가능하다.</p></div>
+        <div class="card"><h3>REQ-03 Safe Flight State Machine</h3><p>OFFBOARD, arm, takeoff, hover, follow plan, hold가 명확해야 한다. 연구 알고리즘은 이 안정된 상태 머신 위에 올라가야 한다.</p></div>
+        <div class="card"><h3>REQ-04 Multi-UAV Namespace</h3><p>drone1 기준 구조를 drone2, drone3, drone4로 복제 가능한 형태로 일반화해야 한다.</p></div>
+        <div class="card"><h3>REQ-05 Failure Injection</h3><p>특정 UAV를 failure state로 보내고, 임무 중단과 landing hazard 생성을 시뮬레이션할 수 있어야 한다.</p></div>
+        <div class="card"><h3>REQ-06 Hazard Modeling</h3><p>단순 충돌 회피가 아니라, failed UAV 주변의 landing bubble / descent corridor를 위험영역으로 반영해야 한다.</p></div>
+        <div class="card"><h3>REQ-07 Task Reallocation</h3><p>orphan task를 추출하고 남은 UAV에게 재할당하는 정책이 필요하다.</p></div>
+        <div class="card"><h3>REQ-08 Quantitative Evaluation</h3><p>latency, mission continuation success, secondary collision, recovery distance 같은 지표를 반복 실험으로 비교해야 한다.</p></div>
       </div>
     </section>
 
-    <section class="panel" id="code">
-      <span class="section-tag">4. Code Structure</span>
-      <h2>처음 보는 사람이 바로 이해해야 할 코드 구조와 역할</h2>
-
-      <div class="grid-2">
+    <section class="section" id="roadmap">
+      <div class="eyebrow">Roadmap</div>
+      <h2>다음 단계</h2>
+      <div class="grid two">
         <div class="card">
-          <h3>현재 저장소 핵심 트리</h3>
-          <pre>src/
-├─ mppi/
-│  ├─ launch/mppi.launch.py
-│  └─ mppi/mppi_node.py
-├─ drone_bringup/
-│  ├─ launch/single_drone_autonomy.launch.py
-│  └─ config/drone1_autonomy.yaml
-├─ drone_control/
-│  ├─ autonomy_manager_node.py
-│  └─ vehicle_interface.py
-├─ drone_perception/
-│  └─ lidar_obstacle_node.py
-├─ drone_planning/
-│  └─ local_planner_node.py
-├─ drone_safety/
-│  └─ safety_monitor_node.py
-└─ drone_metrics/
-   └─ metrics_logger_node.py</pre>
-        </div>
-        <div class="card">
-          <h3>영역별 역할</h3>
-          <table>
-            <tr><th>패키지</th><th>역할</th></tr>
-            <tr><td><code>mppi</code></td><td>기존 단일 드론 MPPI 데모. 가장 먼저 검증된 baseline</td></tr>
-            <tr><td><code>drone_bringup</code></td><td>새 autonomy pipeline 진입점과 YAML 설정</td></tr>
-            <tr><td><code>drone_control</code></td><td>미션 phase 관리와 MAVROS 인터페이스</td></tr>
-            <tr><td><code>drone_perception</code></td><td>LaserScan을 nearest obstacle로 축약</td></tr>
-            <tr><td><code>drone_planning</code></td><td>goal 방향 local velocity planning</td></tr>
-            <tr><td><code>drone_safety</code></td><td>timeout / emergency-stop 기반 safe command gate</td></tr>
-            <tr><td><code>drone_metrics</code></td><td>summary / csv / event artifact 생성</td></tr>
-          </table>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3>중요 변수</h3>
-          <table>
-            <tr><th>변수</th><th>의미</th></tr>
-            <tr><td><code>scan_topic</code></td><td>현재 LiDAR 입력. <code>/drone1/scan</code></td></tr>
-            <tr><td><code>goal_x, goal_y, goal_z</code></td><td>현재 단일 드론 목표 좌표</td></tr>
-            <tr><td><code>takeoff_z</code></td><td>이륙 후 목표 고도</td></tr>
-            <tr><td><code>goal_tol_xy</code></td><td>goal 도달 판정 반경</td></tr>
-            <tr><td><code>startup_grace_sec</code></td><td>launch 직후 safety watchdog 유예 시간</td></tr>
-            <tr><td><code>emergency_stop_distance</code></td><td>장애물 근접 시 정지 임계값</td></tr>
-            <tr><td><code>artifacts_root</code></td><td>실험 로그 저장 위치</td></tr>
-            <tr><td><code>RMW_IMPLEMENTATION</code></td><td>ROS 2 DDS 구현 고정</td></tr>
-            <tr><td><code>FASTDDS_BUILTIN_TRANSPORTS</code></td><td>transport 설정</td></tr>
-            <tr><td><code>GAZEBO_PLUGIN_PATH</code></td><td>Gazebo ROS plugin 검색 경로</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3>중요 함수</h3>
-          <table>
-            <tr><th>파일</th><th>핵심 함수</th><th>설명</th></tr>
-            <tr><td><code>mppi_node.py</code></td><td><code>MPPIController.step()</code></td><td>기존 MPPI control 계산</td></tr>
-            <tr><td><code>mppi_node.py</code></td><td><code>_tick()</code></td><td>기존 데모 전체 state machine</td></tr>
-            <tr><td><code>autonomy_manager_node.py</code></td><td><code>_tick()</code></td><td>현재 새 구조의 phase 전환과 command 송신</td></tr>
-            <tr><td><code>autonomy_manager_node.py</code></td><td><code>_enter_phase()</code></td><td>phase topic publish</td></tr>
-            <tr><td><code>vehicle_interface.py</code></td><td><code>pose_age()</code></td><td>pose 수신 freshness 체크</td></tr>
-            <tr><td><code>lidar_obstacle_node.py</code></td><td><code>_on_scan()</code></td><td>LaserScan 최소 거리 추출</td></tr>
-            <tr><td><code>local_planner_node.py</code></td><td><code>_tick()</code></td><td>goal 방향 velocity planning</td></tr>
-            <tr><td><code>safety_monitor_node.py</code></td><td><code>_tick()</code></td><td>timeout / obstacle watchdog</td></tr>
-            <tr><td><code>metrics_logger_node.py</code></td><td><code>_write_periodic_row()</code></td><td>CSV / summary / event 기록</td></tr>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="evidence">
-      <span class="section-tag">5. Evidence</span>
-      <h2>현재 구현이 실제로 동작했다는 실측 근거</h2>
-
-      <div class="metric-strip">
-        <div class="metric">
-          <span class="label">Latest Artifact</span>
-          <div class="value">2026-03-19_16-16-24</div>
-        </div>
-        <div class="metric">
-          <span class="label">Mission Phase</span>
-          <div class="value good">HOVER_AT_GOAL</div>
-        </div>
-        <div class="metric">
-          <span class="label">Closest Obstacle</span>
-          <div class="value">0.20 m</div>
-        </div>
-        <div class="metric">
-          <span class="label">Pose p99</span>
-          <div class="value">38.4 ms</div>
-        </div>
-        <div class="metric">
-          <span class="label">Scan p99</span>
-          <div class="value">109.4 ms</div>
-        </div>
-        <div class="metric">
-          <span class="label">Safety Event Count</span>
-          <div class="value warn">20</div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3>Artifact Summary</h3>
-          <table>
-            <tr><th>항목</th><th>값</th></tr>
-            <tr><td>runtime_s</td><td>533.101</td></tr>
-            <tr><td>connected</td><td>true</td></tr>
-            <tr><td>armed</td><td>true</td></tr>
-            <tr><td>mode</td><td>OFFBOARD</td></tr>
-            <tr><td>mission_phase</td><td>HOVER_AT_GOAL</td></tr>
-            <tr><td>pose_count</td><td>22916</td></tr>
-            <tr><td>scan_count</td><td>3855</td></tr>
-            <tr><td>planner_cmd_count</td><td>21316</td></tr>
-            <tr><td>safe_cmd_count</td><td>21313</td></tr>
-            <tr><td>goal_reached</td><td>true</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3>직접 확인된 런타임 증거</h3>
+          <h3>Near-term</h3>
           <ul>
-            <li><code>/drone1/scan</code> : 실제 <code>LaserScan</code> 메시지 수신</li>
-            <li><code>ros2 topic hz /drone1/scan</code> : 약 10 Hz</li>
-            <li><code>/drone1/mission/phase</code> : <code>HOVER_AT_GOAL</code></li>
-            <li><code>/mavros/local_position/pose</code> : goal 인근 pose 수신</li>
-            <li>즉 단일 드론 기준으로는 “이륙 후 목표점 근처 도달”까지 확인된 상태</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="svg-grid">
-        <div class="svg-card">
-          <h3>Artifact KPI Snapshot</h3>
-          <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Artifact KPI bar chart">
-            <rect x="0" y="0" width="760" height="360" fill="#fbfaf6"/>
-            <line x1="82" y1="40" x2="82" y2="300" stroke="#bfb29e"/>
-            <line x1="82" y1="300" x2="708" y2="300" stroke="#bfb29e"/>
-            <text x="92" y="54" font-size="14" fill="#6e675b">ms / count (scaled)</text>
-
-            <rect x="120" y="130" width="74" height="170" fill="#0f766e" rx="10"/>
-            <rect x="230" y="185" width="74" height="115" fill="#1d4ed8" rx="10"/>
-            <rect x="340" y="208" width="74" height="92" fill="#b45309" rx="10"/>
-            <rect x="450" y="70" width="74" height="230" fill="#7c3aed" rx="10"/>
-            <rect x="560" y="116" width="74" height="184" fill="#991b1b" rx="10"/>
-
-            <text x="112" y="322" font-size="13">Pose p99</text>
-            <text x="218" y="322" font-size="13">Scan p99</text>
-            <text x="336" y="322" font-size="13">Safety</text>
-            <text x="442" y="322" font-size="13">Pose Cnt</text>
-            <text x="552" y="322" font-size="13">Scan Cnt</text>
-
-            <text x="128" y="120" font-size="14" fill="#0f766e">38.4 ms</text>
-            <text x="236" y="175" font-size="14" fill="#1d4ed8">109.4 ms</text>
-            <text x="352" y="198" font-size="14" fill="#b45309">20</text>
-            <text x="452" y="60" font-size="14" fill="#7c3aed">22.9k</text>
-            <text x="566" y="106" font-size="14" fill="#991b1b">3.8k</text>
-          </svg>
-          <div class="figure-caption">
-            이미 논문용 정량화의 초석이 되는 카운트, p99, safety event가 저장되고 있다. 아직 부족한 것은 multi-UAV fault 실험 지표다.
-          </div>
-        </div>
-
-        <div class="svg-card">
-          <h3>Single-UAV Mission Timeline</h3>
-          <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Single UAV mission timeline">
-            <rect x="0" y="0" width="760" height="360" fill="#fbfaf6"/>
-            <line x1="74" y1="286" x2="690" y2="286" stroke="#bfb29e" stroke-width="2"/>
-
-            <rect x="90" y="220" width="90" height="40" rx="12" fill="#dbece8" stroke="#8dbdb8"/>
-            <rect x="194" y="180" width="90" height="40" rx="12" fill="#e7effa" stroke="#96afd8"/>
-            <rect x="298" y="136" width="90" height="40" rx="12" fill="#fcefdc" stroke="#d5b18b"/>
-            <rect x="402" y="92" width="110" height="40" rx="12" fill="#e8f7ef" stroke="#8dbdb8"/>
-            <rect x="530" y="72" width="130" height="40" rx="12" fill="#dbece8" stroke="#8dbdb8"/>
-
-            <text x="112" y="245" font-size="13">WAIT_STREAM</text>
-            <text x="210" y="205" font-size="13">OFFBOARD_ARM</text>
-            <text x="330" y="161" font-size="13">TAKEOFF</text>
-            <text x="415" y="117" font-size="13">FOLLOW_PLAN</text>
-            <text x="548" y="97" font-size="13">HOVER_AT_GOAL</text>
-
-            <line x1="180" y1="240" x2="194" y2="200" stroke="#5f5648" stroke-width="2"/>
-            <line x1="284" y1="200" x2="298" y2="156" stroke="#5f5648" stroke-width="2"/>
-            <line x1="388" y1="156" x2="402" y2="112" stroke="#5f5648" stroke-width="2"/>
-            <line x1="512" y1="112" x2="530" y2="92" stroke="#5f5648" stroke-width="2"/>
-
-            <circle cx="610" cy="228" r="28" fill="#0f766e" opacity="0.16"/>
-            <circle cx="610" cy="228" r="7" fill="#0f766e"/>
-            <text x="550" y="276" font-size="14" fill="#0f766e">실측 목표 근처 pose</text>
-            <text x="516" y="298" font-size="13" fill="#6e675b">x=10.17, y=0.75, z=3.04</text>
-          </svg>
-          <div class="figure-caption">
-            이 타임라인은 현재 “완성 논문”이 아니라 “단일 드론 기준선은 살아 있다”는 점을 보여준다.
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h3>교수님 발표에서 이 수치를 어떻게 설명할 것인가</h3>
-        <ul>
-          <li>“센서가 보인다” 수준이 아니라, 실제로 <strong>scan count / pose count / phase / p99</strong>를 남기고 있다.</li>
-          <li>현재 artifact는 논문형 KPI의 일부를 이미 담고 있으며, 이후 여기에 <strong>MCS / recovery latency / secondary collision</strong>를 추가하면 된다.</li>
-          <li>즉 플랫폼 단계는 지나가고 있고, 지금부터는 연구 질문을 올릴 수 있는 수준의 측정 기반을 갖춘 상태다.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="panel" id="gaps">
-      <span class="section-tag">6. Current Gaps</span>
-      <h2>지금 무엇이 아직 논문 수준에 도달하지 못했는가</h2>
-      <div class="grid-3">
-        <div class="roadmap-step">
-          <strong>1. Multi-UAV 부재</strong>
-          현재는 single-UAV만 검증됐다. 논문 주제 본체는 4-UAV fault-aware continuation이므로 확장이 필수다.
-        </div>
-        <div class="roadmap-step">
-          <strong>2. Fault Injection 부재</strong>
-          고장 상황을 의도적으로 넣는 실험 체계가 아직 없다.
-        </div>
-        <div class="roadmap-step">
-          <strong>3. Hazard Model 부재</strong>
-          landing bubble / descent corridor를 아직 local planner cost에 반영하지 않았다.
-        </div>
-        <div class="roadmap-step">
-          <strong>4. Orphan Task 부재</strong>
-          failed UAV가 남긴 작업을 추출하고 재할당하는 상위 계획기가 없다.
-        </div>
-        <div class="roadmap-step">
-          <strong>5. 통계 검증 부재</strong>
-          반복 실험, baseline 비교, 신뢰구간/비모수 검정은 아직 시작 전이다.
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="plan">
-      <span class="section-tag">7. Development Plan</span>
-      <h2>앞으로 어떻게 발전시킬 것인가</h2>
-
-      <div class="roadmap-grid">
-        <div class="roadmap-step">
-          <strong>Phase 1</strong>
-          single-UAV baseline 고도화: obstacle course 확장, 회피 동작 정량화, artifact 해석 자동화
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 2</strong>
-          2-UAV namespace / spawn / port 구조 완성
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 3</strong>
-          4-UAV nominal mission 성공률 확보
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 4</strong>
-          fault injection: single-UAV failsafe Land/Hold 재현
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 5</strong>
-          landing bubble / corridor hazard cost 구현
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 6</strong>
-          orphan task extraction / reallocation 상위 계획기 구현
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 7</strong>
-          B0 / B1 / Proposed baseline 실험 자동화
-        </div>
-        <div class="roadmap-step">
-          <strong>Phase 8</strong>
-          KPI 정리: MCS, recovery latency, secondary collision, min separation, p95 solve time
-        </div>
-      </div>
-
-      <div class="timeline">
-        <div class="timeline-step"><strong>Gate 0</strong> 미션 정의와 utility 정의 고정</div>
-        <div class="timeline-step"><strong>Gate 1</strong> 4-UAV nominal 안정화</div>
-        <div class="timeline-step"><strong>Gate 2</strong> fault injection 재현성 확보</div>
-        <div class="timeline-step"><strong>Gate 3</strong> hazard model 구현</div>
-        <div class="timeline-step"><strong>Gate 4</strong> orphan reallocation 구현</div>
-        <div class="timeline-step"><strong>Gate 5</strong> hazard-aware MPPI 통합</div>
-        <div class="timeline-step"><strong>Gate 6</strong> 통계 검증과 논문화</div>
-      </div>
-    </section>
-
-    <section class="panel" id="req">
-      <span class="section-tag">8. Dynamic Simulation Target REQ</span>
-      <h2>최종적으로 만들고 싶은 동적 시뮬레이션 목표 REQ</h2>
-      <p class="muted">
-        아래 REQ는 “현재 구현”이 아니라, 앞으로 논문/학회 제출 수준으로 도달하기 위해 만족해야 하는 목표 규격이다.
-      </p>
-
-      <div class="req-grid">
-        <div class="req-box">
-          <h3>REQ-A. Mission Definition</h3>
-          <ul>
-            <li>UAV 4대가 waypoint inspection 또는 grid coverage 임무 수행</li>
-            <li>각 task는 utility를 가짐</li>
-            <li>fault 후 완료된 utility 기준으로 Mission Continuity Score 계산</li>
-          </ul>
-        </div>
-        <div class="req-box">
-          <h3>REQ-B. Failure Injection</h3>
-          <ul>
-            <li>1대 UAV에 offboard-loss 또는 link-loss 삽입</li>
-            <li>failed UAV는 Land 또는 Hold failsafe 진입</li>
-            <li>fault time, faulted UAV ID, recovery latency 기록</li>
-          </ul>
-        </div>
-        <div class="req-box">
-          <h3>REQ-C. Hazard Modeling</h3>
-          <ul>
-            <li>failed UAV 주변 bubble 반경 <code>r_haz</code> 정의</li>
-            <li>descent corridor / drift capsule 정의</li>
-            <li>remaining UAV local planner cost에 hazard 반영</li>
-          </ul>
-        </div>
-        <div class="req-box">
-          <h3>REQ-D. Orphan Task</h3>
-          <ul>
-            <li>failed UAV의 미완료 task를 orphan set으로 추출</li>
-            <li>remaining UAV에 utility 기반 재할당</li>
-            <li>unfinished orphan ratio 계산</li>
-          </ul>
-        </div>
-        <div class="req-box">
-          <h3>REQ-E. Local Replanning</h3>
-          <ul>
-            <li>remaining UAV는 hazard-aware MPPI 또는 동등한 local planner 사용</li>
-            <li>secondary collision 없이 path 수정</li>
-            <li>replanning latency와 p95 solve time 측정</li>
-          </ul>
-        </div>
-        <div class="req-box">
-          <h3>REQ-F. Logging and Reproducibility</h3>
-          <ul>
-            <li>seed, scenario, fault time, task allocation, hazard parameter 저장</li>
-            <li>trajectory, event, KPI를 artifact와 CSV로 저장</li>
-            <li>팀원이 같은 docker compose로 재현 가능해야 함</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3>Baseline 비교 설계</h3>
-          <table>
-            <tr><th>방법</th><th>설명</th><th>의도</th></tr>
-            <tr><td><strong>B0</strong></td><td>재할당 없음</td><td>orphan task가 mission continuity를 얼마나 깎는지 보기 위함</td></tr>
-            <tr><td><strong>B1</strong></td><td>재할당만, hazard 무시</td><td>continuity는 좋아지지만 secondary collision이 늘어나는지 확인</td></tr>
-            <tr><td><strong>P</strong></td><td>재할당 + bubble/corridor + hazard-aware replanning</td><td>논문 본체</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3>핵심 KPI</h3>
-          <table>
-            <tr><th>KPI</th><th>정의</th></tr>
-            <tr><td>Mission Continuity Score</td><td><code>completed_utility_fault / completed_utility_nominal</code></td></tr>
-            <tr><td>Recovery Latency</td><td>fault detect 후 첫 유효 reassignment/trajectory 배포까지 시간</td></tr>
-            <tr><td>Unfinished Orphan Ratio</td><td>끝내지 못한 orphan utility 비율</td></tr>
-            <tr><td>Secondary Collision Count</td><td>remaining UAV 간 혹은 hazard zone 침범 횟수</td></tr>
-            <tr><td>Minimum Separation</td><td>최소 UAV 간 거리</td></tr>
-            <tr><td>p95 Solve Time</td><td>planner / replanner 처리시간 p95</td></tr>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h3>최종 논문화 조건</h3>
-        <ul>
-          <li>4-UAV nominal이 안정적으로 돌아가야 한다.</li>
-          <li>fault injection이 반복 실험에서 재현 가능해야 한다.</li>
-          <li>baseline B0/B1/P를 같은 scenario, 같은 seed budget에서 비교해야 한다.</li>
-          <li>trajectory figure, KPI table, latency histogram, ablation 결과가 있어야 한다.</li>
-          <li>현재 single-UAV artifact 구조를 multi-UAV log schema로 확장해야 한다.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="panel" id="captures">
-      <span class="section-tag">9. Presentation Visual Pack</span>
-      <h2>교수님 발표 때 같이 보여주면 좋은 캡처와 시각화</h2>
-      <div class="capture-grid">
-        <div class="capture-card">
-          <h3>Capture A — 현재 동작 증거</h3>
-          <div class="capture-frame">Gazebo에서 단일 드론이 이륙 후 목표점에 도달한 화면 캡처<br />+ 터미널의 <code>/drone1/scan</code>, <code>/drone1/mission/phase</code> 출력</div>
-          <p class="figure-caption">“플랫폼이 실제로 살아 있다”는 것을 가장 먼저 보여주는 그림</p>
-        </div>
-        <div class="capture-card">
-          <h3>Capture B — Artifact 기반 정량 근거</h3>
-          <div class="capture-frame">summary.json / metrics.csv 일부를 그래프화한 화면<br />pose_count, scan_count, p99, safety event 시각화</div>
-          <p class="figure-caption">“단순 데모가 아니라 계측 기반 연구 플랫폼”이라는 메시지 강화</p>
-        </div>
-        <div class="capture-card">
-          <h3>Capture C — 목표 논문 시뮬레이션</h3>
-          <div class="capture-frame">4대 UAV + 1대 failsafe + landing bubble/corridor + orphan task 재할당 개념도</div>
-          <p class="figure-caption">현재 구현과 미래 연구 방향을 한 장으로 연결하는 핵심 그림</p>
-        </div>
-      </div>
-
-      <div class="svg-card" style="margin-top:18px;">
-        <h3>Target Dynamic Simulation Concept</h3>
-        <svg viewBox="0 0 980 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Target dynamic simulation concept">
-          <rect x="0" y="0" width="980" height="420" fill="#fbfaf6"/>
-          <rect x="24" y="24" width="932" height="372" rx="24" fill="#f4efe7" stroke="#d8cfbf"/>
-
-          <circle cx="186" cy="114" r="16" fill="#1d4ed8"/>
-          <circle cx="286" cy="164" r="16" fill="#1d4ed8"/>
-          <circle cx="356" cy="96" r="16" fill="#1d4ed8"/>
-          <circle cx="498" cy="172" r="16" fill="#991b1b"/>
-
-          <text x="166" y="88" font-size="14" fill="#1d4ed8">UAV-1</text>
-          <text x="266" y="138" font-size="14" fill="#1d4ed8">UAV-2</text>
-          <text x="336" y="70" font-size="14" fill="#1d4ed8">UAV-3</text>
-          <text x="472" y="144" font-size="14" fill="#991b1b">Failed UAV</text>
-
-          <circle cx="498" cy="172" r="72" fill="rgba(153,27,27,0.10)" stroke="#991b1b" stroke-dasharray="8 6"/>
-          <path d="M498 172 C560 196, 606 246, 646 314 L706 314 C666 226, 610 166, 530 134 Z" fill="rgba(180,83,9,0.12)" stroke="#b45309" stroke-dasharray="8 6"/>
-
-          <rect x="728" y="82" width="156" height="110" rx="18" fill="#fffdf9" stroke="#d8cfbf"/>
-          <text x="748" y="112" font-size="16" font-weight="700">Orphan Tasks</text>
-          <text x="748" y="140" font-size="14">T4, T7, T11</text>
-          <text x="748" y="164" font-size="14">utility: 0.42</text>
-
-          <circle cx="742" cy="286" r="11" fill="#facc15"/>
-          <circle cx="812" cy="324" r="11" fill="#facc15"/>
-          <circle cx="868" cy="266" r="11" fill="#facc15"/>
-          <text x="724" y="258" font-size="14" fill="#7a5c00">unassigned task set</text>
-
-          <path d="M186 114 C236 110, 288 100, 330 76" fill="none" stroke="#1d4ed8" stroke-width="4"/>
-          <path d="M286 164 C382 230, 486 284, 734 286" fill="none" stroke="#1d4ed8" stroke-width="4"/>
-          <path d="M356 96 C460 92, 572 72, 870 266" fill="none" stroke="#1d4ed8" stroke-width="4"/>
-
-          <text x="88" y="360" font-size="15" fill="#6e675b">파란 경로: healthy UAV reassignment path</text>
-          <text x="348" y="360" font-size="15" fill="#6e675b">붉은 원: landing bubble</text>
-          <text x="548" y="360" font-size="15" fill="#6e675b">주황 영역: descent corridor / drift capsule</text>
-        </svg>
-        <div class="figure-caption">
-          발표 마지막 장에서 보여줄 목표 그림이다. 지금은 single-UAV 기준선을 갖고 있고, 다음 단계는 이 그림을 실제 4-UAV 시뮬레이션으로 구현하는 것이다.
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <span class="section-tag">10. Meeting Close</span>
-      <h2>교수님께 최종적으로 전달할 핵심 정리</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h3>지금 결론</h3>
-          <ul>
-            <li>현재는 single-UAV 기준선과 측정 플랫폼이 확보된 상태다.</li>
-            <li>이 플랫폼은 논문 주제인 failure-aware mission continuation으로 확장할 수 있는 충분한 기반을 제공한다.</li>
-            <li>따라서 당장 “결과 논문”이라기보다, <strong>강한 연구 주제와 구현 계획이 있는 프로젝트</strong>라고 보는 것이 맞다.</li>
+            <li>single-UAV baseline 지속 안정화</li>
+            <li>현재 planner를 obstacle avoidance까지 확장</li>
+            <li>artifact / experiment ledger 자동화 유지</li>
+            <li>Gazebo Sim GUI 개선 및 시야/월드 표현 정리</li>
           </ul>
         </div>
         <div class="card">
-          <h3>교수님께 받고 싶은 피드백</h3>
+          <h3>Research-stage</h3>
           <ul>
-            <li>미션 정의를 waypoint inspection으로 할지 grid coverage로 할지</li>
-            <li>baseline B0/B1/P 구성에 대한 동의 여부</li>
-            <li>fault 시나리오를 offboard-loss, comm-loss, actuator failure 중 어디에 둘지</li>
-            <li>학부 수준 발표/학회 목표를 어디에 둘지</li>
+            <li>multi-UAV namespace / spawn 구조</li>
+            <li>failure injection + hazard modeling</li>
+            <li>task reallocation policy</li>
+            <li>실험 배치와 KPI 비교 실험 자동화</li>
           </ul>
         </div>
       </div>
-
-      <div class="footer">
-        이 HTML은 CSS, SVG, 설명을 모두 내부에 포함한 <strong>self-contained 문서</strong>다. 즉 이 파일 하나만 공유해도
-        대부분의 브라우저에서 바로 열람할 수 있다. 다만 저장소 내부 경로나 실제 코드 파일 링크까지 함께 활용하려면,
-        교수님 PC에는 파일만 보내기보다 PDF로 한 번 더 내보내거나 저장소 링크와 함께 공유하는 편이 더 안전하다.
-      </div>
+      <p class="muted" style="margin-top:18px">처음 보는 사람용 상세 설명과 코드 탐색은 <a href="current_state_guide.html">current_state_guide.html</a>에서 바로 볼 수 있다.</p>
     </section>
   </div>
 </body>
