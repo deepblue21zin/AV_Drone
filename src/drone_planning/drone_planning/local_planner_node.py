@@ -26,6 +26,7 @@ class LocalPlannerNode(Node):
         self.declare_parameter("cruise_speed", 1.0)
         self.declare_parameter("obstacle_stop_distance", 2.0)
         self.declare_parameter("goal_latch_enabled", True)
+        self.declare_parameter("allow_motion_without_scan", True)
 
         self.nearest_obstacle = float("inf")
         self.have_obstacle_update = False
@@ -60,6 +61,7 @@ class LocalPlannerNode(Node):
         cruise_speed = float(self.get_parameter("cruise_speed").value)
         stop_distance = float(self.get_parameter("obstacle_stop_distance").value)
         goal_latch_enabled = bool(self.get_parameter("goal_latch_enabled").value)
+        allow_motion_without_scan = bool(self.get_parameter("allow_motion_without_scan").value)
 
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -67,7 +69,7 @@ class LocalPlannerNode(Node):
 
         goal_reached = self.goal_latched if goal_latch_enabled else False
 
-        if self.pose is None or not self.have_obstacle_update:
+        if self.pose is None:
             msg.twist.linear.x = 0.0
             msg.twist.linear.y = 0.0
             msg.twist.linear.z = 0.0
@@ -77,6 +79,10 @@ class LocalPlannerNode(Node):
             dx = goal_x - px
             dy = goal_y - py
             dist = math.hypot(dx, dy)
+            obstacle_clear = (
+                self.nearest_obstacle > stop_distance
+                or (allow_motion_without_scan and not self.have_obstacle_update)
+            )
 
             if dist <= goal_tol_xy:
                 goal_reached = True
@@ -85,7 +91,7 @@ class LocalPlannerNode(Node):
                     self.get_logger().info(
                         f"Goal latched at xy distance {dist:.2f} m"
                     )
-            elif self.nearest_obstacle > stop_distance:
+            elif obstacle_clear:
                 msg.twist.linear.x = cruise_speed * dx / max(dist, 1e-6)
                 msg.twist.linear.y = cruise_speed * dy / max(dist, 1e-6)
                 msg.twist.linear.z = 0.0

@@ -39,6 +39,7 @@ class AutonomyManagerNode(Node):
         self.declare_parameter("cmd_rate_hz", 20.0)
         self.declare_parameter("pose_timeout_sec", 0.5)
         self.declare_parameter("prestream_setpoints", 40)
+        self.declare_parameter("takeoff_skip_margin", 0.25)
 
         pose_topic = str(self.get_parameter("pose_topic").value)
         self.vehicle = VehicleInterface(
@@ -60,6 +61,8 @@ class AutonomyManagerNode(Node):
         self._phase = "WAIT_STREAM"
         self._phase_t0 = time.time()
         self._prestream_count = 0
+        self._takeoff_start_z = None
+        self._ground_reference_z = None
 
         self.create_subscription(TwistStamped, self.safe_cmd_topic, self._on_cmd, 10)
         self.create_subscription(Bool, self.goal_reached_topic, self._on_goal_reached, 10)
@@ -109,6 +112,8 @@ class AutonomyManagerNode(Node):
             return
         self._phase = name
         self._phase_t0 = time.time()
+        if name == "OFFBOARD_ARM":
+            self._takeoff_start_z = None
         self.phase_pub.publish(String(data=name))
         self.get_logger().info(f"PHASE => {name}")
 
@@ -134,9 +139,7 @@ class AutonomyManagerNode(Node):
         kp_z = float(self.get_parameter("kp_z").value)
         vz_max = float(self.get_parameter("vz_max").value)
         prestream_setpoints = int(self.get_parameter("prestream_setpoints").value)
-
-        # Always stream a setpoint for PX4 offboard admission.
-        self._publish_cmd(0.0, 0.0, 0.0, 0.0)
+        takeoff_skip_margin = float(self.get_parameter("takeoff_skip_margin").value)
 
         if not self.vehicle.state.connected:
             return
@@ -145,7 +148,19 @@ class AutonomyManagerNode(Node):
 
         _, _, z, _ = self._get_xyz_yaw()
 
+        if self._phase in {"WAIT_STREAM", "OFFBOARD_ARM"} and not self.vehicle.state.armed:
+            if self._ground_reference_z is None:
+                self._ground_reference_z = z
+            else:
+                self._ground_reference_z = min(self._ground_reference_z, z)
+
+        reference_z = self._takeoff_start_z if self._takeoff_start_z is not None else z
+        takeoff_target_z = reference_z + takeoff_z
+        goal_target_z = reference_z + goal_z
+
         if self._phase == "WAIT_STREAM":
+            # Pre-stream zero setpoints only until OFFBOARD can be requested.
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             self._prestream_count += 1
             if self._prestream_count >= prestream_setpoints:
                 self._enter_phase("OFFBOARD_ARM")
@@ -157,6 +172,7 @@ class AutonomyManagerNode(Node):
                 return
 
         if self._phase == "OFFBOARD_ARM":
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             if self.vehicle.state.mode != "OFFBOARD":
                 if (now - self._last_mode_req_t) > 1.0:
                     self._request_mode("OFFBOARD")
@@ -171,22 +187,44 @@ class AutonomyManagerNode(Node):
                     self.get_logger().info("Requesting arm")
                 return
 
+            if z >= (takeoff_z - takeoff_skip_margin):
+                self._takeoff_start_z = z - takeoff_z
+                self.get_logger().info(
+                    f"Already airborne at z={z:.2f}; skipping TAKEOFF. "
+                    f"effective_start_z={self._takeoff_start_z:.2f}, "
+                    f"takeoff_target_z={self._takeoff_start_z + takeoff_z:.2f}, "
+                    f"goal_target_z={self._takeoff_start_z + goal_z:.2f}"
+                )
+                self._enter_phase("FOLLOW_PLAN")
+                return
+
+            if self._ground_reference_z is not None:
+                self._takeoff_start_z = self._ground_reference_z
+            else:
+                self._takeoff_start_z = z
+            takeoff_target_z = self._takeoff_start_z + takeoff_z
+            goal_target_z = self._takeoff_start_z + goal_z
+            self.get_logger().info(
+                f"Takeoff reference locked: start_z={self._takeoff_start_z:.2f}, "
+                f"current_z={z:.2f}, "
+                f"takeoff_target_z={takeoff_target_z:.2f}, goal_target_z={goal_target_z:.2f}"
+            )
             self._enter_phase("TAKEOFF")
             return
 
         if self._phase == "TAKEOFF":
-            err_z = takeoff_z - z
+            err_z = takeoff_target_z - z
             vz_cmd = clamp(kp_z * err_z, -vz_max, vz_max)
             if err_z > 0.2:
                 vz_cmd = clamp(vz_cmd, 0.2, vz_max)
             self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
 
-            if z >= takeoff_z - 0.15:
+            if z >= takeoff_target_z - 0.15:
                 self._enter_phase("HOVER_AFTER_TAKEOFF")
             return
 
         if self._phase == "HOVER_AFTER_TAKEOFF":
-            err_z = takeoff_z - z
+            err_z = takeoff_target_z - z
             vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)
             self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
 
@@ -199,7 +237,7 @@ class AutonomyManagerNode(Node):
                 self._enter_phase("HOVER_AT_GOAL")
                 return
 
-            err_z = goal_z - z
+            err_z = goal_target_z - z
             vz_hold = clamp(kp_z * err_z, -vz_max, vz_max)
             cmd = self._latest_cmd if self._have_cmd else TwistStamped()
             self._publish_cmd(
@@ -211,7 +249,7 @@ class AutonomyManagerNode(Node):
             return
 
         if self._phase == "HOVER_AT_GOAL":
-            err_z = goal_z - z
+            err_z = goal_target_z - z
             vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)
             self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
 

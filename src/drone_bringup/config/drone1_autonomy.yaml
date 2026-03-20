@@ -14,21 +14,24 @@
     goal_reached_topic: "/drone1/mission/goal_reached"
     fcu_url: "udp://:14540@127.0.0.1:14580"
     takeoff_z: 3.0
-    goal_x: 10.0
+    goal_x: 8.0
     goal_y: 0.0
     goal_z: 3.0
     goal_tol_xy: 1.0
     goal_latch_enabled: true
-    cruise_speed: 0.5
+    allow_motion_without_scan: true
+    cruise_speed: 1.0
     obstacle_stop_distance: 2.0
     hover_sec_after_takeoff: 2.0
     kp_z: 1.2
     vz_max: 1.0
     cmd_rate_hz: 20.0
     prestream_setpoints: 40
-    pose_timeout_sec: 0.5
+    takeoff_skip_margin: 0.25
+    pose_timeout_sec: 1.0
     scan_timeout_sec: 0.5
     planner_cmd_timeout_sec: 0.5
-    startup_grace_sec: 3.0
+    startup_grace_sec: 5.0
+    require_scan: false
     emergency_stop_distance: 1.0
     artifacts_root: "/workspace/AV_Drone/artifacts"

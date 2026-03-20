@@ -24,6 +24,7 @@ class SafetyMonitorNode(Node):
         self.declare_parameter("planner_cmd_timeout_sec", 0.5)
         self.declare_parameter("emergency_stop_distance", 1.0)
         self.declare_parameter("startup_grace_sec", 3.0)
+        self.declare_parameter("require_scan", False)
 
         self.last_pose_t = None
         self.last_scan_t = None
@@ -87,6 +88,7 @@ class SafetyMonitorNode(Node):
         cmd_timeout = float(self.get_parameter("planner_cmd_timeout_sec").value)
         emergency_stop_distance = float(self.get_parameter("emergency_stop_distance").value)
         startup_grace = float(self.get_parameter("startup_grace_sec").value)
+        require_scan = bool(self.get_parameter("require_scan").value)
 
         if (now - self._node_start_time) < startup_grace:
             self._emit_event("startup_grace")
@@ -99,9 +101,11 @@ class SafetyMonitorNode(Node):
             return
 
         if self.last_scan_t is None or (now - self.last_scan_t) > scan_timeout:
-            self._emit_event("scan_timeout")
-            self.safe_cmd_pub.publish(self._zero_cmd())
-            return
+            if require_scan:
+                self._emit_event("scan_timeout")
+                self.safe_cmd_pub.publish(self._zero_cmd())
+                return
+            self.last_scan_min = float("inf")
 
         if self.last_cmd_t is None or (now - self.last_cmd_t) > cmd_timeout:
             self._emit_event("planner_cmd_timeout")
