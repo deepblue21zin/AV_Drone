@@ -9,21 +9,30 @@ services:
     network_mode: host
     ipc: host
     environment:
-      DISPLAY: ${DISPLAY}
+      HEADLESS: ${HEADLESS:-1}
       QT_X11_NO_MITSHM: "1"
+      LIBGL_ALWAYS_SOFTWARE: ${LIBGL_ALWAYS_SOFTWARE:-1}
+      GALLIUM_DRIVER: ${GALLIUM_DRIVER:-llvmpipe}
+      MESA_LOADER_DRIVER_OVERRIDE: ${MESA_LOADER_DRIVER_OVERRIDE:-swrast}
+      QT_OPENGL: ${QT_OPENGL:-software}
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-/tmp/runtime-root}
+      GZ_RENDER_ENGINE: ${GZ_RENDER_ENGINE:-ogre2}
+      PX4_GZ_SIM_RENDER_ENGINE: ${PX4_GZ_SIM_RENDER_ENGINE:-ogre2}
+      GZ_PARTITION: ${GZ_PARTITION:-av_drone}
+      IGN_PARTITION: ${IGN_PARTITION:-av_drone}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
       FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
-      PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}
-      PX4_SITL_WORLD: ${PX4_SITL_WORLD:-obstacle_demo}
+      PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gz_x500}
+      PX4_GZ_WORLD: ${PX4_GZ_WORLD:-obstacle_demo}
+      PX4_GZ_MODEL_NAME: ${PX4_GZ_MODEL_NAME:-drone1}
     volumes:
       - .:/workspace/AV_Drone
+      - .:/home/deepblue/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /dev/shm:/dev/shm
       - sim-home:/root
-    devices:
-      - /dev/dri:/dev/dri
     working_dir: /opt/PX4-Autopilot
     init: true
     stdin_open: true
@@ -38,8 +47,9 @@ services:
     network_mode: host
     ipc: host
     environment:
-      DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
+      GZ_PARTITION: ${GZ_PARTITION:-av_drone}
+      IGN_PARTITION: ${IGN_PARTITION:-av_drone}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}

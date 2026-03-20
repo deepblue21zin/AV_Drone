@@ -25,16 +25,20 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
     > /etc/apt/sources.list.d/ros2.list
 
+RUN curl -fsSL https://packages.osrfoundation.org/gazebo.gpg \
+    -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
+    > /etc/apt/sources.list.d/gazebo-stable.list
+
 RUN apt-get update && apt-get install -y \
     bash-completion \
     build-essential \
     ca-certificates \
     cmake \
     file \
-    gazebo \
     genromfs \
+    gz-harmonic \
     libeigen3-dev \
-    libgazebo-dev \
     libgstreamer-plugins-base1.0-dev \
     libgstreamer1.0-dev \
     libgtest-dev \
@@ -45,6 +49,7 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     pkg-config \
     protobuf-compiler \
+    ros-humble-ros-gz-bridge \
     python3-dev \
     python3-empy \
     python3-future \
@@ -56,8 +61,6 @@ RUN apt-get update && apt-get install -y \
     python3-toml \
     python3-wheel \
     python3-yaml \
-    ros-humble-gazebo-plugins \
-    ros-humble-gazebo-ros-pkgs \
     rsync \
     shellcheck \
     unzip \

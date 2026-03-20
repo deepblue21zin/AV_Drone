@@ -8,9 +8,16 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ===== VS Code =====
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # ===== PX4 / Gazebo =====
 px4_sitl_default/
@@ -19,6 +26,7 @@ px4_sitl_default/
 
 # ===== Runtime artifacts =====
 artifacts/
+.cache/gz/
 
 # ===== Generated experiment outputs =====
 experiments/index.csv
@@ -32,3 +40,6 @@ experiments/plots/
 # ===== OS =====
 .DS_Store
 Thumbs.db
+
+# ===== Local startup logs =====
+.logs/
