@@ -1,0 +1,75 @@
+scenario_name: single_drone_obstacle_demo
+baseline_name: single_drone_autonomy_baseline
+planner_name: local_planner_lidar_reactive
+world_name: obstacle_demo
+vehicle_model: iris_rplidar
+drone_count: 1
+start_pose:
+  x: 0.0
+  y: 0.0
+  z: 0.0
+goal_pose:
+  x: 31.0
+  y: 0.0
+  z: 3.0
+obstacles:
+  - id: pole_01
+    shape: cylinder
+    pose: [4.0, -3.0, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_02
+    shape: cylinder
+    pose: [6.7, 2.8, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_03
+    shape: cylinder
+    pose: [9.4, -2.6, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_04
+    shape: cylinder
+    pose: [12.1, 3.0, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_05
+    shape: cylinder
+    pose: [14.8, -2.8, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_06
+    shape: cylinder
+    pose: [17.5, 2.6, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_07
+    shape: cylinder
+    pose: [20.2, -3.0, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_08
+    shape: cylinder
+    pose: [22.9, 2.7, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_09
+    shape: cylinder
+    pose: [25.6, -2.5, 3.0]
+    radius: 0.9
+    length: 6.0
+  - id: pole_10
+    shape: cylinder
+    pose: [28.3, 2.9, 3.0]
+    radius: 0.9
+    length: 6.0
+communications:
+  ros_domain_id: 0
+  fcu_url: udp://:14540@127.0.0.1:14580
+  mavros_namespace: /mavros
+notes:
+  - Single-drone Gazebo Classic obstacle demo scenario.
+  - Two corridor walls keep the vehicle inside the lane so it cannot simply escape to the far left or right.
+  - Thick poles are placed near alternating walls to force pass-through avoidance between obstacles.
+  - The goal is farther away so the run lasts longer and produces a more convincing avoidance trace.
+  - The planner is local reactive avoidance, not a global map planner, so the corridor is shaped to be solvable with local sensing.

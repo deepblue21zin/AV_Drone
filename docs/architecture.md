@@ -1,43 +1,41 @@
 # AV_Drone Architecture
 
-이 문서는 현재 저장소의 `active path`를 기준으로 코드 구조와 런타임 구조를 설명한다.  
-기준은 `single_drone_autonomy.launch.py` 기반의 단일 드론 baseline이며, 이후 이를 `failure-aware mission continuation` 연구 플랫폼으로 확장하는 방향을 전제로 한다.
+이 문서는 현재 저장소의 `active path`를 기준으로 설명한다.  
+기준 런타임은 `PX4 SITL + Gazebo Classic 11 + ROS 2 Humble + MAVROS` 기반의 단일 드론 baseline이다.
 
-## 1. 현재 아키텍처 요약
+## 1. 아키텍처 요약
 
 ```text
 Host Ubuntu 22.04
 └─ Docker Compose
    ├─ sim
    │  ├─ PX4 SITL
-   │  ├─ Gazebo Sim
-   │  ├─ x500_lidar model
-   │  └─ obstacle_demo.sdf
+   │  ├─ Gazebo Classic 11
+   │  ├─ iris_rplidar
+   │  └─ obstacle_demo.world
    └─ ros
       ├─ ROS 2 Humble
       ├─ MAVROS
-      ├─ ros_gz_bridge
       ├─ drone_bringup
       ├─ drone_control
       ├─ drone_perception
       ├─ drone_planning
       ├─ drone_safety
-      └─ drone_metrics
+      ├─ drone_metrics
+      └─ ros_states
 ```
 
-현재는 `single-UAV baseline`이 active path다.  
-`mppi` 패키지는 삭제하지 않았지만, 현재 주 실행 경로가 아니라 레거시 baseline / 비교용 코드로 둔다.
+현재 baseline에서 중요한 점은 아래다.
+
+- `sim`은 시뮬레이션 전담이다.
+- `ros`는 autonomy pipeline 전담이다.
+- LiDAR는 Gazebo Classic 쪽 plugin을 통해 ROS 2 topic으로 직접 들어온다.
+- 현재 active path에는 `ros_gz_bridge`가 없다.
 
 ## 2. 런타임 데이터 흐름
 
 ```text
-Gazebo Sim + PX4 SITL
-  -> MAVROS
-  -> /mavros/local_position/pose
-  -> drone_control/autonomy_manager
-
-Gazebo Sim lidar topic
-  -> ros_gz_bridge/parameter_bridge
+Gazebo Classic LiDAR
   -> /drone1/scan
   -> drone_perception/lidar_obstacle_node
   -> /drone1/perception/nearest_obstacle_distance
@@ -48,11 +46,15 @@ Gazebo Sim lidar topic
   -> drone_control/autonomy_manager
   -> /mavros/setpoint_velocity/cmd_vel
 
-All state / scan / phase / event streams
+PX4 SITL
+  -> MAVROS
+  -> /mavros/state
+  -> /mavros/local_position/pose
+  -> control / metrics / ros_states
+
+All runtime streams
   -> drone_metrics/metrics_logger
   -> artifacts/<timestamp>_drone1/
-  -> experiments/index.csv, scenario_table.csv, ledger.csv
-  -> experiments/plots/<run_id>/
 ```
 
 ## 3. 컨테이너별 책임
@@ -63,42 +65,34 @@ All state / scan / phase / event streams
 
 - [docker/sim/Dockerfile](/home/deepblue/AV_Drone/docker/sim/Dockerfile)
 - [docker/sim/entrypoint.sh](/home/deepblue/AV_Drone/docker/sim/entrypoint.sh)
-- [sim_assets/gz/models/x500_lidar/model.sdf](/home/deepblue/AV_Drone/sim_assets/gz/models/x500_lidar/model.sdf)
-- [sim_assets/gz/worlds/obstacle_demo.sdf](/home/deepblue/AV_Drone/sim_assets/gz/worlds/obstacle_demo.sdf)
+- [sim_assets/models/rplidar/model.sdf](/home/deepblue/AV_Drone/sim_assets/models/rplidar/model.sdf)
+- [sim_assets/worlds/obstacle_demo.world](/home/deepblue/AV_Drone/sim_assets/worlds/obstacle_demo.world)
 
 역할:
 
 - PX4 SITL 실행
-- Gazebo Sim 실행
-- custom LiDAR model 반영
-- custom world 반영
-
-메모:
-
-- 컨테이너가 `Up`이어도 내부에서 PX4/Gazebo build가 진행 중일 수 있다.
-- smoke test는 `Startup script returned successfully`가 나올 때까지 기다리도록 설계돼 있다.
+- Gazebo Classic world/model 준비
+- `make px4_sitl gazebo-classic_iris_rplidar` 실행
+- GUI가 가능하면 Gazebo Classic client도 같이 사용
 
 ### `ros`
 
 관련 파일:
 
 - [docker/ros/Dockerfile](/home/deepblue/AV_Drone/docker/ros/Dockerfile)
-- [docker/ros/entrypoint.sh](/home/deepblue/AV_Drone/docker/ros/entrypoint.sh)
 - [docker-compose.yml](/home/deepblue/AV_Drone/docker-compose.yml)
 
 역할:
 
 - ROS 2 Humble workspace 빌드
 - MAVROS 실행
-- Gazebo Sim `LaserScan -> ROS 2 LaserScan` bridge 실행
-- autonomy pipeline 실행
+- perception / planning / safety / control / metrics 실행
 - artifact 저장
+- `ros_states` 대시보드 제공
 
-## 4. active ROS packages
+## 4. Active ROS packages
 
 ### `drone_bringup`
-
-관련 파일:
 
 - [single_drone_autonomy.launch.py](/home/deepblue/AV_Drone/src/drone_bringup/launch/single_drone_autonomy.launch.py)
 - [drone1_autonomy.yaml](/home/deepblue/AV_Drone/src/drone_bringup/config/drone1_autonomy.yaml)
@@ -106,58 +100,28 @@ All state / scan / phase / event streams
 역할:
 
 - 현재 baseline의 단일 진입점
-- MAVROS와 autonomy pipeline 노드를 함께 launch
-- 주요 topic / threshold / goal / artifact root를 YAML로 정의
-
-### `drone_control`
-
-관련 파일:
-
-- [autonomy_manager_node.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/autonomy_manager_node.py)
-- [vehicle_interface.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/vehicle_interface.py)
-
-역할:
-
-- mission phase 관리
-- OFFBOARD / arm / takeoff / hover / follow-plan 상태 전환
-- safe command를 MAVROS velocity setpoint로 전달
-
-핵심 phase:
-
-- `WAIT_STREAM`
-- `OFFBOARD_ARM`
-- `TAKEOFF`
-- `HOVER_AFTER_TAKEOFF`
-- `FOLLOW_PLAN`
-- `HOVER_AT_GOAL`
+- MAVROS와 autonomy pipeline을 함께 launch
+- topic 이름, threshold, goal, artifact root 정의
 
 ### `drone_perception`
-
-관련 파일:
 
 - [lidar_obstacle_node.py](/home/deepblue/AV_Drone/src/drone_perception/drone_perception/lidar_obstacle_node.py)
 
 역할:
 
 - `/drone1/scan` 구독
-- finite range만 추려 nearest obstacle distance 추출
-- `/drone1/perception/nearest_obstacle_distance` 발행
+- finite range만 추려 nearest obstacle distance 생성
 
 ### `drone_planning`
-
-관련 파일:
 
 - [local_planner_node.py](/home/deepblue/AV_Drone/src/drone_planning/drone_planning/local_planner_node.py)
 
 역할:
 
-- current pose와 goal을 이용해 local velocity command 생성
-- `goal_reached` 판정
-- 현재는 latch 방식으로 goal 판정을 안정화함
+- 현재 pose와 goal을 보고 velocity command 생성
+- 현재는 LaserScan 기반 `local reactive avoidance` baseline이며, global replanning은 아직 없다
 
 ### `drone_safety`
-
-관련 파일:
 
 - [safety_monitor_node.py](/home/deepblue/AV_Drone/src/drone_safety/drone_safety/safety_monitor_node.py)
 
@@ -168,11 +132,20 @@ All state / scan / phase / event streams
 - `planner_cmd_timeout`
 - `emergency_stop_obstacle`
 
-을 감시하고, 필요 시 zero velocity fail-safe를 출력한다.
+를 감시하고 zero-velocity fail-safe를 출력한다.
+
+### `drone_control`
+
+- [autonomy_manager_node.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/autonomy_manager_node.py)
+- [vehicle_interface.py](/home/deepblue/AV_Drone/src/drone_control/drone_control/vehicle_interface.py)
+
+역할:
+
+- `WAIT_STREAM -> OFFBOARD_ARM -> TAKEOFF -> HOVER_AFTER_TAKEOFF -> FOLLOW_PLAN -> HOVER_AT_GOAL`
+- phase 전환 관리
+- safe command를 MAVROS setpoint로 전달
 
 ### `drone_metrics`
-
-관련 파일:
 
 - [metrics_logger_node.py](/home/deepblue/AV_Drone/src/drone_metrics/drone_metrics/metrics_logger_node.py)
 
@@ -185,77 +158,24 @@ All state / scan / phase / event streams
 
 를 실행마다 저장한다.
 
-현재 baseline에서 중요한 필드:
+### `ros_states`
 
-- `mission_phase`
-- `goal_reached`
-- `pose_count`
-- `scan_count`
-- `closest_obstacle_m`
-- `pose_period_p99_s`
-- `scan_period_p99_s`
+- [src/ros_states](/home/deepblue/AV_Drone/src/ros_states)
 
-## 5. 주요 topic
+역할:
 
-상태 / 제어:
+- topic / phase / artifact를 웹으로 보여주는 운영 대시보드
+- 초심자도 현재 상태를 한눈에 보게 해주는 인수인계 도구
 
-- `/mavros/state`
-- `/mavros/local_position/pose`
-- `/mavros/setpoint_velocity/cmd_vel`
-- `/drone1/mission/phase`
-- `/drone1/mission/goal_reached`
+## 5. 현재 검증 상태
 
-센서 / planner:
+현재 기준으로 확인된 것:
 
-- `/drone1/scan`
-- `/drone1/perception/nearest_obstacle_distance`
-- `/drone1/autonomy/cmd_vel`
-- `/drone1/safety/cmd_vel`
-
-계측:
-
-- artifact directory under [artifacts](/home/deepblue/AV_Drone/artifacts)
-
-## 6. 현재 기준 검증 상태
-
-대표 예시 artifact:
-
-- [baseline_summary_example.json](/home/deepblue/AV_Drone/docs/examples/baseline_summary_example.json)
-
-확인된 값:
-
-- `mission_phase = HOVER_AT_GOAL`
+- `/drone1/scan` 수신
+- `/mavros/local_position/pose` 수신
+- `HOVER_AT_GOAL` 도달
 - `goal_reached = true`
-- `pose_count = 49171`
-- `scan_count = 8231`
-- `closest_obstacle_m = 0.2117559313774109`
+- artifact 저장
 
-즉 현재 아키텍처는 “single-UAV baseline이 살아 있고, 측정 가능한 상태”까지는 도달했다.
-
-## 7. 레거시 코드의 위치
-
-관련 파일:
-
-- [src/mppi/launch/mppi.launch.py](/home/deepblue/AV_Drone/src/mppi/launch/mppi.launch.py)
-- [src/mppi/mppi/mppi_node.py](/home/deepblue/AV_Drone/src/mppi/mppi/mppi_node.py)
-
-의미:
-
-- 기존 단일 드론 MPPI 데모
-- 현재 autonomy manager 상태 머신 설계의 참고 소스
-- 이후 논문용 baseline 비교 대상으로 유지
-
-중요:
-
-- `mppi`는 현재 주 실행 경로가 아니다.
-- 현재 문서와 팀 인수인계는 `single_drone_autonomy.launch.py` 기준으로 본다.
-
-## 8. 현재 논문 방향에서 아직 없는 것
-
-- multi-UAV namespace / spawn 구조
-- failure injection
-- landing bubble / descent corridor hazard model
-- orphan task extraction / reallocation
-- 반복 실험 통계 검증
-
-즉, 현재 아키텍처는 연구 주제의 “시작 플랫폼”이고, 논문 본체는 아직 위에 쌓아야 한다.
+즉 현재 아키텍처는 `single-UAV Gazebo Classic baseline`으로는 살아 있다.  
+다만 다중 드론, task reallocation, MPPI 복귀, failure-aware continuation은 아직 상위 연구 단계다.

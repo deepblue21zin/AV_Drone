@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CACHE_DIR="${ROOT_DIR}/.cache/gz/models"
-GZ_MODEL_EXPORT_DIR="/opt/PX4-Autopilot/Tools/simulation/gz/models"
-RENDER_ENGINE="${PX4_GZ_GUI_RENDER_ENGINE:-ogre}"
-PARTITION="${GZ_PARTITION:-av_drone}"
+DISPLAY_VALUE="${DISPLAY:-}"
+PX4_HOME_DEFAULT="/opt/PX4-Autopilot"
+BUILD_DIR_DEFAULT="${PX4_HOME_DEFAULT}/build/px4_sitl_default"
+GAZEBO_CLASSIC_DIR_DEFAULT="${PX4_HOME_DEFAULT}/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
 
 fail() {
   echo "[FAIL] $1" >&2
@@ -16,48 +15,61 @@ info() {
   echo "[INFO] $1"
 }
 
-if ! command -v gz >/dev/null 2>&1; then
-  fail "host machine does not have 'gz' installed. Install Gazebo Sim Harmonic on the host first."
+if [ -z "${DISPLAY_VALUE}" ]; then
+  fail "DISPLAY is not set. Run 'echo $DISPLAY' first and allow X11 access with 'xhost +local:docker'."
 fi
 
 if ! docker compose ps --services --status running | grep -qx sim; then
   fail "docker compose service 'sim' is not running"
 fi
 
-mkdir -p "${CACHE_DIR}"
-
-for model_name in x500 x500_base; do
-  if [ ! -d "${CACHE_DIR}/${model_name}" ]; then
-    info "syncing ${model_name} model from sim container into host cache"
-    docker compose exec -T sim bash -lc "tar -C '${GZ_MODEL_EXPORT_DIR}' -cf - ${model_name}" | tar -C "${CACHE_DIR}" -xf -
+info "waiting for gzserver to be ready"
+for _ in $(seq 1 40); do
+  if docker compose exec -T sim bash -lc "pgrep -x gzserver >/dev/null 2>&1"; then
+    break
   fi
+  sleep 1
 done
 
-# Host Gazebo GUI is forced into CPU software rendering.
-# This is slower, but it avoids the Wayland + AMD + render-node issues that
-# were producing a blank gray window.
-export QT_QPA_PLATFORM="xcb"
-export GDK_BACKEND="x11"
-export XDG_SESSION_TYPE="x11"
-unset WAYLAND_DISPLAY
-unset QT_QUICK_BACKEND
-export LIBGL_ALWAYS_SOFTWARE=1
-export GALLIUM_DRIVER="llvmpipe"
-export MESA_LOADER_DRIVER_OVERRIDE="swrast"
+if ! docker compose exec -T sim bash -lc "pgrep -x gzserver >/dev/null 2>&1"; then
+  fail "gzserver is not running yet. Wait for 'Startup script returned successfully' in sim logs first."
+fi
 
-export GZ_PARTITION="${PARTITION}"
-export IGN_PARTITION="${PARTITION}"
-export GZ_SIM_RESOURCE_PATH="${CACHE_DIR}:${ROOT_DIR}/sim_assets/gz/models:${ROOT_DIR}/sim_assets/gz/worlds${GZ_SIM_RESOURCE_PATH:+:${GZ_SIM_RESOURCE_PATH}}"
+if docker compose exec -T sim bash -lc "pgrep -x gzclient >/dev/null 2>&1"; then
+  info "restarting existing Gazebo Classic client"
+  docker compose exec -T sim bash -lc "pkill -x gzclient || true"
+  sleep 1
+fi
 
-info "starting host Gazebo GUI in CPU software-rendering mode"
-info "GZ_PARTITION=${GZ_PARTITION}"
-info "GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH}"
-info "QT_QPA_PLATFORM=${QT_QPA_PLATFORM}"
-info "GDK_BACKEND=${GDK_BACKEND}"
-info "XDG_SESSION_TYPE=${XDG_SESSION_TYPE}"
-info "PX4_GZ_GUI_RENDER_ENGINE=${RENDER_ENGINE}"
-info "LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE}"
-info "GALLIUM_DRIVER=${GALLIUM_DRIVER}"
-info "MESA_LOADER_DRIVER_OVERRIDE=${MESA_LOADER_DRIVER_OVERRIDE}"
+info "resetting stale Gazebo GUI state"
+docker compose exec -T sim bash -lc "rm -f /root/.gazebo/gui.ini && mkdir -p /root/.gazebo && printf '[geometry]
+x=0
+y=0
+width=1600
+height=900
+' > /root/.gazebo/gui.ini"
 
-exec gz sim --render-engine "${RENDER_ENGINE}" -g --gui-config "${ROOT_DIR}/sim_assets/gz/gui/gui.config"
+info "starting Gazebo Classic client from the sim container with server-matching Gazebo paths"
+exec docker compose exec sim bash -lc '
+  export DISPLAY="'"${DISPLAY_VALUE}"'";
+  export QT_X11_NO_MITSHM=1;
+  export QT_QPA_PLATFORM=xcb;
+  export GDK_BACKEND=x11;
+  export XDG_SESSION_TYPE=x11;
+  unset WAYLAND_DISPLAY;
+
+  PX4_HOME="${PX4_HOME:-'"${PX4_HOME_DEFAULT}"'}";
+  BUILD_DIR="${PX4_HOME}/build/px4_sitl_default";
+  GAZEBO_CLASSIC_DIR="${PX4_HOME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic";
+
+  export GAZEBO_MODEL_PATH="${GAZEBO_MODEL_PATH:+${GAZEBO_MODEL_PATH}:}${GAZEBO_CLASSIC_DIR}/models";
+  export GAZEBO_PLUGIN_PATH="${GAZEBO_PLUGIN_PATH:+${GAZEBO_PLUGIN_PATH}:}${BUILD_DIR}/build_gazebo-classic";
+  export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:${BUILD_DIR}/build_gazebo-classic${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}";
+  export GAZEBO_IP="${GAZEBO_IP:-127.0.0.1}";
+  export GAZEBO_MASTER_URI="${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}";
+
+  echo "[INFO] GAZEBO_IP=${GAZEBO_IP}";
+  echo "[INFO] GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}";
+  echo "[INFO] GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}";
+  exec gzclient
+'

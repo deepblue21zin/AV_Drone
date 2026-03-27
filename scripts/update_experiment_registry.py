@@ -17,7 +17,16 @@ INDEX_HEADERS = [
     "git_branch",
     "git_dirty",
     "scenario_name",
+    "baseline_name",
+    "planner_name",
+    "planner_version",
+    "controller_version",
+    "experiment_seed",
+    "scenario_manifest",
+    "parameter_snapshot_path",
+    "config_snapshot_dir",
     "result",
+    "failure_code",
     "runner",
     "artifact_path",
     "plot_dir",
@@ -32,6 +41,7 @@ INDEX_HEADERS = [
     "planner_cmd_count",
     "safe_cmd_count",
     "safety_event_count",
+    "safety_intervention_count",
     "current_obstacle_m",
     "closest_obstacle_m",
     "pose_period_p99_s",
@@ -46,7 +56,9 @@ LEDGER_HEADERS = [
     "run_id",
     "git_commit",
     "scenario_name",
+    "baseline_name",
     "result",
+    "failure_code",
     "artifact_path",
     "mission_phase",
     "goal_reached",
@@ -144,7 +156,41 @@ def infer_result(summary):
     return "unknown"
 
 
-def build_row(repo_root: Path, artifact_path: Path | None, result: str, runner: str, scenario_override: str, issue: str, fix: str, notes: str):
+def infer_failure_code(summary):
+    if not summary:
+        return ""
+    if summary.get("failure_code"):
+        return summary.get("failure_code", "")
+    if summary.get("goal_reached") is True and summary.get("mission_phase") == "HOVER_AT_GOAL":
+        return ""
+
+    safety_reason_counts = summary.get("safety_reason_counts") or {}
+    if safety_reason_counts.get("emergency_stop_obstacle"):
+        return "EMERGENCY_STOP_OBSTACLE"
+    if safety_reason_counts.get("pose_timeout"):
+        return "POSE_TIMEOUT"
+    if safety_reason_counts.get("scan_timeout"):
+        return "SCAN_TIMEOUT"
+    if safety_reason_counts.get("planner_cmd_timeout"):
+        return "PLANNER_CMD_TIMEOUT"
+    if summary.get("connected") is False:
+        return "FCU_DISCONNECT"
+    if summary.get("mission_phase") == "WAIT_STREAM":
+        return "WAIT_STREAM_STALL"
+    return ""
+
+
+def build_row(
+    repo_root: Path,
+    artifact_path: Path | None,
+    result: str,
+    runner: str,
+    scenario_override: str,
+    issue: str,
+    fix: str,
+    notes: str,
+    failure_code_override: str,
+):
     now = time.strftime("%Y-%m-%dT%H:%M:%S")
     git_commit, git_branch, git_dirty = git_context(repo_root)
     metadata = {}
@@ -186,7 +232,16 @@ def build_row(repo_root: Path, artifact_path: Path | None, result: str, runner: 
         "git_branch": effective_branch,
         "git_dirty": effective_dirty,
         "scenario_name": scenario_name,
+        "baseline_name": metadata.get("baseline_name") or summary.get("baseline_name", ""),
+        "planner_name": metadata.get("planner_name") or summary.get("planner_name", ""),
+        "planner_version": metadata.get("planner_version") or summary.get("planner_version", ""),
+        "controller_version": metadata.get("controller_version") or summary.get("controller_version", ""),
+        "experiment_seed": metadata.get("experiment_seed") or summary.get("experiment_seed", ""),
+        "scenario_manifest": metadata.get("scenario_manifest_path") or summary.get("scenario_manifest_path", ""),
+        "parameter_snapshot_path": metadata.get("parameter_snapshot_path", ""),
+        "config_snapshot_dir": metadata.get("config_snapshot_dir", ""),
         "result": result or infer_result(summary),
+        "failure_code": failure_code_override or infer_failure_code(summary),
         "runner": runner,
         "artifact_path": relative_to_repo(artifact_path, repo_root) if artifact_path else "",
         "plot_dir": plot_dir,
@@ -201,6 +256,7 @@ def build_row(repo_root: Path, artifact_path: Path | None, result: str, runner: 
         "planner_cmd_count": summary.get("planner_cmd_count", ""),
         "safe_cmd_count": summary.get("safe_cmd_count", ""),
         "safety_event_count": summary.get("safety_event_count", ""),
+        "safety_intervention_count": summary.get("safety_intervention_count", ""),
         "current_obstacle_m": summary.get("current_obstacle_m", ""),
         "closest_obstacle_m": summary.get("closest_obstacle_m", ""),
         "pose_period_p99_s": summary.get("pose_period_p99_s", ""),
@@ -277,6 +333,7 @@ def main():
     parser.add_argument("--issue", default="", help="Issue summary for the ledger.")
     parser.add_argument("--fix", default="", help="Fix summary for the ledger.")
     parser.add_argument("--notes", default="", help="Free-form notes.")
+    parser.add_argument("--failure-code", default="", help="Override failure code when artifact inference is not enough.")
     parser.add_argument("--allow-missing-artifact", action="store_true", help="Allow registration without a valid artifact path.")
     args = parser.parse_args()
 
@@ -301,6 +358,7 @@ def main():
                 "",
                 "",
                 "rebuild from artifacts",
+                args.failure_code,
             )
             index_rows = upsert_index(index_rows, row, preserve_existing=True)
     else:
@@ -321,6 +379,7 @@ def main():
             args.issue,
             args.fix,
             args.notes,
+            args.failure_code,
         )
         index_rows = upsert_index(index_rows, row)
         ledger_rows.append({
@@ -328,7 +387,9 @@ def main():
             "run_id": row["run_id"],
             "git_commit": row["git_commit"],
             "scenario_name": row["scenario_name"],
+            "baseline_name": row["baseline_name"],
             "result": row["result"],
+            "failure_code": row["failure_code"],
             "artifact_path": row["artifact_path"],
             "mission_phase": row["mission_phase"],
             "goal_reached": row["goal_reached"],

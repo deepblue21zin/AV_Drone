@@ -29,7 +29,7 @@
         <scene>scene</scene>
         <ambient_light>0.5 0.5 0.5</ambient_light>
         <background_color>0.85 0.88 0.92</background_color>
-        <camera_pose>-14 0 12 0 0.75 0</camera_pose>
+        <camera_pose>11 0 28 0 1.22 0</camera_pose>
       </plugin>
       <plugin name="World control" filename="WorldControl">
         <gz-gui>
@@ -128,76 +128,346 @@
       <pose>0 0 0 0 0 0</pose>
     </include>
 
-    <model name="obstacle_1">
+    <model name="corridor_wall_left">
       <static>true</static>
-      <pose>4 0 1 0 0 0</pose>
+      <pose>15.50 4.60 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>1.2 1.2 2.0</size>
+              <size>35.00 0.35 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>1.2 1.2 2.0</size>
+              <size>35.00 0.35 6.00</size>
             </box>
           </geometry>
           <material>
-            <ambient>0.85 0.3 0.3 1</ambient>
-            <diffuse>0.85 0.3 0.3 1</diffuse>
+            <ambient>0.62 0.62 0.62 1</ambient>
+            <diffuse>0.62 0.62 0.62 1</diffuse>
           </material>
         </visual>
       </link>
     </model>
 
-    <model name="obstacle_2">
+    <model name="corridor_wall_right">
       <static>true</static>
-      <pose>7 -2.5 1 0 0 0</pose>
+      <pose>15.50 -4.60 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>1.0 1.0 2.0</size>
+              <size>35.00 0.35 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>1.0 1.0 2.0</size>
+              <size>35.00 0.35 6.00</size>
             </box>
           </geometry>
           <material>
-            <ambient>0.3 0.55 0.85 1</ambient>
-            <diffuse>0.3 0.55 0.85 1</diffuse>
+            <ambient>0.62 0.62 0.62 1</ambient>
+            <diffuse>0.62 0.62 0.62 1</diffuse>
           </material>
         </visual>
       </link>
     </model>
 
-    <model name="obstacle_3">
+    <model name="corridor_wall_end">
       <static>true</static>
-      <pose>10 2.5 1 0 0 0</pose>
+      <pose>33.20 0.00 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>1.0 1.0 2.0</size>
+              <size>0.35 9.20 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>1.0 1.0 2.0</size>
+              <size>0.35 9.20 6.00</size>
             </box>
           </geometry>
           <material>
-            <ambient>0.35 0.8 0.45 1</ambient>
-            <diffuse>0.35 0.8 0.45 1</diffuse>
+            <ambient>0.58 0.58 0.58 1</ambient>
+            <diffuse>0.58 0.58 0.58 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_01">
+      <static>true</static>
+      <pose>4.00 -3.00 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_02">
+      <static>true</static>
+      <pose>6.70 2.80 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_03">
+      <static>true</static>
+      <pose>9.40 -2.60 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_04">
+      <static>true</static>
+      <pose>12.10 3.00 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_05">
+      <static>true</static>
+      <pose>14.80 -2.80 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_06">
+      <static>true</static>
+      <pose>17.50 2.60 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_07">
+      <static>true</static>
+      <pose>20.20 -3.00 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_08">
+      <static>true</static>
+      <pose>22.90 2.70 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_09">
+      <static>true</static>
+      <pose>25.60 -2.50 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pole_10">
+      <static>true</static>
+      <pose>28.30 2.90 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.90</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.08 0.08 0.08 1</ambient>
+            <diffuse>0.08 0.08 0.08 1</diffuse>
           </material>
         </visual>
       </link>

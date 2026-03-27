@@ -1,7 +1,7 @@
 # AV_Drone Command Reference
 
-이 문서는 현재 저장소의 `active path` 기준 명령만 남긴 실행 치트시트다.  
-기준은 `single_drone_autonomy.launch.py` 기반 단일 드론 baseline이다.
+이 문서는 현재 저장소의 `active path` 기준 명령만 남긴 치트시트다.  
+기준은 `Gazebo Classic + single_drone_autonomy.launch.py` 기반 단일 드론 baseline이다.
 
 ## 1. 호스트 기본 경로
 
@@ -11,7 +11,7 @@ cd /home/deepblue/AV_Drone
 
 ## 2. Docker 기본 명령
 
-전체 상태:
+상태 확인:
 
 ```bash
 docker compose ps
@@ -33,6 +33,12 @@ docker compose up -d sim ros
 docker compose down
 ```
 
+headless 기동:
+
+```bash
+HEADLESS=1 DISPLAY= docker compose up -d sim ros
+```
+
 컨테이너 진입:
 
 ```bash
@@ -40,19 +46,25 @@ docker compose exec ros bash
 docker compose exec sim bash
 ```
 
-## 3. Gazebo GUI 관련
+## 3. Gazebo Classic GUI
 
-호스트에서 GUI 허용:
+X11 허용:
 
 ```bash
 echo $DISPLAY
+xhost +SI:localuser:root
 xhost +local:docker
 ```
 
-주의:
+기본 원칙:
 
-- GUI가 안 떠도 headless 실행 자체는 가능하다.
-- `sim` 컨테이너는 `Up` 상태라도 내부 PX4/Gazebo build가 더 진행될 수 있다.
+- `DISPLAY`가 있으면 Gazebo Classic GUI는 기본적으로 자동 실행된다.
+- 가장 안정적인 실행 경로는 `./start.sh`다.
+- 창이 닫혔거나 자동 실행에 실패했을 때만 아래 helper를 실행한다.
+
+```bash
+./scripts/run_host_gz_gui.sh
+```
 
 ## 4. ROS 컨테이너 진입 후 기본 환경
 
@@ -65,14 +77,14 @@ source install/setup.bash
 패키지 빌드:
 
 ```bash
-colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics
+colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics ros_states --symlink-install
 source install/setup.bash
 ```
 
 전체 빌드:
 
 ```bash
-colcon build
+colcon build --symlink-install
 source install/setup.bash
 ```
 
@@ -84,13 +96,22 @@ source install/setup.bash
 ros2 launch drone_bringup single_drone_autonomy.launch.py
 ```
 
+`ros_states` 실행:
+
+```bash
+ros2 launch ros_states ros_states.launch.py \
+  drone_name:=drone1 \
+  mavros_namespace:=/mavros \
+  artifacts_root:=/workspace/AV_Drone/artifacts \
+  port:=5050 \
+  open_browser:=false
+```
+
 legacy MPPI baseline:
 
 ```bash
 ros2 launch mppi mppi.launch.py
 ```
-
-현재 팀 인수인계와 baseline 검증은 `drone_bringup` 경로 기준으로 본다.
 
 ## 6. 핵심 topic 확인
 
@@ -123,7 +144,17 @@ ros2 topic echo /mavros/state --once
 ros2 node list | grep mavros
 ```
 
-## 7. smoke test
+## 7. Low-level sim 확인
+
+`sim` 컨테이너 안에서 Gazebo transport topic 확인:
+
+```bash
+gz topic -l | grep -E 'scan|laser|lidar'
+```
+
+Classic baseline에서는 ROS 쪽 `/drone1/scan`이 더 중요한 운영 기준이다.
+
+## 8. smoke test
 
 호스트에서:
 
@@ -131,38 +162,19 @@ ros2 node list | grep mavros
 ./scripts/smoke_test_single_drone.sh
 ```
 
-문제/수정/메모까지 같이 기록:
+메모 포함:
 
 ```bash
 ./scripts/smoke_test_single_drone.sh \
   --scenario single_drone_obstacle_demo \
   --issue "planner did not react to obstacle" \
-  --fix "updated world loading and planner logic" \
+  --fix "updated classic runtime and planner logic" \
   --notes "baseline revalidated"
 ```
 
-이 스크립트는 아래를 자동 검증한다.
+## 9. artifact 확인
 
-- `sim`, `ros` 컨테이너 실행
-- `sim` runtime readiness
-- `/autonomy_manager`, `/metrics_logger` 실행
-- `/drone1/scan` 수신
-- `/mavros/local_position/pose` 수신
-- `HOVER_AT_GOAL`
-- `goal_reached=true`
-- 최신 artifact 요약 필드
-- `experiments/index.csv` 누적
-- `experiments/scenario_table.csv` 집계
-- `experiments/ledger.csv` 기록
-- `experiments/plots/<run_id>/` 그래프 생성
-
-메모:
-
-- 위 `experiments/` 산출물은 실행 후 생성되는 generated output이며 `.gitignore`에 포함했다.
-
-## 8. artifact 확인
-
-최신 artifact 찾기:
+최신 artifact:
 
 ```bash
 ls -1dt artifacts/*_drone1 | head -n1
@@ -175,44 +187,12 @@ LATEST="$(ls -1dt artifacts/*_drone1 | head -n1)"
 cat "${LATEST}/summary.json"
 ```
 
-찾아볼 핵심 값:
-
-- `mission_phase`
-- `goal_reached`
-- `pose_count`
-- `scan_count`
-- `closest_obstacle_m`
-
-문서용 고정 예시:
-
-```bash
-cat docs/examples/baseline_summary_example.json
-```
-
-실험 장부 재생성:
-
-```bash
-python3 scripts/update_experiment_registry.py --scan-artifacts artifacts
-```
-
-최신 artifact 그래프 생성:
+그래프 생성:
 
 ```bash
 LATEST="$(ls -1dt artifacts/*_drone1 | head -n1)"
 python3 scripts/generate_artifact_plots.py --artifact "${LATEST}"
 ```
-
-## 9. sim 내부 센서 확인
-
-`sim` 컨테이너 안에서:
-
-```bash
-gz topic -l | grep -E 'scan|laser|lidar'
-```
-
-현재 기대하는 Gazebo topic 예:
-
-- `/gazebo/default/iris_rplidar/rplidar/link/laser/scan`
 
 ## 10. 자주 보는 정상 로그
 
@@ -226,8 +206,7 @@ gz topic -l | grep -E 'scan|laser|lidar'
 
 ## 11. 문서
 
-- 개요/온보딩: [README.md](/home/deepblue/AV_Drone/README.md)
+- 개요: [README.md](/home/deepblue/AV_Drone/README.md)
 - 구조: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
 - Docker 명세: [docker-environment-spec.md](/home/deepblue/AV_Drone/docs/docker-environment-spec.md)
-- 로드맵: [multi-drone-development-roadmap.md](/home/deepblue/AV_Drone/docs/multi-drone-development-roadmap.md)
-- 문제 기록: [problem.md](/home/deepblue/AV_Drone/docs/problem.md)
+- HTML 대시보드: [project_command_center.html](/home/deepblue/AV_Drone/docs/project_command_center.html)

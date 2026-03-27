@@ -15,6 +15,9 @@ def generate_launch_description():
     pluginlists_yaml = os.path.join(bringup_share, "config", "mavros_pluginlists.yaml")
     mavros_config_yaml = os.path.join(bringup_share, "config", "mavros_config.yaml")
     autonomy_yaml = os.path.join(bringup_share, "config", "drone1_autonomy.yaml")
+    scenario_manifest_yaml = os.path.join(
+        bringup_share, "config", "scenario_single_drone_obstacle_demo.yaml"
+    )
 
     mavros = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(mavros_launch),
@@ -68,7 +71,21 @@ def generate_launch_description():
         executable="metrics_logger",
         name="metrics_logger",
         output="screen",
-        parameters=[autonomy_yaml],
+        parameters=[
+            autonomy_yaml,
+            {
+                "baseline_name": "single_drone_autonomy_baseline",
+                "planner_name": "local_planner_lidar_reactive",
+                "planner_version": "2026-03-26_reactive_v1",
+                "controller_version": "autonomy_manager_v1",
+                "experiment_seed": 0,
+                "scenario_manifest_path": scenario_manifest_yaml,
+                "autonomy_config_path": autonomy_yaml,
+                "mavros_config_path": mavros_config_yaml,
+                "mavros_pluginlists_path": pluginlists_yaml,
+                "launch_file_path": __file__,
+            },
+        ],
     )
 
     return LaunchDescription([mavros, perception, planner, safety, controller, metrics])

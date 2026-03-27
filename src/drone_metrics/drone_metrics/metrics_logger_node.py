@@ -2,7 +2,9 @@
 
 import csv
 import json
+import math
 import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -32,9 +34,25 @@ class MetricsLoggerNode(Node):
         self.declare_parameter("goal_reached_topic", "/drone1/mission/goal_reached")
         self.declare_parameter("mission_phase_topic", "/drone1/mission/phase")
         self.declare_parameter("artifacts_root", "/workspace/AV_Drone/artifacts")
+        self.declare_parameter("baseline_name", "single_drone_autonomy_baseline")
+        self.declare_parameter("planner_name", "local_planner_lidar_reactive")
+        self.declare_parameter("planner_version", "reactive_v1")
+        self.declare_parameter("controller_version", "autonomy_manager_v1")
+        self.declare_parameter("experiment_seed", 0)
+        self.declare_parameter("scenario_manifest_path", "")
+        self.declare_parameter("autonomy_config_path", "")
+        self.declare_parameter("mavros_config_path", "")
+        self.declare_parameter("mavros_pluginlists_path", "")
+        self.declare_parameter("launch_file_path", "")
 
         drone_name = str(self.get_parameter("drone_name").value)
         self.scenario_name = str(self.get_parameter("scenario_name").value)
+        self.baseline_name = str(self.get_parameter("baseline_name").value)
+        self.planner_name = str(self.get_parameter("planner_name").value)
+        self.planner_version = str(self.get_parameter("planner_version").value)
+        self.controller_version = str(self.get_parameter("controller_version").value)
+        self.experiment_seed = int(self.get_parameter("experiment_seed").value)
+
         artifacts_root = Path(str(self.get_parameter("artifacts_root").value))
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.run_id = f"{ts}_{drone_name}"
@@ -45,19 +63,23 @@ class MetricsLoggerNode(Node):
         self.events_path = self.run_dir / "events.log"
         self.summary_path = self.run_dir / "summary.json"
         self.metadata_path = self.run_dir / "metadata.json"
+        self.parameter_snapshot_path = self.run_dir / "parameter_snapshot.json"
+        self.config_snapshot_dir = self.run_dir / "config_snapshots"
+        self.config_snapshot_dir.mkdir(parents=True, exist_ok=True)
 
         git_context = self._git_context()
         self.git_commit = git_context["git_commit"]
         self.git_branch = git_context["git_branch"]
         self.git_dirty = git_context["git_dirty"]
         self.px4_gz_world = os.environ.get(
-            "PX4_GZ_WORLD", os.environ.get("PX4_SITL_WORLD", "unknown")
+            "PX4_SITL_WORLD", os.environ.get("PX4_GZ_WORLD", "unknown")
         )
         self.px4_gz_model_name = os.environ.get("PX4_GZ_MODEL_NAME", "unknown")
         self.px4_sim_target = os.environ.get("PX4_SIM_TARGET", "unknown")
         self.px4_sim_model = os.environ.get("PX4_SIM_MODEL", "unknown")
 
         self.start_time = time.time()
+        self.started_at = time.strftime("%Y-%m-%dT%H:%M:%S")
         self.state_connected = False
         self.state_armed = False
         self.state_mode = ""
@@ -75,7 +97,12 @@ class MetricsLoggerNode(Node):
         self.pose_periods = []
         self.scan_periods = []
         self.safety_reason_counts = {}
+        self.last_safety_reason = ""
+        self.snapshot_files = {}
+        self.snapshot_copy_errors = {}
 
+        self._write_parameter_snapshot()
+        self._copy_reference_files()
         self._write_metadata()
         self._init_csv()
 
@@ -92,10 +119,30 @@ class MetricsLoggerNode(Node):
             self._on_scan,
             qos_profile_sensor_data,
         )
-        self.create_subscription(TwistStamped, str(self.get_parameter("planner_cmd_topic").value), self._on_planner_cmd, 10)
-        self.create_subscription(TwistStamped, str(self.get_parameter("safe_cmd_topic").value), self._on_safe_cmd, 10)
-        self.create_subscription(Float32, str(self.get_parameter("nearest_obstacle_topic").value), self._on_obstacle, 10)
-        self.create_subscription(String, str(self.get_parameter("safety_event_topic").value), self._on_safety_event, 10)
+        self.create_subscription(
+            TwistStamped,
+            str(self.get_parameter("planner_cmd_topic").value),
+            self._on_planner_cmd,
+            10,
+        )
+        self.create_subscription(
+            TwistStamped,
+            str(self.get_parameter("safe_cmd_topic").value),
+            self._on_safe_cmd,
+            10,
+        )
+        self.create_subscription(
+            Float32,
+            str(self.get_parameter("nearest_obstacle_topic").value),
+            self._on_obstacle,
+            10,
+        )
+        self.create_subscription(
+            String,
+            str(self.get_parameter("safety_event_topic").value),
+            self._on_safety_event,
+            10,
+        )
         self.create_subscription(Bool, str(self.get_parameter("goal_reached_topic").value), self._on_goal, 10)
         self.create_subscription(String, str(self.get_parameter("mission_phase_topic").value), self._on_phase, 10)
 
@@ -139,9 +186,71 @@ class MetricsLoggerNode(Node):
                 "git_dirty": True,
             }
 
+    def _json_safe(self, value):
+        if isinstance(value, float):
+            if math.isfinite(value):
+                return value
+            return None
+        if isinstance(value, list):
+            return [self._json_safe(item) for item in value]
+        if isinstance(value, tuple):
+            return [self._json_safe(item) for item in value]
+        if isinstance(value, dict):
+            return {str(key): self._json_safe(item) for key, item in value.items()}
+        return value
+
+    def _selected_environment(self):
+        keys = [
+            "DISPLAY",
+            "HEADLESS",
+            "ROS_DOMAIN_ID",
+            "ROS_LOCALHOST_ONLY",
+            "PX4_SITL_WORLD",
+            "PX4_GZ_WORLD",
+            "PX4_SIM_TARGET",
+            "PX4_SIM_MODEL",
+            "PX4_GZ_MODEL_NAME",
+        ]
+        return {key: os.environ.get(key, "") for key in keys if key in os.environ}
+
+    def _write_parameter_snapshot(self):
+        names = sorted(self._parameters.keys())
+        snapshot = {
+            "generated_at": self.started_at,
+            "run_id": self.run_id,
+            "parameters": {
+                name: self._json_safe(self.get_parameter(name).value) for name in names
+            },
+            "environment": self._selected_environment(),
+        }
+        self.parameter_snapshot_path.write_text(json.dumps(snapshot, indent=2, sort_keys=True))
+
+    def _copy_reference_file(self, label: str, parameter_name: str):
+        raw_path = str(self.get_parameter(parameter_name).value).strip()
+        if not raw_path:
+            return
+        src = Path(raw_path)
+        if not src.exists() or not src.is_file():
+            self.snapshot_copy_errors[label] = f"missing:{src}"
+            return
+
+        dest = self.config_snapshot_dir / f"{label}_{src.name}"
+        try:
+            shutil.copy2(src, dest)
+            self.snapshot_files[label] = str(dest)
+        except Exception as exc:
+            self.snapshot_copy_errors[label] = str(exc)
+
+    def _copy_reference_files(self):
+        self._copy_reference_file("autonomy_config", "autonomy_config_path")
+        self._copy_reference_file("mavros_config", "mavros_config_path")
+        self._copy_reference_file("mavros_pluginlists", "mavros_pluginlists_path")
+        self._copy_reference_file("launch_file", "launch_file_path")
+        self._copy_reference_file("scenario_manifest", "scenario_manifest_path")
+
     def _write_metadata(self):
         metadata = {
-            "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "started_at": self.started_at,
             "run_id": self.run_id,
             "artifact_dir": str(self.run_dir),
             "git_commit": self.git_commit,
@@ -149,6 +258,11 @@ class MetricsLoggerNode(Node):
             "git_dirty": self.git_dirty,
             "drone_name": str(self.get_parameter("drone_name").value),
             "scenario_name": self.scenario_name,
+            "baseline_name": self.baseline_name,
+            "planner_name": self.planner_name,
+            "planner_version": self.planner_version,
+            "controller_version": self.controller_version,
+            "experiment_seed": self.experiment_seed,
             "px4_gz_world": self.px4_gz_world,
             "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
@@ -162,8 +276,19 @@ class MetricsLoggerNode(Node):
             "safety_event_topic": str(self.get_parameter("safety_event_topic").value),
             "goal_reached_topic": str(self.get_parameter("goal_reached_topic").value),
             "mission_phase_topic": str(self.get_parameter("mission_phase_topic").value),
+            "parameter_snapshot_path": str(self.parameter_snapshot_path),
+            "config_snapshot_dir": str(self.config_snapshot_dir),
+            "config_snapshot_files": self.snapshot_files,
+            "config_snapshot_errors": self.snapshot_copy_errors,
+            "scenario_manifest_path": str(self.get_parameter("scenario_manifest_path").value),
+            "autonomy_config_path": str(self.get_parameter("autonomy_config_path").value),
+            "mavros_config_path": str(self.get_parameter("mavros_config_path").value),
+            "mavros_pluginlists_path": str(self.get_parameter("mavros_pluginlists_path").value),
+            "launch_file_path": str(self.get_parameter("launch_file_path").value),
+            "host_name": os.uname().nodename,
+            "environment": self._selected_environment(),
         }
-        self.metadata_path.write_text(json.dumps(metadata, indent=2))
+        self.metadata_path.write_text(json.dumps(self._json_safe(metadata), indent=2))
 
     def _init_csv(self):
         with self.csv_path.open("w", newline="") as f:
@@ -219,6 +344,7 @@ class MetricsLoggerNode(Node):
 
     def _on_safety_event(self, msg: String):
         self.safety_event_count += 1
+        self.last_safety_reason = str(msg.data)
         self.safety_reason_counts[msg.data] = self.safety_reason_counts.get(msg.data, 0) + 1
         self._append_event(msg.data)
 
@@ -229,6 +355,32 @@ class MetricsLoggerNode(Node):
         if msg.data != self.current_phase:
             self.current_phase = msg.data
             self._append_event(f"phase={msg.data}")
+
+    def _safety_intervention_count(self) -> int:
+        benign = {"normal", "startup_grace"}
+        return sum(
+            count for reason, count in self.safety_reason_counts.items() if reason not in benign
+        )
+
+    def _infer_failure_code(self) -> str:
+        if self.goal_reached and self.current_phase == "HOVER_AT_GOAL":
+            return ""
+
+        if self.safety_reason_counts.get("emergency_stop_obstacle"):
+            return "EMERGENCY_STOP_OBSTACLE"
+        if self.safety_reason_counts.get("pose_timeout"):
+            return "POSE_TIMEOUT"
+        if self.safety_reason_counts.get("scan_timeout"):
+            return "SCAN_TIMEOUT"
+        if self.safety_reason_counts.get("planner_cmd_timeout"):
+            return "PLANNER_CMD_TIMEOUT"
+        if not self.state_connected:
+            return "FCU_DISCONNECT"
+        if self.current_phase == "WAIT_STREAM":
+            return "WAIT_STREAM_STALL"
+        if self.current_phase == "OFFBOARD_ARM" and not self.state_armed:
+            return "OFFBOARD_ARM_STALL"
+        return ""
 
     def _write_periodic_row(self):
         with self.csv_path.open("a", newline="") as f:
@@ -251,7 +403,9 @@ class MetricsLoggerNode(Node):
 
         if self.pose_periods:
             mean_period = sum(self.pose_periods) / len(self.pose_periods)
-            p99_period = sorted(self.pose_periods)[min(len(self.pose_periods) - 1, int(len(self.pose_periods) * 0.99))]
+            p99_period = sorted(self.pose_periods)[
+                min(len(self.pose_periods) - 1, int(len(self.pose_periods) * 0.99))
+            ]
             worst_period = max(self.pose_periods)
         else:
             mean_period = None
@@ -277,6 +431,14 @@ class MetricsLoggerNode(Node):
             "git_branch": self.git_branch,
             "git_dirty": self.git_dirty,
             "scenario_name": self.scenario_name,
+            "baseline_name": self.baseline_name,
+            "planner_name": self.planner_name,
+            "planner_version": self.planner_version,
+            "controller_version": self.controller_version,
+            "experiment_seed": self.experiment_seed,
+            "scenario_manifest_path": str(self.get_parameter("scenario_manifest_path").value),
+            "parameter_snapshot_path": str(self.parameter_snapshot_path),
+            "config_snapshot_dir": str(self.config_snapshot_dir),
             "px4_gz_world": self.px4_gz_world,
             "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
@@ -290,7 +452,10 @@ class MetricsLoggerNode(Node):
             "planner_cmd_count": self.planner_cmd_count,
             "safe_cmd_count": self.safe_cmd_count,
             "safety_event_count": self.safety_event_count,
+            "safety_intervention_count": self._safety_intervention_count(),
             "safety_reason_counts": self.safety_reason_counts,
+            "last_safety_reason": self.last_safety_reason,
+            "failure_code": self._infer_failure_code(),
             "goal_reached": self.goal_reached,
             "current_obstacle_m": self.current_obstacle,
             "closest_obstacle_m": self.closest_obstacle,

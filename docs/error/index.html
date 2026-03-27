@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AV_Drone Error & Recovery Report</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --ink: #182226;
+      --muted: #5f7079;
+      --line: #d5dde1;
+      --card: rgba(255, 255, 255, 0.88);
+      --navy: #143b5d;
+      --teal: #0f766e;
+      --amber: #b45309;
+      --red: #b42318;
+      --blue: #1d4ed8;
+      --ok-soft: #dff5f1;
+      --warn-soft: #fff4dc;
+      --err-soft: #feeceb;
+      --info-soft: #e8f2ff;
+      --shadow: 0 22px 54px rgba(20, 59, 93, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --sans: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      --mono: "JetBrains Mono", "D2Coding", "SFMono-Regular", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 25%),
+        radial-gradient(circle at top right, rgba(20, 59, 93, 0.11), transparent 26%),
+        linear-gradient(180deg, #f8faf8 0%, #f1f5f2 100%);
+      line-height: 1.62;
+    }
+
+    a { color: var(--navy); text-decoration: none; }
+    code, pre { font-family: var(--mono); }
+    .page { width: min(1360px, calc(100% - 28px)); margin: 22px auto 80px; }
+    .hero, .panel, .incident, .summary-card, .status-card, .timeline-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.72);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero, .panel, .incident { padding: 30px; margin-bottom: 22px; }
+    .hero { overflow: hidden; position: relative; }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -100px -120px auto;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(20, 59, 93, 0.15), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(20, 59, 93, 0.08);
+      color: var(--navy);
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, h4 { margin: 0 0 10px; line-height: 1.14; letter-spacing: -0.03em; }
+    h1 { font-size: clamp(2.5rem, 5vw, 4.4rem); max-width: 11ch; margin-top: 16px; }
+    h2 { font-size: clamp(1.55rem, 2.5vw, 2.2rem); }
+    h3 { font-size: 1.12rem; }
+    p { margin: 0 0 12px; }
+    .lede { max-width: 84ch; color: var(--muted); font-size: 1.02rem; }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      background: rgba(244, 247, 245, 0.86);
+      border: 1px solid rgba(20, 59, 93, 0.08);
+      border-radius: 999px;
+      box-shadow: 0 18px 40px rgba(20, 59, 93, 0.09);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-links, .pill-row, .summary-grid, .status-grid, .timeline-grid, .facts, .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav a, .pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(20, 59, 93, 0.06);
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .summary-grid, .status-grid, .timeline-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .summary-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .status-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .timeline-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+    .summary-card, .status-card, .timeline-card {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+    }
+
+    .metric {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 6px;
+    }
+
+    .muted { color: var(--muted); }
+    .status-ok { background: var(--ok-soft); color: var(--teal); }
+    .status-warn { background: var(--warn-soft); color: var(--amber); }
+    .status-err { background: var(--err-soft); color: var(--red); }
+    .status-info { background: var(--info-soft); color: var(--blue); }
+
+    .incident {
+      border-left: 6px solid var(--line);
+      scroll-margin-top: 96px;
+    }
+
+    .incident[data-tone="red"] { border-left-color: var(--red); }
+    .incident[data-tone="amber"] { border-left-color: var(--amber); }
+    .incident[data-tone="teal"] { border-left-color: var(--teal); }
+    .incident[data-tone="blue"] { border-left-color: var(--blue); }
+
+    .incident-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .facts {
+      margin: 14px 0 18px;
+    }
+
+    .fact {
+      min-width: 170px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(20, 59, 93, 0.04);
+      border: 1px solid rgba(20, 59, 93, 0.08);
+    }
+
+    .fact strong {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .box {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(20, 59, 93, 0.08);
+    }
+
+    .box h4 { font-size: 0.95rem; margin-bottom: 10px; color: var(--navy); }
+
+    ul { margin: 0; padding-left: 20px; }
+    li + li { margin-top: 6px; }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      border-radius: var(--radius-md);
+      background: #13212a;
+      color: #ecf3f7;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .file-list code, .inline-code {
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(20, 59, 93, 0.06);
+      color: var(--navy);
+    }
+
+    details {
+      margin-top: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(20, 59, 93, 0.08);
+      background: rgba(20, 59, 93, 0.03);
+      overflow: hidden;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 700;
+      color: var(--navy);
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+    details .detail-body { padding: 0 16px 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .footer-note {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    @media (max-width: 720px) {
+      .hero, .panel, .incident { padding: 22px; }
+      .nav { border-radius: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="nav">
+      <div class="nav-links">
+        <a href="#summary">요약</a>
+        <a href="#timeline">타임라인</a>
+        <a href="#incidents">장애 보고</a>
+        <a href="#status">현재 상태</a>
+        <a href="#lessons">교훈</a>
+      </div>
+      <div class="pill-row">
+        <span class="pill">ros_states URL: <strong>http://localhost:5050</strong></span>
+        <span class="pill">기간: 2026-03-24 ~ 2026-03-27</span>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="eyebrow">Incident Review</div>
+      <h1>AV_Drone Error & Recovery Report</h1>
+      <p class="lede">
+        이 문서는 최근 작업 중 반복해서 발생한 에러를 보고서 형식으로 정리한 장애 대응 기록입니다.
+        각 항목은 <strong>증상</strong>, <strong>대표 로그</strong>, <strong>문제 원인</strong>, <strong>수정 방법</strong>, <strong>결과</strong>가 한 번에 이어지도록 구성했습니다.
+        목적은 "무슨 문제가 있었고, 왜 생겼고, 어떻게 고쳤고, 지금 상태가 어떤지"를 팀원이 한눈에 파악할 수 있게 만드는 것입니다.
+      </p>
+    </section>
+
+    <section class="panel" id="summary">
+      <h2>요약</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="metric">7</div>
+          <h3>주요 장애 항목</h3>
+          <p class="muted">웹 백엔드, JSON 직렬화, Gazebo 경로 혼선, DDS transport, metrics logger, 중복 launch, goal 판정 해석 이슈를 묶어 정리했습니다.</p>
+        </div>
+        <div class="summary-card">
+          <div class="metric">6</div>
+          <h3>해결 완료</h3>
+          <p class="muted">현재 기준으로 센싱, obstacle metric, planner/safety command, metrics logging, 문서 정리는 정상 경로로 복구했습니다.</p>
+        </div>
+        <div class="summary-card">
+          <div class="metric">1</div>
+          <h3>지속 관리 항목</h3>
+          <p class="muted">연구용 데모 관점에서는 아직 safety threshold와 회피 파라미터 튜닝, reset 자동화가 더 필요합니다.</p>
+        </div>
+        <div class="summary-card">
+          <div class="metric">5050</div>
+          <h3>주요 운영 포인트</h3>
+          <p class="muted"><span class="inline-code">ros_states</span>는 <span class="inline-code">http://localhost:5050</span>에서 확인합니다. 백엔드 재시작 후에는 새로고침 뒤 <span class="inline-code">Activate</span>가 필요할 수 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="timeline">
+      <h2>장애 대응 타임라인</h2>
+      <div class="timeline-grid">
+        <div class="timeline-card">
+          <h3>2026-03-24</h3>
+          <p class="muted">Gazebo Classic 기준으로 실행 경로를 정리했고, <span class="inline-code">ros_states</span>가 아예 뜨지 않던 문제와 JSON parse 문제를 먼저 복구했습니다.</p>
+        </div>
+        <div class="timeline-card">
+          <h3>2026-03-26 오전</h3>
+          <p class="muted">LiDAR 기반 reactive planner와 불규칙 obstacle demo를 넣었지만, scan topic stale과 obstacle metric 부재로 실제 회피가 동작하지 않았습니다.</p>
+        </div>
+        <div class="timeline-card">
+          <h3>2026-03-26 오후</h3>
+          <p class="muted">원인이 sensor model 자체가 아니라 <span class="inline-code">sim -&gt; ros</span> 컨테이너 사이 DDS sample delivery 실패임을 확인했고, compose transport를 고쳐 복구했습니다.</p>
+        </div>
+        <div class="timeline-card">
+          <h3>2026-03-27</h3>
+          <p class="muted">"중간에 멈춘다"는 현상을 다시 추적해 보니 일부는 사실상 <span class="inline-code">goal reached</span> 후 hover였고, 일부는 중복 launch로 인한 publisher 충돌이었습니다. README와 goal 기준도 함께 정리했습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="incidents">
+      <h2>장애 보고</h2>
+      <p class="muted">각 incident는 실제로 나타난 대표 로그와 수정 결과를 기준으로 정리했습니다.</p>
+    </section>
+
+    <section class="incident" id="inc-001" data-tone="red">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-001</div>
+          <h3>ros_states 웹 백엔드 기동 실패</h3>
+        </div>
+        <span class="badge status-err">초기 치명 장애</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>브라우저에서 Activate 시 NetworkError</div>
+        <div class="fact"><strong>영향</strong>Mission Health 대시보드 사용 불가</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그</h4>
+          <pre>ModuleNotFoundError: No module named 'flask'</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li><span class="inline-code">ros</span> 컨테이너 이미지에 <span class="inline-code">python3-flask</span>가 포함되지 않았습니다.</li>
+            <li>그래서 <span class="inline-code">ros2 launch ros_states ...</span>가 떠도 백엔드 프로세스가 즉시 종료됐습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">docker/ros/Dockerfile</span>에 <span class="inline-code">python3-flask</span>를 추가했습니다.</li>
+            <li>런타임 컨테이너에도 Flask를 반영해 즉시 복구했습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li><span class="inline-code">ros_states</span>가 정상 기동했습니다.</li>
+            <li><span class="inline-code">/api/activate</span> 응답이 <span class="inline-code">200 OK</span>로 확인됐습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="incident" id="inc-002" data-tone="amber">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-002</div>
+          <h3>ros_states JSON.parse 실패</h3>
+        </div>
+        <span class="badge status-warn">데이터 직렬화 문제</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>Mission Health에 JSON.parse 에러</div>
+        <div class="fact"><strong>영향</strong>백엔드는 떠 있어도 대시보드 갱신 불가</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그</h4>
+          <pre>Flight debug refresh failed:
+SyntaxError: JSON.parse: unexpected character ...</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>flight debug 응답 안에 <span class="inline-code">Infinity</span>, <span class="inline-code">NaN</span> 같은 비정상 부동소수점 값이 포함됐습니다.</li>
+            <li>브라우저는 이를 표준 JSON으로 파싱하지 못합니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">src/ros_states/ros_states/ros_monitor.py</span>에서 비정상 실수값을 <span class="inline-code">null</span>로 바꾸도록 JSON-safe 처리 로직을 넣었습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li><span class="inline-code">/api/flight_debug</span>와 관련 API가 정상 JSON을 반환하게 됐습니다.</li>
+            <li>브라우저 새로고침 후 Mission Health 렌더링이 복구됐습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="incident" id="inc-003" data-tone="blue">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-003</div>
+          <h3>Gazebo Sim / Gazebo Classic 실행 경로 혼선</h3>
+        </div>
+        <span class="badge status-info">문서/진입점 혼합</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>어떤 명령이 진짜 baseline인지 혼란</div>
+        <div class="fact"><strong>영향</strong>사용자가 잘못된 스크립트나 GUI 경로를 따라가기 쉬움</div>
+        <div class="fact"><strong>상태</strong>정리 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>실제 런타임은 Gazebo Classic인데, 일부 문서와 helper에는 <span class="inline-code">gz sim</span>, <span class="inline-code">ros_gz</span> 흔적이 남아 있었습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">docker-compose.yml</span>, <span class="inline-code">start.sh</span>, <span class="inline-code">scripts/run_host_gz_gui.sh</span>, README와 문서를 Gazebo Classic 기준으로 다시 맞췄습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li>현재 active path는 <span class="inline-code">docker compose up -d sim ros</span> + <span class="inline-code">single_drone_autonomy.launch.py</span>로 명확해졌습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="incident" id="inc-004" data-tone="red">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-004</div>
+          <h3>LiDAR scan stale / obstacle metric 부재 / 회피 불능</h3>
+        </div>
+        <span class="badge status-err">핵심 런타임 장애</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong><span class="inline-code">LiDAR Scan stale</span>, <span class="inline-code">No obstacle metric yet</span>, planner 정지</div>
+        <div class="fact"><strong>영향</strong>회피 기동 불가, <span class="inline-code">allow_motion_without_scan=false</span> 때문에 의도적 정지</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그 / 증거</h4>
+          <pre>ros2 topic echo /drone1/scan --once
+-> timeout / 0 msg
+
+sim container rclpy probe
+-> SIM_SCAN_MSGS 1
+
+ros container rclpy probe
+-> ROS_SCAN_DONE 0</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>LiDAR plugin 자체보다 <span class="inline-code">sim -&gt; ros</span> 컨테이너 사이의 ROS 2 DDS sample delivery 실패가 핵심 원인이었습니다.</li>
+            <li>실행 중이던 컨테이너는 실제로 <span class="inline-code">ipc=private</span> 상태였고, 새 compose transport 설정이 런타임에 반영되지 않았습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">docker-compose.yml</span>에 <span class="inline-code">ipc: host</span>를 적용했습니다.</li>
+            <li><span class="inline-code">ROS_DOMAIN_ID=0</span>, <span class="inline-code">ROS_LOCALHOST_ONLY=0</span>, <span class="inline-code">RMW_IMPLEMENTATION=rmw_fastrtps_cpp</span>, <span class="inline-code">FASTDDS_BUILTIN_TRANSPORTS=UDPv4</span>를 두 컨테이너에 명시했습니다.</li>
+            <li><span class="inline-code">docker compose up -d --force-recreate sim ros</span>로 새 설정을 실제 컨테이너에 반영했습니다.</li>
+            <li>추가로 <span class="inline-code">rplidar</span> sensor model을 단순화하고 obstacle 높이를 5m로 올려 3m 비행고도에서도 scan plane과 교차하도록 맞췄습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li><span class="inline-code">ros</span> 컨테이너에서 <span class="inline-code">/drone1/scan</span> 직접 수신이 성공했습니다.</li>
+            <li><span class="inline-code">ros_states /api/flight_debug</span>에서 LiDAR, obstacle, planner, safe command가 모두 <span class="inline-code">ok</span>로 올라왔습니다.</li>
+          </ul>
+        </div>
+      </div>
+      <details>
+        <summary>관련 파일 보기</summary>
+        <div class="detail-body file-list">
+          <code>docker-compose.yml</code>
+          <code>sim_assets/models/rplidar/model.sdf</code>
+          <code>sim_assets/worlds/obstacle_demo.world</code>
+          <code>sim_assets/gz/worlds/obstacle_demo.sdf</code>
+        </div>
+      </details>
+    </section>
+
+    <section class="incident" id="inc-005" data-tone="amber">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-005</div>
+          <h3>metrics_logger가 ROS 2 Humble에서 즉시 종료</h3>
+        </div>
+        <span class="badge status-warn">기록 체계 장애</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>artifact 폴더는 생기지만 summary 누락</div>
+        <div class="fact"><strong>영향</strong>실험 로그, summary.json, 대시보드 artifact 상태 불완전</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그</h4>
+          <pre>AttributeError:
+'MetricsLoggerNode' object has no attribute 'list_parameters'</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>parameter snapshot 수집 시 사용한 <span class="inline-code">list_parameters()</span> 접근 방식이 현재 Humble 런타임과 맞지 않았습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">src/drone_metrics/drone_metrics/metrics_logger_node.py</span>에서 snapshot 대상 파라미터를 <span class="inline-code">self._parameters.keys()</span> 기반으로 수집하도록 변경했습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li><span class="inline-code">metrics_logger</span>가 정상 기동했습니다.</li>
+            <li><span class="inline-code">parameter_snapshot.json</span>, <span class="inline-code">summary.json</span>, config snapshot이 다시 채워졌습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="incident" id="inc-006" data-tone="red">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-006</div>
+          <h3>autonomy stack 중복 실행으로 publisher 충돌</h3>
+        </div>
+        <span class="badge status-err">운영 실수성 장애</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>노드가 2개씩 보임, 비행이 튀거나 멈춤</div>
+        <div class="fact"><strong>영향</strong>planner/safety/setpoint가 서로 같은 토픽에 중복 publish</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그</h4>
+          <pre>WARNING: Be aware that there are nodes in the graph
+that share an exact name...
+
+/autonomy_manager
+/autonomy_manager
+/local_planner
+/local_planner
+...</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li><span class="inline-code">single_drone_autonomy.launch.py</span>를 정리 없이 여러 번 실행해 동일한 stack이 중복으로 살아 있었습니다.</li>
+            <li>MAVROS까지 2개가 동시에 떠 같은 namespace를 공유하고 있었습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">ros</span> 컨테이너를 clean restart 했습니다.</li>
+            <li>그 후 autonomy stack과 <span class="inline-code">ros_states</span>를 각각 한 번씩만 다시 launch 했습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li><span class="inline-code">ros2 node list</span> 기준 duplicate node가 사라졌습니다.</li>
+            <li>topic publisher 수가 정상화됐습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="incident" id="inc-007" data-tone="teal">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-007</div>
+          <h3>"중간에 멈췄다"고 보였지만 실제로는 goal reached 후 hover</h3>
+        </div>
+        <span class="badge status-ok">해석/운영 문서 보강</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>주행 중 멈춘 것처럼 보임</div>
+        <div class="fact"><strong>영향</strong>센싱 실패로 오해하기 쉬움</div>
+        <div class="fact"><strong>상태</strong>문서/파라미터 보강 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 상태</h4>
+          <pre>Mission Phase: HOVER_AT_GOAL
+Goal reached: true
+Pose: x ≈ 7.76 ~ 10.23</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>일부 시점의 정지는 에러가 아니라 미션 종료 후 hover 상태였습니다.</li>
+            <li>기존 demo의 <span class="inline-code">goal_tol_xy=1.0</span>는 사용자가 보기엔 아직 진행 중인데도 일찍 완료로 판정하기 쉬웠습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">README.md</span>에 "멈췄을 때 해석하는 법"을 추가했습니다.</li>
+            <li><span class="inline-code">goal_x</span>를 <span class="inline-code">10.0</span>으로 늘리고 <span class="inline-code">goal_tol_xy</span>를 <span class="inline-code">0.35</span>로 줄였습니다.</li>
+            <li>scenario manifest도 goal 값을 같이 맞췄습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li>goal completion 기준이 더 타이트해졌습니다.</li>
+            <li>운영자가 멈춤 원인을 <span class="inline-code">센싱 실패</span>와 <span class="inline-code">미션 완료</span>로 구분하기 쉬워졌습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="status">
+      <h2>현재 상태</h2>
+      <div class="status-grid">
+        <div class="status-card status-ok">
+          <h3>복구된 항목</h3>
+          <ul>
+            <li><span class="inline-code">/drone1/scan</span>이 <span class="inline-code">ros</span> 컨테이너에서 직접 수신됩니다.</li>
+            <li><span class="inline-code">/drone1/perception/nearest_obstacle_distance</span>가 계산됩니다.</li>
+            <li>planner/safety command가 정상 토픽으로 publish됩니다.</li>
+            <li><span class="inline-code">metrics_logger</span>가 다시 artifact를 기록합니다.</li>
+            <li><span class="inline-code">ros_states</span> URL은 <span class="inline-code">http://localhost:5050</span>입니다.</li>
+          </ul>
+        </div>
+        <div class="status-card status-warn">
+          <h3>남은 관리 포인트</h3>
+          <ul>
+            <li>연구 데모 품질 관점에서는 emergency stop threshold와 local reactive planner 파라미터 튜닝이 더 필요합니다.</li>
+            <li>run reset을 더 쉽게 만들기 위해 "한 번 클릭으로 clean restart" 경로를 만드는 것이 좋습니다.</li>
+            <li>논문 단계로 가면 failure taxonomy와 rosbag2 raw recording도 추가하는 편이 좋습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="lessons">
+      <h2>운영 교훈</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>교훈</th>
+            <th>실무 적용 포인트</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>증상 분리</td>
+            <td>UI 에러, transport 에러, planner 정지, mission complete를 섞어 보면 원인 파악이 느려집니다.</td>
+            <td>항상 <span class="inline-code">state / pose / scan / obstacle / mission_phase</span>를 같이 봅니다.</td>
+          </tr>
+          <tr>
+            <td>컨테이너 운영</td>
+            <td>compose 파일을 고친 것과 실행 중 컨테이너에 반영된 것은 다릅니다.</td>
+            <td>중요 transport 변경 후에는 <span class="inline-code">--force-recreate</span>가 필요합니다.</td>
+          </tr>
+          <tr>
+            <td>중복 launch</td>
+            <td>ROS 2는 동일 노드명이 겹쳐도 얼핏 동작해 보여 더 위험합니다.</td>
+            <td>이상 동작 시 먼저 <span class="inline-code">ros2 node list</span>에서 duplicate부터 확인합니다.</td>
+          </tr>
+          <tr>
+            <td>문서 품질</td>
+            <td>README가 오래되면 실제 문제보다 운영 착오가 더 큰 장애를 만듭니다.</td>
+            <td>active runtime, URL, restart 순서를 항상 최신 상태로 유지합니다.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footer-note">
+        참고 문서: <a href="../change/2026-03-24.md">2026-03-24.md</a>, <a href="../change/2026-03-26.md">2026-03-26.md</a>, <a href="../change/2026-03-27.md">2026-03-27.md</a>,
+        <a href="../project_command_center.html">project_command_center.html</a>
+      </p>
+    </section>
+  </div>
+</body>
+</html>

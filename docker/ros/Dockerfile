@@ -22,11 +22,6 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
     > /etc/apt/sources.list.d/ros2.list
 
-RUN curl -fsSL https://packages.osrfoundation.org/gazebo.gpg \
-    -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
-    > /etc/apt/sources.list.d/gazebo-stable.list
-
 RUN apt-get update && apt-get install -y \
     bash-completion \
     build-essential \
@@ -34,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     net-tools \
     python3-colcon-common-extensions \
+    python3-flask \
     python3-numpy \
     python3-pip \
     python3-rosdep \
@@ -42,7 +38,6 @@ RUN apt-get update && apt-get install -y \
     ros-humble-desktop \
     ros-humble-mavros \
     ros-humble-mavros-extras \
-    ros-humble-ros-gz-bridge \
     vim \
     && rm -rf /var/lib/apt/lists/*
 

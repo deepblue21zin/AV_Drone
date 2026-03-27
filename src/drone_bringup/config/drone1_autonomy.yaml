@@ -14,14 +14,24 @@
     goal_reached_topic: "/drone1/mission/goal_reached"
     fcu_url: "udp://:14540@127.0.0.1:14580"
     takeoff_z: 3.0
-    goal_x: 8.0
+    goal_x: 31.0
     goal_y: 0.0
     goal_z: 3.0
-    goal_tol_xy: 1.0
+    goal_tol_xy: 0.35
     goal_latch_enabled: true
-    allow_motion_without_scan: true
+    allow_motion_without_scan: false
     cruise_speed: 1.0
-    obstacle_stop_distance: 2.0
+    max_speed: 1.15
+    max_reverse_speed: 0.35
+    obstacle_stop_distance: 1.8
+    obstacle_slow_distance: 3.2
+    obstacle_influence_distance: 4.6
+    forward_gain: 1.0
+    avoidance_gain: 1.45
+    lateral_bias_gain: 0.9
+    backoff_gain: 0.6
+    front_sector_half_angle_deg: 32.0
+    side_sector_width_deg: 85.0
     hover_sec_after_takeoff: 2.0
     kp_z: 1.2
     vz_max: 1.0

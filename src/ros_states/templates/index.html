@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AV_Drone Flight Debugger</title>
+<style>
+  :root {
+    --bg: #f3f6fb;
+    --panel: #ffffff;
+    --panel-soft: #f8fbff;
+    --line: #d8e0ea;
+    --text: #183247;
+    --muted: #5b7286;
+    --accent: #0b6efd;
+    --accent-soft: #e7f0ff;
+    --ok: #157347;
+    --ok-bg: #e7f7ee;
+    --warn: #b86b00;
+    --warn-bg: #fff3dd;
+    --error: #b42318;
+    --error-bg: #fdecea;
+    --info: #3559b7;
+    --info-bg: #ebf0ff;
+    --shadow: 0 16px 40px rgba(20, 45, 68, 0.08);
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(11,110,253,0.10), transparent 28%),
+      linear-gradient(180deg, #f8fbff 0%, var(--bg) 44%, #edf2f9 100%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #10263d 0%, #183a59 55%, #114d8c 100%);
+    color: #f4f8ff;
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+
+  .hero-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .hero-copy h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-copy p {
+    margin: 0;
+    color: rgba(244, 248, 255, 0.82);
+    font-size: 14px;
+    max-width: 780px;
+    line-height: 1.5;
+  }
+
+  .hero-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-wide {
+    grid-column: span 2;
+  }
+
+  .field label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(244, 248, 255, 0.72);
+    font-weight: 600;
+  }
+
+  .field input {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f4f8ff;
+    padding: 11px 12px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+  }
+
+  .field input:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+  }
+
+  .actions {
+    grid-column: span 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: 11px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  }
+
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .btn-primary { background: #f4f8ff; color: #17385a; }
+  .btn-danger { background: #ff6b6b; color: #fff; }
+  .btn-ghost { background: rgba(255,255,255,0.10); color: #f4f8ff; border: 1px solid rgba(255,255,255,0.14); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .tone-ok { background: var(--ok-bg); color: var(--ok); }
+  .tone-warn { background: var(--warn-bg); color: var(--warn); }
+  .tone-error { background: var(--error-bg); color: var(--error); }
+  .tone-info { background: var(--info-bg); color: var(--info); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    background: var(--panel);
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 28px rgba(20, 45, 68, 0.05);
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .card-full { grid-column: 1 / -1; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #fcfdff 0%, #f6f9fd 100%);
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .card-title h2 {
+    margin: 0;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .count {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #e8edf5;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .card-body {
+    padding: 16px 18px;
+  }
+
+  .empty {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 18px 2px;
+  }
+
+  .summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px 0;
+  }
+
+  .summary-text {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 16px 18px 18px;
+  }
+
+  .health-card {
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
+    padding: 14px;
+    min-height: 136px;
+  }
+
+  .health-card.tone-ok { border-color: #bfe3cf; }
+  .health-card.tone-warn { border-color: #f0d7a8; }
+  .health-card.tone-error { border-color: #f2b5b0; }
+  .health-card.tone-info { border-color: #c8d5f4; }
+
+  .health-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .health-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .health-headline {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .health-detail {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+
+  .health-topic {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #43617c;
+    background: #edf3fa;
+    border-radius: 10px;
+    padding: 6px 8px;
+    word-break: break-all;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .node-row, .hint-row {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: var(--panel-soft);
+  }
+
+  .node-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .node-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .node-detail {
+    color: var(--muted);
+    font-size: 13px;
+    font-family: var(--mono);
+    word-break: break-all;
+  }
+
+  .hint-row.tone-ok { border-color: #bfe3cf; }
+  .hint-row.tone-warn { border-color: #f0d7a8; }
+  .hint-row.tone-error { border-color: #f2b5b0; }
+  .hint-row.tone-info { border-color: #c8d5f4; }
+
+  .hint-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .hint-detail {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .hint-commands {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .hint-commands code {
+    display: block;
+    background: #0f2235;
+    color: #edf6ff;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 12px;
+    font-family: var(--mono);
+    word-break: break-all;
+  }
+
+  .artifact-wrap {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 14px;
+  }
+
+  .artifact-panel {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel-soft);
+    padding: 14px;
+  }
+
+  .artifact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .metric {
+    border: 1px solid #dbe4ef;
+    border-radius: 12px;
+    background: #fff;
+    padding: 11px 12px;
+  }
+
+  .metric-label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+
+  .metric-value {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .events {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .events li + li {
+    margin-top: 6px;
+  }
+
+  .table-wrap {
+    max-height: 420px;
+    overflow: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: #f7f9fc;
+    color: var(--muted);
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--line);
+  }
+
+  td {
+    padding: 9px 12px;
+    border-top: 1px solid #edf1f6;
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  tr:hover td { background: #f8fbff; }
+  tr.row-key td { background: #f4f9ff; }
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+  .tiny { font-size: 11px; }
+
+  .topic-summary {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .expand-toggle { cursor: pointer; user-select: none; }
+  .expand-arrow {
+    display: inline-block;
+    width: 14px;
+    font-size: 9px;
+    text-align: center;
+    color: #95a6b9;
+    transition: transform 0.15s ease;
+  }
+  .expand-arrow.open { transform: rotate(90deg); }
+  .no-expand { display: inline-block; width: 14px; }
+  .detail-row td {
+    background: #fbfcfe;
+    padding: 0 12px 12px 34px;
+    border-top: none;
+  }
+
+  .detail-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .node-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11px;
+    font-family: var(--mono);
+  }
+
+  .tag.client {
+    background: #fff0de;
+    color: var(--warn);
+  }
+
+  .param-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    background: #fbfcfe;
+  }
+
+  .param-toolbar select {
+    min-width: 280px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #fff;
+  }
+
+  .btn-small {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .param-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  .param-msg {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .param-msg.success { background: var(--ok-bg); color: var(--ok); }
+  .param-msg.error { background: var(--error-bg); color: var(--error); }
+
+  .tf-tree ul {
+    list-style: none;
+    margin-left: 18px;
+    padding-left: 14px;
+    border-left: 1px dashed #c7d3e1;
+  }
+
+  .tf-tree > ul {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .tf-node {
+    margin: 6px 0;
+    position: relative;
+  }
+
+  .tf-frame {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #204d87;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  @media (max-width: 1160px) {
+    .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .actions { grid-column: span 2; justify-content: stretch; }
+    .artifact-wrap { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 900px) {
+    .shell { padding: 16px; }
+    .hero { padding: 18px; border-radius: 18px; }
+    .hero-top { flex-direction: column; }
+    .grid { grid-template-columns: 1fr; }
+    .card-full { grid-column: auto; }
+    .controls { grid-template-columns: 1fr; }
+    .field-wide, .actions { grid-column: auto; }
+    .actions { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-copy">
+        <h1>AV_Drone Flight Debugger</h1>
+        <p>PX4 SITL, Gazebo Classic, MAVROS, planner, safety, metrics pipeline를 한 화면에서 추적하는 드론 전용 디버그 대시보드입니다. 위쪽은 핵심 비행 상태, 아래쪽은 ROS 그래프와 파라미터를 보는 상세 레이어입니다.</p>
+      </div>
+      <div class="hero-status">
+        <span class="pill tone-info" id="statusBadge">Inactive</span>
+        <span class="pill tone-info" id="profileBadge">drone1 /mavros</span>
+        <span class="pill tone-info" id="recordingBadge">Recording Off</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label>ROS Domain</label>
+        <input type="number" id="domainId" value="0" min="0" max="232">
+      </div>
+      <div class="field">
+        <label>Drone Name</label>
+        <input type="text" id="droneName" value="drone1">
+      </div>
+      <div class="field">
+        <label>MAVROS Namespace</label>
+        <input type="text" id="mavrosNamespace" value="/mavros">
+      </div>
+      <div class="field field-wide">
+        <label>Artifacts Root</label>
+        <input type="text" id="artifactsRoot" value="/workspace/AV_Drone/artifacts">
+      </div>
+      <div class="field">
+        <label>Record Interval (sec)</label>
+        <input type="number" id="recordIntervalSec" value="5" min="1" step="1">
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnActivate" onclick="activate()">Activate</button>
+        <button class="btn btn-danger" id="btnDeactivate" onclick="deactivate()" style="display:none">Deactivate</button>
+        <button class="btn btn-ghost" id="btnRefresh" onclick="manualRefresh()" style="display:none">Refresh</button>
+        <button class="btn btn-ghost" id="btnSnapshot" onclick="saveDebugSnapshot()" style="display:none">Save Snapshot</button>
+        <button class="btn btn-ghost" id="btnRecordStart" onclick="startDebugRecording()" style="display:none">Start Recording</button>
+        <button class="btn btn-danger" id="btnRecordStop" onclick="stopDebugRecording()" style="display:none">Stop Recording</button>
+        <button class="btn btn-ghost" id="btnReportGenerate" onclick="generateDebugReport()" style="display:none">Generate Report</button>
+        <button class="btn btn-ghost" id="btnReportOpen" onclick="openDebugReport()" style="display:none">Open Report</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Mission Health</h2>
+          <span class="count" id="healthCount">0 checks</span>
+        </div>
+        <span class="pill tone-info" id="overallBadge">Inactive</span>
+      </div>
+      <div class="summary-bar">
+        <div class="summary-text" id="healthSummary">Activate the dashboard to inspect the live flight pipeline.</div>
+      </div>
+      <div class="health-grid" id="healthGrid">
+        <div class="empty">Activate to view mission health.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Critical Topics</h2>
+          <span class="count" id="watchCount">0</span>
+        </div>
+      </div>
+      <div class="card-body table-wrap" id="watchBody">
+        <div class="empty">Activate to inspect flight-critical topics.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Core Nodes</h2>
+          <span class="count" id="nodeHealthCount">0</span>
+        </div>
+      </div>
+      <div class="card-body" id="nodeHealthBody">
+        <div class="empty">Activate to verify node readiness.</div>
+      </div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Troubleshooting Hints</h2>
+          <span class="count" id="hintCount">0</span>
+        </div>
+      </div>
+      <div class="card-body" id="hintBody">
+        <div class="empty">Hints will appear after the first refresh.</div>
+      </div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Latest Artifact</h2>
+          <span class="count" id="artifactCount">none</span>
+        </div>
+      </div>
+      <div class="card-body" id="artifactBody">
+        <div class="empty">Artifact summary will appear here.</div>
+      </div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Debug Recording</h2>
+          <span class="count" id="debugRecordCount">0</span>
+        </div>
+      </div>
+      <div class="card-body" id="debugRecordBody">
+        <div class="empty">Activate to save ros_states debug snapshots or start a recording session.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Topics</h2>
+          <span class="count" id="topicCount">0</span>
+        </div>
+      </div>
+      <div class="card-body table-wrap" id="topicBody">
+        <div class="empty">Activate to view topics.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Services</h2>
+          <span class="count" id="serviceCount">0</span>
+        </div>
+      </div>
+      <div class="card-body table-wrap" id="serviceBody">
+        <div class="empty">Activate to view services.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Actions</h2>
+          <span class="count" id="actionCount">0</span>
+        </div>
+      </div>
+      <div class="card-body table-wrap" id="actionBody">
+        <div class="empty">Activate to view actions.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>TF Tree</h2>
+          <span class="count" id="tfCount">0</span>
+        </div>
+      </div>
+      <div class="card-body table-wrap" id="tfBody">
+        <div class="empty">Activate to view TF tree.</div>
+      </div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <h2>Parameters</h2>
+          <span class="count" id="paramCount">0</span>
+        </div>
+      </div>
+      <div class="param-toolbar" id="paramToolbar" style="display:none">
+        <label class="tiny muted">Node</label>
+        <select id="paramNodeSelect" onchange="onNodeSelect()">
+          <option value="">-- Select a node --</option>
+        </select>
+        <button class="btn-small" onclick="refreshNodeList()">Refresh Nodes</button>
+        <button class="btn-small" onclick="onNodeSelect()">Refresh Params</button>
+        <label class="tiny muted" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="showQosOverrides" onchange="onNodeSelect()">
+          Show qos_overrides
+        </label>
+      </div>
+      <div class="card-body table-wrap" id="paramBody">
+        <div class="empty">Activate to view parameters.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let refreshTimer = null;
+let isActive = false;
+let updateInterval = {{ update_interval }};
+let debugRecordingActive = false;
+let debugReportReady = false;
+let debugSessionReady = false;
+let paramMsg = '';
+let paramMsgType = '';
+
+const expanded = {
+  topics: new Set(),
+  services: new Set(),
+  actions: new Set(),
+};
+
+function esc(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+function escAttr(value) {
+  return String(value == null ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\"/g, '&quot;');
+}
+
+function statusClass(status) {
+  return {
+    ok: 'tone-ok',
+    warn: 'tone-warn',
+    error: 'tone-error',
+    info: 'tone-info',
+  }[status] || 'tone-info';
+}
+
+function statusLabel(status) {
+  return {
+    ok: 'OK',
+    warn: 'Warn',
+    error: 'Error',
+    info: 'Info',
+  }[status] || 'Info';
+}
+
+function hzText(value) {
+  return value == null ? '-' : `${value} Hz`;
+}
+
+function setHealthMessage(text, status) {
+  document.getElementById('healthSummary').textContent = text;
+  const overall = document.getElementById('overallBadge');
+  overall.className = `pill ${statusClass(status)}`;
+  overall.textContent = statusLabel(status);
+}
+
+function updateUI() {
+  const badge = document.getElementById('statusBadge');
+  badge.className = `pill ${isActive ? 'tone-ok' : 'tone-info'}`;
+  badge.textContent = isActive ? `Active / ID ${document.getElementById('domainId').value}` : 'Inactive';
+
+  const profileBadge = document.getElementById('profileBadge');
+  profileBadge.textContent = `${document.getElementById('droneName').value || 'drone1'} ${document.getElementById('mavrosNamespace').value || '/mavros'}`;
+
+  const recordingBadge = document.getElementById('recordingBadge');
+  recordingBadge.className = `pill ${debugRecordingActive ? 'tone-warn' : 'tone-info'}`;
+  recordingBadge.textContent = debugRecordingActive ? 'Recording On' : 'Recording Off';
+
+  document.getElementById('btnActivate').style.display = isActive ? 'none' : '';
+  document.getElementById('btnDeactivate').style.display = isActive ? '' : 'none';
+  document.getElementById('btnRefresh').style.display = isActive ? '' : 'none';
+  document.getElementById('btnSnapshot').style.display = isActive ? '' : 'none';
+  document.getElementById('btnRecordStart').style.display = isActive && !debugRecordingActive ? '' : 'none';
+  document.getElementById('btnRecordStop').style.display = isActive && debugRecordingActive ? '' : 'none';
+  document.getElementById('btnReportGenerate').style.display = (isActive || debugSessionReady) ? '' : 'none';
+  document.getElementById('btnReportOpen').style.display = debugReportReady ? '' : 'none';
+  document.getElementById('paramToolbar').style.display = isActive ? '' : 'none';
+
+  ['domainId', 'droneName', 'mavrosNamespace', 'artifactsRoot'].forEach(id => {
+    document.getElementById(id).disabled = isActive;
+  });
+}
+
+function clearPanels() {
+  setHealthMessage('Activate the dashboard to inspect the live flight pipeline.', 'info');
+  document.getElementById('healthGrid').innerHTML = '<div class="empty">Activate to view mission health.</div>';
+  document.getElementById('watchBody').innerHTML = '<div class="empty">Activate to inspect flight-critical topics.</div>';
+  document.getElementById('nodeHealthBody').innerHTML = '<div class="empty">Activate to verify node readiness.</div>';
+  document.getElementById('hintBody').innerHTML = '<div class="empty">Hints will appear after the first refresh.</div>';
+  document.getElementById('artifactBody').innerHTML = '<div class="empty">Artifact summary will appear here.</div>';
+  document.getElementById('debugRecordBody').innerHTML = '<div class="empty">Activate first, then use Save Snapshot or Start Recording to begin saving ros_states debug sessions.</div>';
+  document.getElementById('topicBody').innerHTML = '<div class="empty">Activate to view topics.</div>';
+  document.getElementById('serviceBody').innerHTML = '<div class="empty">Activate to view services.</div>';
+  document.getElementById('actionBody').innerHTML = '<div class="empty">Activate to view actions.</div>';
+  document.getElementById('tfBody').innerHTML = '<div class="empty">Activate to view TF tree.</div>';
+  document.getElementById('paramBody').innerHTML = '<div class="empty">Activate to view parameters.</div>';
+  document.getElementById('paramNodeSelect').innerHTML = '<option value="">-- Select a node --</option>';
+  ['healthCount', 'watchCount', 'nodeHealthCount', 'hintCount', 'artifactCount', 'debugRecordCount', 'topicCount', 'serviceCount', 'actionCount', 'tfCount', 'paramCount'].forEach(id => {
+    document.getElementById(id).textContent = '0';
+  });
+  debugRecordingActive = false;
+  debugReportReady = false;
+  debugSessionReady = false;
+  expanded.topics.clear();
+  expanded.services.clear();
+  expanded.actions.clear();
+}
+
+function startRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refreshAll, updateInterval);
+}
+
+function stopRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+async function activate() {
+  const payload = {
+    domain_id: parseInt(document.getElementById('domainId').value || '0', 10),
+    drone_name: document.getElementById('droneName').value.trim() || 'drone1',
+    mavros_namespace: document.getElementById('mavrosNamespace').value.trim() || '/mavros',
+    artifacts_root: document.getElementById('artifactsRoot').value.trim() || '/workspace/AV_Drone/artifacts',
+  };
+
+  try {
+    const res = await fetch('/api/activate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      isActive = true;
+      updateUI();
+      await refreshAll();
+      await refreshDebugStatus();
+      await refreshNodeList();
+      startRefresh();
+    } else {
+      setHealthMessage(`Activate failed: ${data.message || 'unknown error'}`, 'error');
+    }
+  } catch (error) {
+    setHealthMessage(`Activate failed: ${error}`, 'error');
+  }
+}
+
+async function deactivate() {
+  try {
+    await fetch('/api/deactivate', {method: 'POST'});
+  } catch (error) {}
+  isActive = false;
+  stopRefresh();
+  updateUI();
+  clearPanels();
+}
+
+async function manualRefresh() {
+  if (!isActive) return;
+  const btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  stopRefresh();
+  await refreshAll();
+  startRefresh();
+  btn.disabled = false;
+}
+
+async function refreshAll() {
+  if (!isActive) return;
+  await refreshFlightDebug();
+  await Promise.all([
+    refreshDebugStatus(),
+    refreshTopics(),
+    refreshServices(),
+    refreshActions(),
+    refreshTF(),
+  ]);
+}
+
+async function refreshFlightDebug() {
+  try {
+    const res = await fetch('/api/flight_debug');
+    const data = await res.json();
+    const checks = data.checks || [];
+    const watchTopics = data.watch_topics || [];
+    const nodes = data.expected_nodes || [];
+    const hints = data.hints || [];
+    const subscriptionErrors = data.subscription_errors || [];
+
+    document.getElementById('healthCount').textContent = `${checks.length} checks`;
+    document.getElementById('watchCount').textContent = String(watchTopics.length);
+    document.getElementById('nodeHealthCount').textContent = String(nodes.length);
+    document.getElementById('hintCount').textContent = String(hints.length + subscriptionErrors.length);
+    document.getElementById('artifactCount').textContent = data.artifact && data.artifact.available ? 'loaded' : 'missing';
+
+    setHealthMessage(data.summary || 'No summary yet', data.overall_status || 'info');
+    renderHealthChecks(checks);
+    renderWatchTopics(watchTopics);
+    renderNodeHealth(nodes);
+    renderHints(hints, subscriptionErrors);
+    renderArtifact(data.artifact || {});
+  } catch (error) {
+    setHealthMessage(`Flight debug refresh failed: ${error}`, 'error');
+  }
+}
+
+function renderHealthChecks(checks) {
+  if (!checks.length) {
+    document.getElementById('healthGrid').innerHTML = '<div class="empty">No health checks yet.</div>';
+    return;
+  }
+
+  document.getElementById('healthGrid').innerHTML = checks.map(check => `
+    <div class="health-card ${statusClass(check.status)}">
+      <div class="health-top">
+        <div class="health-label">${esc(check.label)}</div>
+        <span class="pill ${statusClass(check.status)}">${statusLabel(check.status)}</span>
+      </div>
+      <div class="health-headline">${esc(check.headline)}</div>
+      <div class="health-detail">${esc(check.detail)}</div>
+      <div class="health-topic">${esc(check.topic)}</div>
+    </div>
+  `).join('');
+}
+
+function renderWatchTopics(items) {
+  if (!items.length) {
+    document.getElementById('watchBody').innerHTML = '<div class="empty">No critical topics configured.</div>';
+    return;
+  }
+
+  const rows = items.map(item => `
+    <tr class="${item.status === 'error' ? 'row-key' : ''}">
+      <td>
+        <div><strong>${esc(item.label)}</strong></div>
+        <div class="topic-summary">${esc(item.topic)}</div>
+      </td>
+      <td class="mono tiny">${esc(item.type || 'unknown')}</td>
+      <td>${item.publishers}/${item.subscribers}</td>
+      <td class="mono">${esc(hzText(item.hz))}</td>
+      <td>
+        <div>${esc(item.headline)}</div>
+        <div class="topic-summary">${esc(item.detail)}</div>
+      </td>
+      <td><span class="pill ${statusClass(item.status)}">${statusLabel(item.status)}</span></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('watchBody').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Signal</th>
+          <th>Type</th>
+          <th>Pub/Sub</th>
+          <th>Hz</th>
+          <th>Latest</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderNodeHealth(nodes) {
+  if (!nodes.length) {
+    document.getElementById('nodeHealthBody').innerHTML = '<div class="empty">No node expectations configured.</div>';
+    return;
+  }
+
+  document.getElementById('nodeHealthBody').innerHTML = `
+    <div class="list">
+      ${nodes.map(node => `
+        <div class="node-row">
+          <div>
+            <div class="node-name">${esc(node.label)}</div>
+            <div class="node-detail">${esc(node.expected)}</div>
+            <div class="topic-summary">${esc(node.detail)}</div>
+          </div>
+          <span class="pill ${statusClass(node.status)}">${statusLabel(node.status)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderHints(hints, subscriptionErrors) {
+  const allHints = [...hints];
+  for (const err of subscriptionErrors) {
+    allHints.push({
+      level: 'warn',
+      title: `Subscription unavailable: ${err.key}`,
+      detail: `${err.topic} | ${err.message}`,
+      commands: [],
+    });
+  }
+
+  if (!allHints.length) {
+    document.getElementById('hintBody').innerHTML = '<div class="empty">No hints yet.</div>';
+    return;
+  }
+
+  document.getElementById('hintBody').innerHTML = `
+    <div class="list">
+      ${allHints.map(item => `
+        <div class="hint-row ${statusClass(item.level)}">
+          <div class="hint-title">${esc(item.title)}</div>
+          <div class="hint-detail">${esc(item.detail)}</div>
+          ${item.commands && item.commands.length ? `
+            <div class="hint-commands">
+              ${item.commands.map(cmd => `<code>${esc(cmd)}</code>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderArtifact(artifact) {
+  if (!artifact || !artifact.available) {
+    document.getElementById('artifactBody').innerHTML = `<div class="empty">${esc(artifact && artifact.message ? artifact.message : 'No artifact summary available.')}</div>`;
+    return;
+  }
+
+  const summary = artifact.summary || {};
+  const metadata = artifact.metadata || {};
+  const metrics = [
+    ['Artifact Dir', artifact.artifact_dir || '-'],
+    ['Mission Phase', summary.mission_phase || '-'],
+    ['Goal Reached', summary.goal_reached == null ? '-' : String(summary.goal_reached)],
+    ['Mode', summary.mode || metadata.mode || '-'],
+    ['Closest Obstacle', summary.closest_obstacle_m == null ? '-' : `${summary.closest_obstacle_m} m`],
+    ['Runtime', summary.runtime_sec == null ? '-' : `${summary.runtime_sec} s`],
+    ['Pose Count', summary.pose_count == null ? '-' : String(summary.pose_count)],
+    ['Scan Count', summary.scan_count == null ? '-' : String(summary.scan_count)],
+    ['Planner Cmd Count', summary.planner_cmd_count == null ? '-' : String(summary.planner_cmd_count)],
+    ['Safe Cmd Count', summary.safe_cmd_count == null ? '-' : String(summary.safe_cmd_count)],
+    ['Safety Reasons', summary.safety_reason_counts ? Object.entries(summary.safety_reason_counts).map(([k, v]) => `${k}: ${v}`).join(', ') : '-'],
+    ['Root', artifact.root || '-'],
+  ];
+
+  document.getElementById('artifactBody').innerHTML = `
+    <div class="artifact-wrap">
+      <div class="artifact-panel">
+        <div class="artifact-grid">
+          ${metrics.map(([label, value]) => `
+            <div class="metric">
+              <div class="metric-label">${esc(label)}</div>
+              <div class="metric-value">${esc(value)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="artifact-panel">
+        <div class="metric-label">Recent Events</div>
+        ${artifact.recent_events && artifact.recent_events.length ? `
+          <ul class="events">
+            ${artifact.recent_events.map(line => `<li>${esc(line)}</li>`).join('')}
+          </ul>
+        ` : '<div class="empty">No recent events were found in events.log.</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderDebugRecording(status) {
+  debugRecordingActive = !!(status && status.recording_active);
+  debugReportReady = !!(status && status.report_path);
+  debugSessionReady = !!(status && status.session_dir);
+  document.getElementById('debugRecordCount').textContent = String(status && status.snapshot_count != null ? status.snapshot_count : 0);
+  updateUI();
+
+  if (!status || !status.session_dir) {
+    document.getElementById('debugRecordBody').innerHTML = '<div class="empty">아직 자동으로 저장된 것은 없습니다. Save Snapshot 또는 Start Recording을 눌러야 ros_states debug 세션이 생깁니다.</div>';
+    return;
+  }
+
+  const rows = [
+    ['Recording', debugRecordingActive ? 'Active' : 'Stopped'],
+    ['Session Dir', status.session_dir || '-'],
+    ['Snapshots Dir', status.snapshots_dir || '-'],
+    ['Timeline Path', status.timeline_path || '-'],
+    ['Started At', status.started_at || '-'],
+    ['Stopped At', status.stopped_at || '-'],
+    ['Interval', status.interval_sec == null ? '-' : `${status.interval_sec} s`],
+    ['Capture Count', status.snapshot_count == null ? '-' : String(status.snapshot_count)],
+    ['Last Snapshot', status.last_snapshot_path || '-'],
+    ['Last Snapshot At', status.last_snapshot_at || '-'],
+    ['Report Path', status.report_path || '-'],
+    ['Report Summary', status.report_summary_path || '-'],
+    ['Report Generated At', status.report_generated_at || '-'],
+    ['Last Error', status.last_error || '-'],
+  ];
+
+  document.getElementById('debugRecordBody').innerHTML = `
+    <div class="artifact-wrap">
+      <div class="artifact-panel">
+        <div class="artifact-grid">
+          ${rows.map(([label, value]) => `
+            <div class="metric">
+              <div class="metric-label">${esc(label)}</div>
+              <div class="metric-value">${esc(value)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="artifact-panel">
+        <div class="metric-label">How to use</div>
+        <ul class="events">
+          <li>이 기록은 브라우저 픽셀 스크린샷이 아니라, ros_states가 화면에 보여주던 backend 상태를 JSON으로 저장한 것입니다.</li>
+          <li>아무것도 누르지 않으면 계속 자동 저장되지는 않습니다.</li>
+          <li>Save Snapshot: 지금 화면 기준 상태를 즉시 JSON + report로 저장</li>
+          <li>Start Recording: 일정 주기마다 timeline.jsonl에 누적 기록 시작</li>
+          <li>Stop Recording: recording 종료 + 마지막 snapshot 저장</li>
+          <li>Generate Report: 저장된 JSON을 읽어서 summary + visualization + graphs HTML로 다시 생성</li>
+          <li>Open Report: 최근 생성된 report.html을 새 탭에서 열기</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+async function refreshDebugStatus() {
+  try {
+    const res = await fetch('/api/debug/status');
+    const data = await res.json();
+    renderDebugRecording(data);
+  } catch (error) {
+    document.getElementById('debugRecordBody').innerHTML = `<div class="empty">Failed to load debug recording status: ${esc(error)}</div>`;
+    debugRecordingActive = false;
+    updateUI();
+  }
+}
+
+async function saveDebugSnapshot() {
+  if (!isActive) return;
+  const btn = document.getElementById('btnSnapshot');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/debug/snapshot', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reason: 'manual_snapshot', include_graph: true}),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      await refreshDebugStatus();
+      setHealthMessage(`Saved debug snapshot: ${data.snapshot_path}`, 'info');
+    } else {
+      setHealthMessage(`Save snapshot failed: ${data.message || 'unknown error'}`, 'error');
+    }
+  } catch (error) {
+    setHealthMessage(`Save snapshot failed: ${error}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function startDebugRecording() {
+  if (!isActive) return;
+  const btn = document.getElementById('btnRecordStart');
+  btn.disabled = true;
+  try {
+    const intervalSec = parseFloat(document.getElementById('recordIntervalSec').value || '5');
+    const res = await fetch('/api/debug/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({interval_sec: intervalSec}),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      await refreshDebugStatus();
+      setHealthMessage(`Debug recording started: ${data.session_dir || 'session created'}`, 'info');
+    } else {
+      setHealthMessage(`Start recording failed: ${data.message || 'unknown error'}`, 'error');
+    }
+  } catch (error) {
+    setHealthMessage(`Start recording failed: ${error}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function stopDebugRecording() {
+  const btn = document.getElementById('btnRecordStop');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/debug/stop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reason: 'manual_stop'}),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      await refreshDebugStatus();
+      setHealthMessage('Debug recording stopped.', 'info');
+    } else {
+      setHealthMessage(`Stop recording failed: ${data.message || 'unknown error'}`, 'error');
+    }
+  } catch (error) {
+    setHealthMessage(`Stop recording failed: ${error}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function generateDebugReport() {
+  const btn = document.getElementById('btnReportGenerate');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/debug/report/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reason: 'manual_generate'}),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      await refreshDebugStatus();
+      setHealthMessage(`Generated debug report: ${data.report_path || 'report.html'}`, 'info');
+    } else {
+      setHealthMessage(`Generate report failed: ${data.message || 'unknown error'}`, 'error');
+    }
+  } catch (error) {
+    setHealthMessage(`Generate report failed: ${error}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function openDebugReport() {
+  if (!debugReportReady) {
+    setHealthMessage('No generated debug report yet. Save a snapshot or click Generate Report first.', 'info');
+    return;
+  }
+  window.open('/debug/report/current', '_blank', 'noopener');
+}
+
+function toggleDetail(el, category, name) {
+  if (expanded[category].has(name)) {
+    expanded[category].delete(name);
+  } else {
+    expanded[category].add(name);
+  }
+  const detail = el.nextElementSibling;
+  const isOpen = expanded[category].has(name);
+  if (detail && detail.classList.contains('detail-row')) {
+    detail.style.display = isOpen ? '' : 'none';
+  }
+  const arrow = el.querySelector('.expand-arrow');
+  if (arrow) arrow.classList.toggle('open', isOpen);
+}
+
+function renderNodeGroup(label, nodes, cssClass) {
+  if (!nodes || !nodes.length) return '';
+  return `
+    <div>
+      <div class="tiny muted" style="margin-bottom:5px;font-weight:700;">${esc(label)}</div>
+      <div class="node-tags">
+        ${nodes.map(node => `<span class="tag ${cssClass}">${esc(node)}</span>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function refreshTopics() {
+  try {
+    const res = await fetch('/api/topics');
+    const topics = await res.json();
+    document.getElementById('topicCount').textContent = String(topics.length);
+
+    if (!topics.length) {
+      document.getElementById('topicBody').innerHTML = '<div class="empty">No topics found.</div>';
+      return;
+    }
+
+    let html = '<table><thead><tr><th>Topic</th><th>Type</th><th>Pub/Sub</th><th>Hz</th></tr></thead><tbody>';
+    for (const topic of topics) {
+      const hasNodes = (topic.pub_nodes && topic.pub_nodes.length) || (topic.sub_nodes && topic.sub_nodes.length);
+      const isOpen = expanded.topics.has(topic.name);
+      const arrow = isOpen ? 'expand-arrow open' : 'expand-arrow';
+      const rowClass = topic.is_watch_topic ? 'row-key' : '';
+      html += `<tr class="${hasNodes ? 'expand-toggle' : ''} ${rowClass}" ${hasNodes ? `onclick="toggleDetail(this,'topics','${escAttr(topic.name)}')"` : ''}>`;
+      html += `<td class="mono">${hasNodes ? `<span class="${arrow}">&#9654;</span>` : '<span class="no-expand"></span>'} ${esc(topic.name)}</td>`;
+      html += `<td class="mono tiny">${esc(topic.type)}</td>`;
+      html += `<td>${topic.publishers}/${topic.subscribers}</td>`;
+      html += `<td class="mono">${esc(hzText(topic.hz))}</td>`;
+      html += '</tr>';
+      if (hasNodes) {
+        html += `<tr class="detail-row" style="${isOpen ? '' : 'display:none'}"><td colspan="4"><div class="detail-box">`;
+        html += renderNodeGroup('Publishers', topic.pub_nodes, '');
+        html += renderNodeGroup('Subscribers', topic.sub_nodes, 'client');
+        html += '</div></td></tr>';
+      }
+    }
+    html += '</tbody></table>';
+    document.getElementById('topicBody').innerHTML = html;
+  } catch (error) {
+    document.getElementById('topicBody').innerHTML = `<div class="empty">Failed to load topics: ${esc(error)}</div>`;
+  }
+}
+
+async function refreshServices() {
+  try {
+    const res = await fetch('/api/services');
+    const services = await res.json();
+    document.getElementById('serviceCount').textContent = String(services.length);
+
+    if (!services.length) {
+      document.getElementById('serviceBody').innerHTML = '<div class="empty">No services found.</div>';
+      return;
+    }
+
+    let html = '<table><thead><tr><th>Service</th><th>Type</th></tr></thead><tbody>';
+    for (const service of services) {
+      const hasNodes = (service.server_nodes && service.server_nodes.length) || (service.client_nodes && service.client_nodes.length);
+      const isOpen = expanded.services.has(service.name);
+      const arrow = isOpen ? 'expand-arrow open' : 'expand-arrow';
+      html += `<tr class="${hasNodes ? 'expand-toggle' : ''}" ${hasNodes ? `onclick="toggleDetail(this,'services','${escAttr(service.name)}')"` : ''}>`;
+      html += `<td class="mono">${hasNodes ? `<span class="${arrow}">&#9654;</span>` : '<span class="no-expand"></span>'} ${esc(service.name)}</td>`;
+      html += `<td class="mono tiny">${esc(service.type)}</td>`;
+      html += '</tr>';
+      if (hasNodes) {
+        html += `<tr class="detail-row" style="${isOpen ? '' : 'display:none'}"><td colspan="2"><div class="detail-box">`;
+        html += renderNodeGroup('Servers', service.server_nodes, '');
+        html += renderNodeGroup('Clients', service.client_nodes, 'client');
+        html += '</div></td></tr>';
+      }
+    }
+    html += '</tbody></table>';
+    document.getElementById('serviceBody').innerHTML = html;
+  } catch (error) {
+    document.getElementById('serviceBody').innerHTML = `<div class="empty">Failed to load services: ${esc(error)}</div>`;
+  }
+}
+
+async function refreshActions() {
+  try {
+    const res = await fetch('/api/actions');
+    const actions = await res.json();
+    document.getElementById('actionCount').textContent = String(actions.length);
+
+    if (!actions.length) {
+      document.getElementById('actionBody').innerHTML = '<div class="empty">No actions found.</div>';
+      return;
+    }
+
+    let html = '<table><thead><tr><th>Action</th><th>Type</th></tr></thead><tbody>';
+    for (const action of actions) {
+      const hasNodes = (action.server_nodes && action.server_nodes.length) || (action.client_nodes && action.client_nodes.length);
+      const isOpen = expanded.actions.has(action.name);
+      const arrow = isOpen ? 'expand-arrow open' : 'expand-arrow';
+      html += `<tr class="${hasNodes ? 'expand-toggle' : ''}" ${hasNodes ? `onclick="toggleDetail(this,'actions','${escAttr(action.name)}')"` : ''}>`;
+      html += `<td class="mono">${hasNodes ? `<span class="${arrow}">&#9654;</span>` : '<span class="no-expand"></span>'} ${esc(action.name)}</td>`;
+      html += `<td class="mono tiny">${esc(action.type)}</td>`;
+      html += '</tr>';
+      if (hasNodes) {
+        html += `<tr class="detail-row" style="${isOpen ? '' : 'display:none'}"><td colspan="2"><div class="detail-box">`;
+        html += renderNodeGroup('Servers', action.server_nodes, '');
+        html += renderNodeGroup('Clients', action.client_nodes, 'client');
+        html += '</div></td></tr>';
+      }
+    }
+    html += '</tbody></table>';
+    document.getElementById('actionBody').innerHTML = html;
+  } catch (error) {
+    document.getElementById('actionBody').innerHTML = `<div class="empty">Failed to load actions: ${esc(error)}</div>`;
+  }
+}
+
+function renderTFNode(node) {
+  const children = node.children && node.children.length
+    ? `<ul>${node.children.map(child => renderTFNode(child)).join('')}</ul>`
+    : '';
+  return `<li class="tf-node"><span class="tf-frame">${esc(node.name)}</span>${children}</li>`;
+}
+
+async function refreshTF() {
+  try {
+    const res = await fetch('/api/tf');
+    const data = await res.json();
+    const count = data.frames ? data.frames.length : 0;
+    document.getElementById('tfCount').textContent = String(count);
+    if (!data.tree || !data.tree.length) {
+      document.getElementById('tfBody').innerHTML = '<div class="empty">No TF frames received.</div>';
+      return;
+    }
+    document.getElementById('tfBody').innerHTML = `<div class="tf-tree"><ul>${data.tree.map(root => renderTFNode(root)).join('')}</ul></div>`;
+  } catch (error) {
+    document.getElementById('tfBody').innerHTML = `<div class="empty">Failed to load TF tree: ${esc(error)}</div>`;
+  }
+}
+
+async function refreshNodeList() {
+  if (!isActive) return;
+  try {
+    const res = await fetch('/api/nodes');
+    const nodes = await res.json();
+    const select = document.getElementById('paramNodeSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">-- Select a node --</option>';
+    for (const node of nodes) {
+      const opt = document.createElement('option');
+      opt.value = node;
+      opt.textContent = node;
+      select.appendChild(opt);
+    }
+    if (current && nodes.includes(current)) {
+      select.value = current;
+    }
+    document.getElementById('paramCount').textContent = `${nodes.length} nodes`;
+  } catch (error) {}
+}
+
+async function onNodeSelect() {
+  const nodeName = document.getElementById('paramNodeSelect').value;
+  if (!nodeName) {
+    document.getElementById('paramBody').innerHTML = '<div class="empty">Select a node to view parameters.</div>';
+    return;
+  }
+
+  document.getElementById('paramBody').innerHTML = '<div class="empty">Loading parameters...</div>';
+  try {
+    const res = await fetch(`/api/params/list?node=${encodeURIComponent(nodeName)}`);
+    const allParams = await res.json();
+    const showQos = document.getElementById('showQosOverrides').checked;
+    const params = showQos ? allParams : allParams.filter(name => !name.startsWith('qos_overrides.'));
+    if (!params.length) {
+      document.getElementById('paramBody').innerHTML = '<div class="empty">No parameters found for this node.</div>';
+      return;
+    }
+
+    const valuePromises = params.map(param =>
+      fetch(`/api/params/get?node=${encodeURIComponent(nodeName)}&param=${encodeURIComponent(param)}`)
+        .then(resp => resp.ok ? resp.json() : null)
+        .catch(() => null)
+    );
+    const values = await Promise.all(valuePromises);
+
+    let html = '<table><thead><tr><th>Parameter</th><th>Type</th><th>Value</th><th>Action</th></tr></thead><tbody>';
+    for (let i = 0; i < params.length; i++) {
+      const param = params[i];
+      const value = values[i];
+      html += '<tr>';
+      html += `<td class="mono">${esc(param)}</td>`;
+      html += `<td>${esc(value ? value.type : '-')}</td>`;
+      html += `<td id="pval_${i}" class="mono">${esc(value ? value.value : '-')}</td>`;
+      html += `<td id="pact_${i}"><button class="btn-small" onclick="startEdit('${escAttr(nodeName)}','${escAttr(param)}',${i},'${escAttr(value ? value.value : '')}')">Edit</button></td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    if (paramMsg) {
+      html += `<div class="param-msg ${paramMsgType}">${esc(paramMsg)}</div>`;
+      paramMsg = '';
+      paramMsgType = '';
+    }
+    document.getElementById('paramBody').innerHTML = html;
+  } catch (error) {
+    document.getElementById('paramBody').innerHTML = '<div class="empty">Error loading parameters.</div>';
+  }
+}
+
+function startEdit(nodeName, paramName, idx, currentValue) {
+  document.getElementById(`pval_${idx}`).innerHTML = `<input class="param-input" id="pedit_${idx}" value="${escAttr(currentValue)}" onkeydown="if(event.key==='Enter')doSet('${escAttr(nodeName)}','${escAttr(paramName)}',${idx})">`;
+  document.getElementById(`pact_${idx}`).innerHTML = `
+    <button class="btn-small" onclick="doSet('${escAttr(nodeName)}','${escAttr(paramName)}',${idx})">Set</button>
+    <button class="btn-small" onclick="onNodeSelect()">Cancel</button>
+  `;
+  document.getElementById(`pedit_${idx}`).focus();
+}
+
+async function doSet(nodeName, paramName, idx) {
+  const newValue = document.getElementById(`pedit_${idx}`).value;
+  try {
+    const res = await fetch('/api/params/set', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({node: nodeName, param: paramName, value: newValue}),
+    });
+    const result = await res.json();
+    if (result.success) {
+      paramMsg = `Set ${paramName} = ${newValue}`;
+      paramMsgType = 'success';
+    } else {
+      paramMsg = `Error: ${result.message || 'Failed to set parameter'}`;
+      paramMsgType = 'error';
+    }
+  } catch (error) {
+    paramMsg = 'Error: Network failure';
+    paramMsgType = 'error';
+  }
+  onNodeSelect();
+}
+
+fetch('/api/config')
+  .then(resp => resp.json())
+  .then(cfg => {
+    updateInterval = cfg.update_interval || updateInterval;
+    document.getElementById('domainId').value = '0';
+    document.getElementById('droneName').value = cfg.drone_name || 'drone1';
+    document.getElementById('mavrosNamespace').value = cfg.mavros_namespace || '/mavros';
+    document.getElementById('artifactsRoot').value = cfg.artifacts_root || '/workspace/AV_Drone/artifacts';
+    updateUI();
+    clearPanels();
+  })
+  .catch(() => {
+    updateUI();
+    clearPanels();
+  });
+</script>
+</body>
+</html>

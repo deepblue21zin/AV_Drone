@@ -1,57 +1,55 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 if [ -f /opt/ros/humble/setup.bash ]; then
+  # Gazebo ROS plugins need the ROS 2 runtime available in the sim container.
+  set +u
   source /opt/ros/humble/setup.bash
+  set -u
 fi
-
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-root}"
-mkdir -p "${XDG_RUNTIME_DIR}"
-chmod 700 "${XDG_RUNTIME_DIR}" || true
 
 cd /opt/PX4-Autopilot
 
-# Reset cached Gazebo GUI layouts and force a known-good camera view.
-rm -f /root/.gz/sim/8/gui.config /root/.gz/sim/7/gui.config
+PX4_CLASSIC_ROOT="/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
+CUSTOM_MODEL_DIR="/workspace/AV_Drone/sim_assets/models"
+CUSTOM_WORLD_DIR="/workspace/AV_Drone/sim_assets/worlds"
+PX4_MODEL_DIR="${PX4_CLASSIC_ROOT}/models"
+PX4_WORLD_DIR="${PX4_CLASSIC_ROOT}/worlds"
 
-CUSTOM_GZ_MODEL_DIR="/workspace/AV_Drone/sim_assets/gz/models"
-CUSTOM_GZ_WORLD_DIR="/workspace/AV_Drone/sim_assets/gz/worlds"
-CUSTOM_GZ_GUI_CONFIG="/workspace/AV_Drone/sim_assets/gz/gui/gui.config"
-PX4_GZ_MODEL_DIR="/opt/PX4-Autopilot/Tools/simulation/gz/models"
-PX4_GZ_WORLD_DIR="/opt/PX4-Autopilot/Tools/simulation/gz/worlds"
-
-if [ -d "${CUSTOM_GZ_MODEL_DIR}" ]; then
-  rsync -a "${CUSTOM_GZ_MODEL_DIR}/" "${PX4_GZ_MODEL_DIR}/"
+if [ -d "${CUSTOM_MODEL_DIR}" ]; then
+  rsync -a "${CUSTOM_MODEL_DIR}/" "${PX4_MODEL_DIR}/"
 fi
 
-if [ -d "${CUSTOM_GZ_WORLD_DIR}" ]; then
-  find "${CUSTOM_GZ_WORLD_DIR}" -maxdepth 1 -type f -name "*.sdf" -exec cp {} "${PX4_GZ_WORLD_DIR}/" \;
+if [ -d "${CUSTOM_WORLD_DIR}" ]; then
+  find "${CUSTOM_WORLD_DIR}" -maxdepth 1 -type f -name "*.world" -exec cp {} "${PX4_WORLD_DIR}/" \;
 fi
 
-if [ -f "${CUSTOM_GZ_GUI_CONFIG}" ]; then
-  mkdir -p /root/.gz/sim/8
-  cp "${CUSTOM_GZ_GUI_CONFIG}" /root/.gz/sim/8/gui.config
+export PX4_SITL_WORLD="${PX4_SITL_WORLD:-obstacle_demo}"
+export GAZEBO_IP="${GAZEBO_IP:-127.0.0.1}"
+export GAZEBO_MASTER_URI="${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}"
+export PX4_GAZEBO_DISPLAY="${PX4_GAZEBO_DISPLAY:-${DISPLAY:-}}"
+export PX4_GZ_WORLD="${PX4_GZ_WORLD:-${PX4_SITL_WORLD}}"
+
+case "${HEADLESS:-}" in
+  1|true|TRUE|yes|YES)
+    export HEADLESS=1
+    ;;
+  *)
+    unset HEADLESS
+    ;;
+esac
+
+# PX4's generated make->shell->sitl_run chain drops DISPLAY, but keeps PX4_GAZEBO_DISPLAY.
+# Install a lightweight gzserver wrapper earlier in PATH so server-side rendering still works.
+cat >/usr/local/bin/gzserver <<'EOF'
+#!/usr/bin/env bash
+set -e
+if [ -z "${DISPLAY:-}" ] && [ -n "${PX4_GAZEBO_DISPLAY:-}" ]; then
+  export DISPLAY="${PX4_GAZEBO_DISPLAY}"
 fi
+exec /usr/bin/gzserver "$@"
+EOF
+chmod +x /usr/local/bin/gzserver
 
-export PX4_GZ_WORLD="${PX4_GZ_WORLD:-obstacle_demo}"
-export PX4_GZ_MODEL_NAME="${PX4_GZ_MODEL_NAME:-drone1}"
-export PX4_GZ_SIM_RENDER_ENGINE="${PX4_GZ_SIM_RENDER_ENGINE:-ogre2}"
-
-HOST_SHARED_ROOT="${HOST_SHARED_ROOT:-/home/deepblue/AV_Drone}"
-SHARED_GZ_CACHE_DIR="${HOST_SHARED_ROOT}/.cache/gz/models"
-mkdir -p "${SHARED_GZ_CACHE_DIR}"
-
-for model_name in x500 x500_base; do
-  if [ -d "${PX4_GZ_MODEL_DIR}/${model_name}" ]; then
-    rsync -a "${PX4_GZ_MODEL_DIR}/${model_name}/" "${SHARED_GZ_CACHE_DIR}/${model_name}/"
-  fi
-done
-
-if [ -n "${HEADLESS:-}" ]; then
-  unset DISPLAY
-fi
-export GZ_SIM_RESOURCE_PATH="${SHARED_GZ_CACHE_DIR}:${HOST_SHARED_ROOT}/sim_assets/gz/models:${HOST_SHARED_ROOT}/sim_assets/gz/worlds:${GZ_SIM_RESOURCE_PATH:-}"
-
-SIM_TARGET="${PX4_SIM_TARGET:-gz_x500}"
-
+SIM_TARGET="${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}"
 exec make px4_sitl "${SIM_TARGET}"
