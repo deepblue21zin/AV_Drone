@@ -20,8 +20,8 @@
     goal_tol_xy: 0.35
     goal_latch_enabled: true
     allow_motion_without_scan: false
-    cruise_speed: 1.0
-    max_speed: 1.15
+    cruise_speed: 0.75
+    max_speed: 0.90
     max_reverse_speed: 0.35
     obstacle_stop_distance: 1.8
     obstacle_slow_distance: 3.2
@@ -32,6 +32,23 @@
     backoff_gain: 0.6
     front_sector_half_angle_deg: 32.0
     side_sector_width_deg: 85.0
+    gap_search_half_angle_deg: 100.0
+    gap_bubble_radius: 1.15
+    gap_max_bubbles: 8
+    gap_min_clearance: 1.60
+    gap_min_points: 8
+    gap_edge_margin_deg: 6.0
+    gap_goal_weight: 2.2
+    gap_clearance_weight: 0.85
+    gap_width_weight: 0.45
+    gap_clearance_relax_ratio: 0.95
+    gap_center_bias: 0.70
+    gap_target_commitment: 0.50
+    gap_clearance_percentile: 0.20
+    gap_escape_distance: 2.30
+    target_sector_half_angle_deg: 8.0
+    gap_turn_min_scale: 0.35
+    side_clearance_sector_deg: 75.0
     hover_sec_after_takeoff: 2.0
     kp_z: 1.2
     vz_max: 1.0

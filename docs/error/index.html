@@ -293,7 +293,7 @@
       </div>
       <div class="pill-row">
         <span class="pill">ros_states URL: <strong>http://localhost:5050</strong></span>
-        <span class="pill">기간: 2026-03-24 ~ 2026-03-27</span>
+        <span class="pill">기간: 2026-03-24 ~ 2026-03-29</span>
       </div>
     </div>
 
@@ -311,14 +311,14 @@
       <h2>요약</h2>
       <div class="summary-grid">
         <div class="summary-card">
-          <div class="metric">7</div>
+          <div class="metric">8</div>
           <h3>주요 장애 항목</h3>
-          <p class="muted">웹 백엔드, JSON 직렬화, Gazebo 경로 혼선, DDS transport, metrics logger, 중복 launch, goal 판정 해석 이슈를 묶어 정리했습니다.</p>
+          <p class="muted">웹 백엔드, JSON 직렬화, Gazebo 경로 혼선, DDS transport, metrics logger, 중복 launch, goal 판정 해석, Gazebo GUI 자동 기동 이슈를 묶어 정리했습니다.</p>
         </div>
         <div class="summary-card">
-          <div class="metric">6</div>
+          <div class="metric">7</div>
           <h3>해결 완료</h3>
-          <p class="muted">현재 기준으로 센싱, obstacle metric, planner/safety command, metrics logging, 문서 정리는 정상 경로로 복구했습니다.</p>
+          <p class="muted">현재 기준으로 센싱, obstacle metric, planner/safety command, metrics logging, Gazebo GUI 자동 실행, 문서 정리는 정상 경로로 복구했습니다.</p>
         </div>
         <div class="summary-card">
           <div class="metric">1</div>
@@ -351,6 +351,10 @@
         <div class="timeline-card">
           <h3>2026-03-27</h3>
           <p class="muted">"중간에 멈춘다"는 현상을 다시 추적해 보니 일부는 사실상 <span class="inline-code">goal reached</span> 후 hover였고, 일부는 중복 launch로 인한 publisher 충돌이었습니다. README와 goal 기준도 함께 정리했습니다.</p>
+        </div>
+        <div class="timeline-card">
+          <h3>2026-03-29</h3>
+          <p class="muted">Gazebo Classic GUI가 빈 회색 창처럼 보이던 문제를 다시 추적해 보니, 자동 <span class="inline-code">gzclient</span>의 X11 인증 누락과 startup camera auto-zoom이 겹쳐 있었습니다. compose의 Xauthority 전달과 world camera 고정으로 복구했습니다.</p>
         </div>
       </div>
     </section>
@@ -674,6 +678,82 @@ Pose: x ≈ 7.76 ~ 10.23</pre>
       </div>
     </section>
 
+    <section class="incident" id="inc-008" data-tone="blue">
+      <div class="incident-head">
+        <div>
+          <div class="eyebrow">INC-008</div>
+          <h3>Gazebo Classic GUI가 자동으로 뜨지만 빈 회색 창처럼 보임</h3>
+        </div>
+        <span class="badge status-info">GUI / X11 / camera 초기화 이슈</span>
+      </div>
+      <div class="facts">
+        <div class="fact"><strong>증상</strong>자동 Gazebo 창은 뜨지만 맵이 안 보이고 회색/빈 창처럼 보임</div>
+        <div class="fact"><strong>영향</strong>사용자는 Gazebo가 아예 안 켜진 것으로 오해하기 쉬움</div>
+        <div class="fact"><strong>상태</strong>해결 완료</div>
+      </div>
+      <div class="cols">
+        <div class="box">
+          <h4>대표 로그</h4>
+          <pre>Authorization required, but no authorization protocol specified
+[Err] [RenderEngine.cc:749] Can't open display: :0
+[Wrn] [GuiIface.cc:120] could not connect to display :0
+Could not load the Qt platform plugin "xcb"
+
+...
+
+user_camera pose
+x: -17.11
+y: 15.29
+z: 193.86</pre>
+        </div>
+        <div class="box">
+          <h4>문제 원인</h4>
+          <ul>
+            <li>자동 <span class="inline-code">gzclient</span>는 떴지만, 컨테이너가 호스트 X11 인증 파일(<span class="inline-code">XAUTHORITY</span>)을 보지 못해 <span class="inline-code">DISPLAY=:0</span> 연결에 실패했습니다.</li>
+            <li>인증을 통과한 뒤에도 Gazebo Classic의 기본 <span class="inline-code">orbit</span> startup view가 장면 전체를 과하게 잡아, 카메라가 너무 멀리(<span class="inline-code">z≈194</span>) 튀어 회색 배경만 크게 보였습니다.</li>
+            <li>즉 “GUI 미기동”이 아니라 <strong>X11 인증 실패 + startup camera auto-zoom</strong> 두 이슈가 겹친 상태였습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>수정 방법</h4>
+          <ul>
+            <li><span class="inline-code">docker-compose.yml</span>에서 <span class="inline-code">XAUTHORITY</span>, <span class="inline-code">XDG_RUNTIME_DIR</span>를 컨테이너에 전달하고, 런타임 디렉터리를 read-only로 마운트했습니다.</li>
+            <li><span class="inline-code">docker/sim/entrypoint.sh</span>에서 GUI 모드 시작 전 <span class="inline-code">/root/.gazebo/gui.ini</span>를 지워 stale GUI 상태를 초기화했습니다.</li>
+            <li><span class="inline-code">sim_assets/worlds/obstacle_demo.world</span>의 기본 GUI camera를 <span class="inline-code">orbit</span>에서 <span class="inline-code">fps</span>로 바꾸고, corridor 중앙을 보는 pose(<span class="inline-code">x=16, y=0, z=30</span>)로 고정했습니다.</li>
+            <li>자동 GUI 기본 경로는 유지하고, helper 스크립트는 fallback 용도로만 남겼습니다.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h4>결과</h4>
+          <ul>
+            <li>최신 <span class="inline-code">sim</span> 로그에서 <span class="inline-code">Authorization required</span>, <span class="inline-code">Can't open display</span>, <span class="inline-code">Qt platform plugin</span> 에러가 사라졌습니다.</li>
+            <li>자동 프로세스가 다시 정상화됐습니다: <span class="inline-code">gzserver ... obstacle_demo.world</span>, <span class="inline-code">gzclient --verbose</span>.</li>
+            <li>live <span class="inline-code">user_camera</span> pose가 아래처럼 고정된 것을 확인했습니다.</li>
+          </ul>
+          <pre>position {
+  x: 16
+  y: 0
+  z: 30
+}
+orientation {
+  x: 0
+  y: 0.57286745309829712
+  z: 0
+  w: 0.819648027420044
+}</pre>
+        </div>
+      </div>
+      <details>
+        <summary>관련 파일 보기</summary>
+        <div class="detail-body file-list">
+          <code>docker-compose.yml</code>
+          <code>docker/sim/entrypoint.sh</code>
+          <code>sim_assets/worlds/obstacle_demo.world</code>
+          <code>README.md</code>
+        </div>
+      </details>
+    </section>
+
     <section class="panel" id="status">
       <h2>현재 상태</h2>
       <div class="status-grid">
@@ -684,6 +764,7 @@ Pose: x ≈ 7.76 ~ 10.23</pre>
             <li><span class="inline-code">/drone1/perception/nearest_obstacle_distance</span>가 계산됩니다.</li>
             <li>planner/safety command가 정상 토픽으로 publish됩니다.</li>
             <li><span class="inline-code">metrics_logger</span>가 다시 artifact를 기록합니다.</li>
+            <li>기본 실행 경로에서 Gazebo Classic GUI가 자동으로 뜨고, corridor를 보는 startup camera가 적용됩니다.</li>
             <li><span class="inline-code">ros_states</span> URL은 <span class="inline-code">http://localhost:5050</span>입니다.</li>
           </ul>
         </div>
@@ -693,6 +774,7 @@ Pose: x ≈ 7.76 ~ 10.23</pre>
             <li>연구 데모 품질 관점에서는 emergency stop threshold와 local reactive planner 파라미터 튜닝이 더 필요합니다.</li>
             <li>run reset을 더 쉽게 만들기 위해 "한 번 클릭으로 clean restart" 경로를 만드는 것이 좋습니다.</li>
             <li>논문 단계로 가면 failure taxonomy와 rosbag2 raw recording도 추가하는 편이 좋습니다.</li>
+            <li>자동 GUI는 복구됐지만, 호스트 세션이 바뀌면 먼저 <span class="inline-code">xhost +SI:localuser:root</span>, <span class="inline-code">xhost +local:docker</span>를 다시 열어주는 습관이 필요합니다.</li>
           </ul>
         </div>
       </div>
@@ -729,10 +811,15 @@ Pose: x ≈ 7.76 ~ 10.23</pre>
             <td>README가 오래되면 실제 문제보다 운영 착오가 더 큰 장애를 만듭니다.</td>
             <td>active runtime, URL, restart 순서를 항상 최신 상태로 유지합니다.</td>
           </tr>
+          <tr>
+            <td>GUI 진단</td>
+            <td>Gazebo 창이 빈 회색이라고 해서 항상 world 미기동은 아닙니다.</td>
+            <td>X11 인증 로그와 live <span class="inline-code">user_camera</span> pose를 같이 보면 “미기동”과 “카메라 오배치”를 빠르게 구분할 수 있습니다.</td>
+          </tr>
         </tbody>
       </table>
       <p class="footer-note">
-        참고 문서: <a href="../change/2026-03-24.md">2026-03-24.md</a>, <a href="../change/2026-03-26.md">2026-03-26.md</a>, <a href="../change/2026-03-27.md">2026-03-27.md</a>,
+        참고 문서: <a href="../change/2026-03-24.md">2026-03-24.md</a>, <a href="../change/2026-03-26.md">2026-03-26.md</a>, <a href="../change/2026-03-27.md">2026-03-27.md</a>, <a href="../change/2026-03-29.md">2026-03-29.md</a>,
         <a href="../project_command_center.html">project_command_center.html</a>
       </p>
     </section>

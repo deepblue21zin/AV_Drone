@@ -10,21 +10,25 @@ services:
     ipc: host
     environment:
       DISPLAY: ${DISPLAY:-}
+      XAUTHORITY: ${XAUTHORITY:-}
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-}
       QT_X11_NO_MITSHM: "1"
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       FASTDDS_BUILTIN_TRANSPORTS: UDPv4
-      HEADLESS: "1"
+      HEADLESS: ${HEADLESS:-}
       PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}
       PX4_SITL_WORLD: ${PX4_SITL_WORLD:-obstacle_demo}
       PX4_GZ_WORLD: ${PX4_GZ_WORLD:-}
       GAZEBO_IP: "127.0.0.1"
       GAZEBO_MASTER_URI: "http://127.0.0.1:11345"
       PX4_GAZEBO_DISPLAY: ${DISPLAY:-}
+      PX4_NO_FOLLOW_MODE: "1"
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:ro
       - sim-home:/root
     working_dir: /opt/PX4-Autopilot
     init: true
@@ -41,6 +45,8 @@ services:
     ipc: host
     environment:
       DISPLAY: ${DISPLAY:-}
+      XAUTHORITY: ${XAUTHORITY:-}
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-}
       QT_X11_NO_MITSHM: "1"
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
@@ -49,6 +55,7 @@ services:
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:ro
     working_dir: /workspace/AV_Drone
     init: true
     stdin_open: true

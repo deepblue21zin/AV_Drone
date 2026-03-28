@@ -87,16 +87,14 @@ else
 fi
 
 info "starting sim and ros containers (Gazebo Classic)"
-HEADLESS=1 docker compose up -d --force-recreate sim ros >/dev/null
-wait_for_sim_ready
-
 if (( NO_GUI == 0 )); then
-  info "starting Gazebo Classic GUI through helper after sim readiness"
-  nohup "${ROOT_DIR}/scripts/run_host_gz_gui.sh" > "${LOG_DIR}/gzclient.log" 2>&1 &
-  info "GUI helper log: .logs/gzclient.log"
+  docker compose up -d --force-recreate sim ros >/dev/null
+  info "Gazebo Classic GUI will auto-start from the sim container"
 else
+  HEADLESS=1 docker compose up -d --force-recreate sim ros >/dev/null
   info "running headless (--no-gui)"
 fi
+wait_for_sim_ready
 
 info "stopping stale ROS launch if present"
 docker compose exec -T ros bash -lc "pkill -f 'ros2 launch drone_bringup single_drone_autonomy.launch.py' >/dev/null 2>&1 || true" >/dev/null 2>&1 || true

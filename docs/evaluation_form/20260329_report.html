@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026-03-29 AV_Drone Report</title>
+  <style>
+    :root {
+      --bg: #f3f6f5;
+      --surface: rgba(255,255,255,0.9);
+      --ink: #18232a;
+      --muted: #61727c;
+      --line: #d7e0e4;
+      --navy: #123a5a;
+      --teal: #0f766e;
+      --amber: #b45309;
+      --red: #b42318;
+      --blue: #2563eb;
+      --violet: #7c3aed;
+      --shadow: 0 22px 54px rgba(18, 58, 90, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --sans: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      --mono: "JetBrains Mono", "D2Coding", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(124,58,237,0.08), transparent 22%),
+        radial-gradient(circle at top right, rgba(18,58,90,0.12), transparent 24%),
+        linear-gradient(180deg, #f8fbfa 0%, #edf3f0 100%);
+      line-height: 1.62;
+    }
+
+    a { color: var(--navy); text-decoration: none; }
+    code, pre { font-family: var(--mono); }
+    .page { width: min(1420px, calc(100% - 28px)); margin: 22px auto 80px; }
+
+    .nav, .hero, .panel, .card, .diagram-card, .chart-card, .iframe-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.76);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .nav-links, .tag-row, .grid, .kpi-grid, .source-grid, .component-grid, .delta-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav a, .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(18,58,90,0.07);
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .hero, .panel { padding: 30px; margin-bottom: 22px; }
+    .hero {
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -120px;
+      bottom: -120px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,0.16), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(18,58,90,0.08);
+      color: var(--navy);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, h4 {
+      margin: 0 0 10px;
+      line-height: 1.14;
+      letter-spacing: -0.03em;
+    }
+
+    h1 { font-size: clamp(2.4rem, 5vw, 4.4rem); max-width: 12ch; margin-top: 16px; }
+    h2 { font-size: clamp(1.5rem, 2.6vw, 2.2rem); }
+    h3 { font-size: 1.08rem; }
+    p { margin: 0 0 12px; }
+    .lede { max-width: 90ch; color: var(--muted); font-size: 1.02rem; }
+
+    .tag.ok { background: rgba(222,247,243,0.9); color: var(--teal); }
+    .tag.warn { background: rgba(255,245,223,0.95); color: var(--amber); }
+    .tag.err { background: rgba(254,236,235,0.95); color: var(--red); }
+    .tag.info { background: rgba(232,241,255,0.95); color: var(--blue); }
+
+    .grid, .kpi-grid, .source-grid, .component-grid, .delta-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .source-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .component-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .delta-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .grid.two { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+    .card, .diagram-card, .chart-card, .iframe-card {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+    }
+
+    .metric {
+      font-size: clamp(1.9rem, 3vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      margin-bottom: 6px;
+    }
+
+    .muted { color: var(--muted); }
+    .list { margin: 0; padding-left: 20px; }
+    .list li + li { margin-top: 6px; }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .mini {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(18,58,90,0.04);
+      border: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .mini strong {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .node {
+      position: relative;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(18,58,90,0.03));
+      border: 1px solid rgba(18,58,90,0.08);
+      min-height: 140px;
+    }
+
+    .node::after {
+      content: "→";
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.4rem;
+      color: rgba(18,58,90,0.25);
+    }
+
+    .diagram .node:last-child::after { display: none; }
+
+    .chart {
+      min-height: 260px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(18,58,90,0.03), rgba(18,58,90,0.01));
+      border: 1px solid rgba(18,58,90,0.08);
+      padding: 10px;
+    }
+
+    svg.chart-svg {
+      width: 100%;
+      height: 260px;
+      display: block;
+      overflow: visible;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-radius: 3px;
+    }
+
+    .iframe-wrap {
+      margin-top: 12px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(18,58,90,0.08);
+      background: #f5f8fa;
+    }
+
+    iframe {
+      width: 100%;
+      min-height: 560px;
+      border: none;
+      background: white;
+    }
+
+    .preview-shell {
+      display: grid;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .preview-card {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(18,58,90,0.05), rgba(18,58,90,0.02));
+      border: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .preview-metric {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .preview-metric strong {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .preview-value {
+      font-size: 1.32rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid rgba(18,58,90,0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .file-list a {
+      display: block;
+      padding: 8px 0;
+      border-bottom: 1px dashed rgba(18,58,90,0.1);
+      word-break: break-all;
+    }
+
+    .file-list a:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="nav">
+      <div class="nav-links">
+        <a href="#scope">범위</a>
+        <a href="#logic">코드 로직</a>
+        <a href="#visuals">시각 자료</a>
+        <a href="#performance">성능/에러</a>
+        <a href="#delta">현재 코드 차이</a>
+      </div>
+      <div class="nav-links">
+        <a href="./20260329_evaluation.html">현업 평가서</a>
+        <a href="../error/index.html">에러 리포트</a>
+      </div>
+    </div>
+
+    <section class="hero" id="scope">
+      <span class="eyebrow">2026-03-29 Report</span>
+      <h1>AV_Drone 코드·시뮬레이션 종합 보고서</h1>
+      <p class="lede">
+        이 문서는 <code>20260328_173022_drone1_recording</code> ros_states 결과,
+        동일 런 artifact, 현재 코드 구조, 현재 맵/튜닝 변경 사항을 한 번에 읽기 위한 보고서입니다.
+        평가서가 “좋다/문제다/무엇을 고쳐야 한다”에 집중한다면, 이 문서는
+        <strong>시스템이 실제로 어떻게 동작하는지</strong>, <strong>어떤 수치와 로그가 남는지</strong>,
+        <strong>왜 이번 회피 실패가 나왔는지</strong>를 구조적으로 정리합니다.
+      </p>
+      <div class="tag-row">
+        <span class="tag err">평가 대상 recording: 20260328_173022_drone1_recording</span>
+        <span class="tag warn">동일 artifact는 문서 작성 시점에도 live update 중</span>
+        <span class="tag info">루트 영상 파일: 발견되지 않음</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>자료 출처</h2>
+      <div class="source-grid">
+        <article class="card file-list">
+          <h3>ros_states recording</h3>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/report.html">ros_states report.html</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/report_summary.json">report_summary.json</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/timeline.jsonl">timeline.jsonl</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173022_recording_start.json">recording_start snapshot</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173416_manual_stop.json">manual_stop snapshot</a>
+        </article>
+        <article class="card file-list">
+          <h3>동일 런 artifact</h3>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/summary.json">summary.json</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/metrics.csv">metrics.csv</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/events.log">events.log</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/parameter_snapshot.json">parameter_snapshot.json</a>
+        </article>
+        <article class="card">
+          <h3>영상/시각 자료 상태</h3>
+          <ul class="list">
+            <li>저장소 루트에서 <code>mp4/mov/mkv/webm/avi</code> 파일은 찾지 못했습니다.</li>
+            <li>따라서 이 보고서에서는 ros_states HTML report, snapshots, metrics 그래프를 시각 자료로 사용합니다.</li>
+            <li>이후엔 run_id와 연결된 영상 저장 규칙을 따로 두는 것이 좋습니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="logic">
+      <h2>시스템 로직 한눈 정리</h2>
+      <p class="muted">
+        현재 baseline은 “센서 → local planner → safety clamp → autonomy manager → PX4 setpoint” 구조입니다.
+        즉 planner가 직접 PX4를 건드리는 게 아니라, 반드시 safety와 autonomy manager를 거쳐 최종 setpoint로 나갑니다.
+      </p>
+      <div class="diagram-card">
+        <div class="diagram">
+          <div class="node">
+            <h3>Gazebo Classic + PX4</h3>
+            <p class="muted">시뮬레이터와 FCU 상태를 생성합니다. 라이다 scan과 pose의 원천입니다.</p>
+          </div>
+          <div class="node">
+            <h3>MAVROS / ROS2 Topic</h3>
+            <p class="muted"><code>/mavros/state</code>, <code>/mavros/local_position/pose</code>, <code>/drone1/scan</code>이 여기로 들어옵니다.</p>
+          </div>
+          <div class="node">
+            <h3>Gap-based Local Planner</h3>
+            <p class="muted">LiDAR에서 열린 gap을 찾고 <code>/drone1/autonomy/cmd_vel</code>을 만듭니다.</p>
+          </div>
+          <div class="node">
+            <h3>Safety Monitor</h3>
+            <p class="muted">장애물이 너무 가깝거나 scan/pose/cmd가 timeout이면 속도를 0으로 자릅니다.</p>
+          </div>
+          <div class="node">
+            <h3>Autonomy Manager</h3>
+            <p class="muted">OFFBOARD/ARM, TAKEOFF, FOLLOW_PLAN, HOVER_AT_GOAL phase를 관리하고 최종 MAVROS setpoint를 publish합니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>컴포넌트별 코드 로직</h2>
+      <div class="component-grid">
+        <article class="card">
+          <h3>Autonomy Manager</h3>
+          <p class="muted">
+            파일: <a href="../../src/drone_control/drone_control/autonomy_manager_node.py">src/drone_control/drone_control/autonomy_manager_node.py</a>
+          </p>
+          <ul class="list">
+            <li><code>WAIT_STREAM → OFFBOARD_ARM → TAKEOFF → HOVER_AFTER_TAKEOFF → FOLLOW_PLAN → HOVER_AT_GOAL</code> state machine을 가집니다.</li>
+            <li>Safety가 통과시킨 <code>safe_cmd</code>를 받아 MAVROS setpoint로 보냅니다.</li>
+            <li>즉 planner가 좋아도 safety에서 끊기면 실제 FCU setpoint는 0에 가까워집니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Gap-based Local Planner</h3>
+          <p class="muted">
+            파일: <a href="../../src/drone_planning/drone_planning/local_planner_node.py">src/drone_planning/drone_planning/local_planner_node.py</a>
+          </p>
+          <ul class="list">
+            <li>LiDAR를 전방 search sector로 자른 뒤 free mask를 만들고, bubble을 적용해 장애물 주변을 막습니다.</li>
+            <li>후보 gap들을 점수화한 뒤 target angle을 선택합니다.</li>
+            <li>현재 HEAD에서는 다중 bubble, gap center bias, target commitment, conservative clearance percentile이 추가되었습니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Safety Monitor</h3>
+          <p class="muted">
+            파일: <a href="../../src/drone_safety/drone_safety/safety_monitor_node.py">src/drone_safety/drone_safety/safety_monitor_node.py</a>
+          </p>
+          <ul class="list">
+            <li>Pose timeout, scan timeout, planner cmd timeout, emergency stop distance를 감시합니다.</li>
+            <li>현재 파라미터 기준 <code>emergency_stop_distance = 1.0m</code>입니다.</li>
+            <li><code>last_scan_min &lt;= 1.0</code>이면 무조건 <code>safe_cmd = 0</code>입니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Lidar Obstacle</h3>
+          <p class="muted">
+            파일: <a href="../../src/drone_perception/drone_perception/lidar_obstacle_node.py">src/drone_perception/drone_perception/lidar_obstacle_node.py</a>
+          </p>
+          <ul class="list">
+            <li>LaserScan의 valid range 중 최소값만 골라 <code>/drone1/perception/nearest_obstacle_distance</code>로 publish합니다.</li>
+            <li>ros_states의 “Nearest Obstacle” 카드가 이 값을 읽습니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Metrics Logger</h3>
+          <p class="muted">
+            파일: <a href="../../src/drone_metrics/drone_metrics/metrics_logger_node.py">src/drone_metrics/drone_metrics/metrics_logger_node.py</a>
+          </p>
+          <ul class="list">
+            <li>실행마다 run artifact 디렉터리를 만들고 <code>metrics.csv</code>, <code>events.log</code>, <code>summary.json</code>를 남깁니다.</li>
+            <li>git commit/branch/dirty, planner name/version, seed, scenario manifest 경로도 같이 남깁니다.</li>
+            <li>논문 실험 장부의 기반이 되는 계층입니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>ros_states Recorder</h3>
+          <p class="muted">
+            파일: <a href="../../src/ros_states/ros_states/ros_monitor.py">src/ros_states/ros_states/ros_monitor.py</a>
+          </p>
+          <ul class="list">
+            <li><code>_ros_states_debug</code> 아래에 session, snapshots, timeline.jsonl, report.html을 만듭니다.</li>
+            <li><code>Save Snapshot</code>, <code>Start Recording</code>, <code>Generate Report</code>가 여기와 연결됩니다.</li>
+            <li>사람이 브라우저에서 보던 상태를 구조화된 데이터로 남긴다는 점이 핵심입니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>런타임 phase와 이번 실패의 실제 흐름</h2>
+      <div class="grid two">
+        <article class="card">
+          <h3>정상 기대 흐름</h3>
+          <ol class="list">
+            <li><code>WAIT_STREAM</code>: pose/state/scan을 기다립니다.</li>
+            <li><code>OFFBOARD_ARM</code>: OFFBOARD 전환과 arm 요청을 보냅니다.</li>
+            <li><code>TAKEOFF</code>: 목표 고도까지 상승합니다.</li>
+            <li><code>FOLLOW_PLAN</code>: planner가 수평 cmd를 만들고 safety가 검증합니다.</li>
+            <li><code>HOVER_AT_GOAL</code>: goal reached 후 정지합니다.</li>
+          </ol>
+        </article>
+        <article class="card">
+          <h3>이번 런의 실제 흐름</h3>
+          <ol class="list">
+            <li>부팅과 takeoff는 정상적으로 넘어갔습니다.</li>
+            <li>문제는 <code>FOLLOW_PLAN</code>에 들어간 뒤 시작됐습니다.</li>
+            <li>planner는 지속적으로 0.6~0.7m/s 수준 명령을 만들었습니다.</li>
+            <li>하지만 nearest obstacle이 1.0m 이하로 반복 진입해 safety가 수천 번 zero clamp를 걸었습니다.</li>
+            <li>결국 mission phase는 끝까지 <code>FOLLOW_PLAN</code>에 머물렀고 goal에 도달하지 못했습니다.</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="visuals">
+      <h2>시뮬레이션 시각 자료</h2>
+      <div class="grid two">
+        <article class="iframe-card">
+          <h3>ros_states 보고서 프리뷰</h3>
+          <p class="muted">
+            별도 mp4가 없어서, 이번 보고서에서는 ros_states가 생성한 HTML report를 핵심 시각 자료로 사용합니다.
+            다만 VS Code 내장 미리보기나 일부 파일 기반 브라우저에서는 로컬 artifact HTML의 iframe 접근이 차단될 수 있어,
+            여기서는 깨지지 않는 요약 프리뷰를 직접 보여주고 원본 report는 링크로 여는 방식으로 바꿨습니다.
+          </p>
+          <div class="preview-shell">
+            <div class="preview-card">
+              <strong>Recording 요약</strong>
+              <div class="preview-grid">
+                <div class="preview-metric">
+                  <strong>Latest Status</strong>
+                  <div class="preview-value" style="color:#b42318;">error</div>
+                </div>
+                <div class="preview-metric">
+                  <strong>Latest Phase</strong>
+                  <div class="preview-value" style="color:#2563eb;">FOLLOW_PLAN</div>
+                </div>
+                <div class="preview-metric">
+                  <strong>Nearest</strong>
+                  <div class="preview-value" style="color:#b42318;">0.22m</div>
+                </div>
+                <div class="preview-metric">
+                  <strong>Goal Reached</strong>
+                  <div class="preview-value" style="color:#b45309;">false</div>
+                </div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <strong>왜 임베드 대신 프리뷰인가</strong>
+              <ul class="list">
+                <li>이번 문서는 로컬 파일(<code>file://</code>) 기반으로 열리는 경우가 많습니다.</li>
+                <li>이때 IDE 내장 뷰어는 다른 로컬 HTML을 iframe으로 열지 못하게 막는 경우가 있습니다.</li>
+                <li>그래서 본문에는 실패 없는 요약 프리뷰를 넣고, 원본 report는 별도 링크로 열도록 구성했습니다.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+        <article class="card file-list">
+          <h3>직접 열어볼 수 있는 자료</h3>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/report.html">ros_states report.html 직접 열기</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173022_recording_start.json">recording start snapshot</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173416_manual_stop.json">manual stop snapshot</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/metrics.csv">metrics.csv</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/events.log">events.log</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/summary.json">summary.json</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="performance">
+      <h2>성능 수치와 에러 정리</h2>
+      <div class="kpi-grid">
+        <article class="card">
+          <div class="metric">47</div>
+          <h3>ros_states timeline 샘플 수</h3>
+          <p class="muted">5초 간격 recording으로 약 230초 구간을 관찰했습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric">0.22m</div>
+          <h3>세션 마지막 최근접 장애물</h3>
+          <p class="muted">Safety threshold 1.0m보다 훨씬 낮습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric">29.9 / 14.9</div>
+          <h3>Pose / Scan 수신률(Hz)</h3>
+          <p class="muted">센서 stale이 아니라 회피 판단 실패였습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric">10k+</div>
+          <h3>누적 safety event</h3>
+          <p class="muted">동일 run artifact가 계속 갱신되며 event count가 계속 증가하는 중입니다.</p>
+        </article>
+      </div>
+      <div class="chart-card" style="margin-top:16px;">
+        <h3>ros_states session timeline</h3>
+        <div id="timelineChart" class="chart"></div>
+        <div class="legend">
+          <span><i style="background:#b42318;"></i> 최근접 장애물(m)</span>
+          <span><i style="background:#2563eb;"></i> Planner 속도(m/s)</span>
+          <span><i style="background:#0f766e;"></i> Safety 속도(m/s)</span>
+          <span><i style="background:#f59e0b;"></i> EMG threshold 1.0m</span>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:16px;">
+        <article class="card">
+          <h3>에러 코드 정리</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>코드/이벤트</th>
+                <th>의미</th>
+                <th>이번 런 해석</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>EMERGENCY_STOP_OBSTACLE</code></td>
+                <td>Safety가 최근접 장애물 거리 기준으로 즉시 정지</td>
+                <td>주 실패 코드입니다. planner보다 safety 판단이 우선했고, 이 상태가 장시간 반복됐습니다.</td>
+              </tr>
+              <tr>
+                <td><code>FOLLOW_PLAN</code> 지속</td>
+                <td>planner는 아직 goal에 도달하지 못했지만 임무는 계속 진행 중</td>
+                <td>goal reached로 가지 못하고 obstacle 근처에서 정체된 상태를 뜻합니다.</td>
+              </tr>
+              <tr>
+                <td><code>normal ↔ emergency_stop_obstacle</code></td>
+                <td>일시적으로 안전한 프레임과 위험한 프레임을 왕복</td>
+                <td>현업에서는 recovery 없는 chattering 패턴으로 봅니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>이번 수치가 말해주는 것</h3>
+          <ul class="list">
+            <li>Planner output이 0이 아닌데 safe speed가 0이라는 것은 planner-safety coordination 문제입니다.</li>
+            <li>Pose/scan rate가 안정적인데 실패했다는 것은 인프라보다 planner 품질 쪽 이슈입니다.</li>
+            <li>최근접 장애물이 0.20~0.22m에 오래 머무는 것은 “gap 진입을 늦게 하거나 너무 안쪽으로 붙는” 행동과 일치합니다.</li>
+            <li>현재 코드 HEAD는 이 문제를 줄이기 위해 multi-bubble, center bias, commitment를 추가한 상태입니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="delta">
+      <h2>평가 대상 런 vs 현재 코드(HEAD) 차이</h2>
+      <div class="delta-grid">
+        <article class="card">
+          <h3>평가 대상 런에서 보인 구조</h3>
+          <ul class="list">
+            <li>Gap-based planner 방향은 맞았지만, 좁은 corridor에서 goal 욕심이 컸습니다.</li>
+            <li>장애물 inflation이 충분치 않아 gap이 실제보다 넓게 보였을 가능성이 컸습니다.</li>
+            <li>Safety가 planner를 계속 끊는 장면이 recording과 metrics에서 동시에 관측됐습니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>현재 HEAD에서 반영된 것</h3>
+          <ul class="list">
+            <li><a href="../../src/drone_planning/drone_planning/local_planner_node.py">local_planner_node.py</a>에 multi-bubble, center bias, commitment, percentile clearance, escape distance가 추가됐습니다.</li>
+            <li><a href="../../src/drone_bringup/config/drone1_autonomy.yaml">drone1_autonomy.yaml</a>에서 speed와 clearance 관련 파라미터가 더 보수적으로 조정됐습니다.</li>
+            <li><a href="../../src/drone_bringup/config/scenario_single_drone_obstacle_demo.yaml">scenario_single_drone_obstacle_demo.yaml</a> 기준 맵도 side pole + 큰 blocker 중심의 단순 corridor형으로 정리됐습니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>아직 남은 과제</h3>
+          <ul class="list">
+            <li>planner 내부 gap 선택 근거를 ros_states에서 바로 보여주는 debug topic이 필요합니다.</li>
+            <li>맵 난이도 easy/medium/hard 분리가 필요합니다.</li>
+            <li>baseline(gap) vs 향후 VFH+/MPPI 비교 실험 구조를 준비해야 합니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const timelineData = [{"t":0.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.671,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":5.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.23,"planner":0.68,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":10.0,"status":"info","phase":"FOLLOW_PLAN","nearest":3.93,"planner":0.68,"safe":0.669,"event":"normal"},{"t":15.0,"status":"info","phase":"FOLLOW_PLAN","nearest":4.05,"planner":0.676,"safe":0.639,"event":"normal"},{"t":20.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.743,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":25.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.65,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":30.0,"status":"info","phase":"FOLLOW_PLAN","nearest":3.56,"planner":0.65,"safe":0.65,"event":"normal"},{"t":35.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.644,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":40.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.728,"safe":0.728,"event":"normal"},{"t":45.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.648,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":50.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.712,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":55.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.751,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":60.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.724,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":65.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.641,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":70.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.602,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":75.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":80.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.25,"planner":0.693,"safe":0.687,"event":"normal"},{"t":85.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.647,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":90.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.75,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":95.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.748,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":100.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.23,"planner":0.699,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":105.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.63,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":110.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":115.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.27,"planner":0.607,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":120.2,"status":"error","phase":"FOLLOW_PLAN","nearest":2.25,"planner":0.648,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":125.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.65,"planner":0.707,"safe":0.707,"event":"normal"},{"t":130.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.536,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":135.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.649,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":140.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.22,"planner":0.732,"safe":0.691,"event":"normal"},{"t":145.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.2,"planner":0.603,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":150.2,"status":"error","phase":"FOLLOW_PLAN","nearest":1.48,"planner":0.602,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":155.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.672,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":160.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.609,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":165.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.95,"planner":0.644,"safe":0.644,"event":"normal"},{"t":170.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.645,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":175.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.97,"planner":0.658,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":180.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.8,"planner":0.614,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":185.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.59,"planner":0.609,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":190.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.639,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":195.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.674,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":200.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":205.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.644,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":210.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":215.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":220.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.676,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":225.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.646,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":230.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"}];
+
+    function renderLineChart(containerId, data, series, options = {}) {
+      const el = document.getElementById(containerId);
+      const width = el.clientWidth || 520;
+      const height = 260;
+      const pad = { top: 18, right: 16, bottom: 34, left: 42 };
+      const innerW = width - pad.left - pad.right;
+      const innerH = height - pad.top - pad.bottom;
+      const xs = data.map(d => d.t);
+      const xMin = Math.min(...xs);
+      const xMax = Math.max(...xs);
+      let values = [];
+      series.forEach(s => data.forEach(d => {
+        const v = d[s.key];
+        if (typeof v === "number" && Number.isFinite(v)) values.push(v);
+      }));
+      (options.thresholds || []).forEach(t => values.push(t.value));
+      const yMin = typeof options.yMin === "number" ? options.yMin : Math.min(...values, 0);
+      const yMax = typeof options.yMax === "number" ? options.yMax : Math.max(...values, 1);
+      const x = v => pad.left + ((v - xMin) / Math.max(xMax - xMin, 1e-6)) * innerW;
+      const y = v => pad.top + innerH - ((v - yMin) / Math.max(yMax - yMin, 1e-6)) * innerH;
+
+      let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${options.ariaLabel || 'chart'}">`;
+      for (let i = 0; i < 5; i++) {
+        const gy = pad.top + (innerH / 4) * i;
+        const label = (yMax - ((yMax - yMin) / 4) * i).toFixed(1);
+        svg += `<line x1="${pad.left}" y1="${gy}" x2="${width - pad.right}" y2="${gy}" stroke="rgba(18,58,90,0.10)" />`;
+        svg += `<text x="${pad.left - 8}" y="${gy + 4}" fill="#61727c" font-size="11" text-anchor="end">${label}</text>`;
+      }
+      (options.thresholds || []).forEach(t => {
+        const ty = y(t.value);
+        svg += `<line x1="${pad.left}" y1="${ty}" x2="${width - pad.right}" y2="${ty}" stroke="${t.color}" stroke-dasharray="6 5" />`;
+        svg += `<text x="${width - pad.right}" y="${ty - 6}" fill="${t.color}" font-size="11" text-anchor="end">${t.label}</text>`;
+      });
+      svg += `<line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" stroke="rgba(18,58,90,0.18)" />`;
+      svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" stroke="rgba(18,58,90,0.18)" />`;
+      [xMin, xMin + (xMax - xMin) * 0.33, xMin + (xMax - xMin) * 0.66, xMax].forEach(v => {
+        svg += `<text x="${x(v)}" y="${height - 10}" fill="#61727c" font-size="11" text-anchor="middle">${Math.round(v)}s</text>`;
+      });
+      series.forEach(s => {
+        const pts = data
+          .filter(d => typeof d[s.key] === "number" && Number.isFinite(d[s.key]))
+          .map(d => `${x(d.t)},${y(d[s.key])}`)
+          .join(" ");
+        svg += `<polyline fill="none" stroke="${s.color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />`;
+      });
+      svg += `</svg>`;
+      el.innerHTML = svg;
+    }
+
+    renderLineChart("timelineChart", timelineData, [
+      { key: "nearest", color: "#b42318" },
+      { key: "planner", color: "#2563eb" },
+      { key: "safe", color: "#0f766e" }
+    ], {
+      yMin: 0,
+      yMax: 4.3,
+      thresholds: [{ value: 1.0, color: "#f59e0b", label: "EMG 1.0m" }],
+      ariaLabel: "timeline chart"
+    });
+  </script>
+</body>
+</html>

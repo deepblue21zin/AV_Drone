@@ -21,8 +21,8 @@
 
 ### 2-1. Gazebo Classic + PX4 시작
 
-이제 `sim` 컨테이너는 기본적으로 headless로 먼저 올라오고, 검증된 helper 경로로만 GUI를 붙입니다.
-즉 순서는 `sim ready 확인 -> GUI helper 실행`입니다.
+이제 기본 경로는 예전처럼 `sim` 컨테이너가 올라갈 때 Gazebo Classic GUI가 같이 뜨는 방식입니다.
+helper 스크립트는 GUI가 꼬였을 때만 쓰는 보조 경로입니다.
 
 ```bash
 cd /home/deepblue/AV_Drone
@@ -38,13 +38,8 @@ docker compose logs -f sim
 Startup script returned successfully
 ```
 
-그 다음에만 Gazebo GUI를 붙입니다.
-
-```bash
-xhost +SI:localuser:root
-xhost +local:docker
-./scripts/run_host_gz_gui.sh
-```
+기본 경로에서는 이 시점에 Gazebo Classic GUI가 자동으로 떠야 합니다.
+helper 스크립트는 자동 GUI가 꼬였을 때만 보조로 사용합니다.
 
 ### 2-2. autonomy launch 실행
 
@@ -137,8 +132,8 @@ ros2 launch ros_states ros_states.launch.py \
 
 ## 3. Gazebo GUI
 
-시뮬레이터 서버는 `docker compose up -d --force-recreate sim ros` 시점에 headless로 올라갑니다.
-보이는 창은 `sim` 준비 완료 뒤에 helper로만 붙이는 것이 현재 가장 안정적인 경로입니다.
+기본 경로에서는 `docker compose up -d --force-recreate sim ros`만으로 Gazebo Classic GUI가 자동으로 떠야 합니다.
+아래 helper는 정말로 GUI가 꼬였을 때만 수동 복구용으로 남겨둡니다.
 
 ```bash
 ./scripts/run_host_gz_gui.sh
@@ -146,9 +141,9 @@ ros2 launch ros_states ros_states.launch.py \
 
 중요:
 
-- 검은 자동 Gazebo 창이나 완전히 빈 회색 Gazebo 창이 보이면, 먼저 그 창을 닫고 helper로 다시 띄우는 쪽이 맞습니다.
 - 이번 blank-window 원인은 `sim` 컨테이너가 이미지 안의 오래된 `/opt/PX4-Autopilot/docker/sim/entrypoint.sh`를 계속 써서, 최신 Gazebo fix가 반영되지 않던 것이었습니다. 지금은 `docker-compose.yml` 기준으로 워크스페이스의 `/workspace/AV_Drone/docker/sim/entrypoint.sh`를 직접 사용하도록 맞췄습니다.
-- helper로 붙은 정상 client log에는 `Connected to gazebo master @ http://127.0.0.1:11345`와 `Publicized address: 127.0.0.1`가 보입니다.
+- 기본 실행에서는 helper를 따로 치지 않아도 GUI가 떠야 정상입니다.
+- 현재 obstacle demo는 world 안에 기본 GUI camera pose를 명시해 두었고, PX4 follow camera plugin은 기본 비활성화(`PX4_NO_FOLLOW_MODE=1`) 상태입니다. 그래서 처음부터 코스가 보이는 시점으로 뜨는 것이 정상입니다.
 - 정상 server log에는 더 이상 `Can't open display`, `Rendering will be disabled`, `Unable to create CameraSensor`가 나오지 않아야 합니다.
 
 창이 안 뜨면 먼저 X11 권한을 다시 열어주세요.

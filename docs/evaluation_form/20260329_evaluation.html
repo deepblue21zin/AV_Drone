@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026-03-29 AV_Drone Evaluation</title>
+  <style>
+    :root {
+      --bg: #f3f6f5;
+      --surface: rgba(255,255,255,0.9);
+      --surface-strong: #ffffff;
+      --ink: #18232a;
+      --muted: #61727c;
+      --line: #d7e0e4;
+      --navy: #123a5a;
+      --teal: #0f766e;
+      --amber: #b45309;
+      --red: #b42318;
+      --blue: #2563eb;
+      --ok-soft: #def7f3;
+      --warn-soft: #fff5df;
+      --err-soft: #feeceb;
+      --info-soft: #e8f1ff;
+      --shadow: 0 22px 54px rgba(18, 58, 90, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --sans: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      --mono: "JetBrains Mono", "D2Coding", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 22%),
+        radial-gradient(circle at top right, rgba(18, 58, 90, 0.11), transparent 24%),
+        linear-gradient(180deg, #f8fbfa 0%, #eef3f1 100%);
+      line-height: 1.62;
+    }
+
+    a { color: var(--navy); text-decoration: none; }
+    code, pre { font-family: var(--mono); }
+    .page { width: min(1420px, calc(100% - 28px)); margin: 22px auto 80px; }
+
+    .nav, .hero, .panel, .card, .chart-card, .table-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.76);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .nav-links, .tag-row, .card-grid, .score-grid, .chart-grid, .evidence-grid, .req-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav a, .tag, .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(18, 58, 90, 0.07);
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .hero, .panel { padding: 30px; margin-bottom: 22px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -120px;
+      bottom: -120px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(18,58,90,0.16), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(18,58,90,0.08);
+      color: var(--navy);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, h4 {
+      margin: 0 0 10px;
+      line-height: 1.14;
+      letter-spacing: -0.03em;
+    }
+
+    h1 { font-size: clamp(2.4rem, 5vw, 4.4rem); max-width: 12ch; margin-top: 16px; }
+    h2 { font-size: clamp(1.5rem, 2.6vw, 2.2rem); }
+    h3 { font-size: 1.08rem; }
+    p { margin: 0 0 12px; }
+
+    .lede {
+      max-width: 88ch;
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+
+    .tag.ok { background: var(--ok-soft); color: var(--teal); }
+    .tag.warn { background: var(--warn-soft); color: var(--amber); }
+    .tag.err { background: var(--err-soft); color: var(--red); }
+    .tag.info { background: var(--info-soft); color: var(--blue); }
+
+    .card-grid, .score-grid, .chart-grid, .evidence-grid, .req-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .score-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .chart-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+    .evidence-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .req-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+    .card, .chart-card, .table-card {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+    }
+
+    .metric {
+      font-size: clamp(1.9rem, 3vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      margin-bottom: 6px;
+    }
+
+    .muted { color: var(--muted); }
+    .status-ok { color: var(--teal); }
+    .status-warn { color: var(--amber); }
+    .status-err { color: var(--red); }
+    .status-info { color: var(--blue); }
+
+    .list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .list li + li { margin-top: 6px; }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 132px 1fr 60px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .score-row:last-child { border-bottom: none; }
+
+    .bar {
+      position: relative;
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(18,58,90,0.08);
+      overflow: hidden;
+    }
+
+    .bar > span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #2563eb);
+    }
+
+    .chart {
+      min-height: 260px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(18,58,90,0.03), rgba(18,58,90,0.01));
+      border: 1px solid rgba(18,58,90,0.08);
+      padding: 10px;
+    }
+
+    svg.chart-svg {
+      width: 100%;
+      height: 260px;
+      display: block;
+      overflow: visible;
+    }
+
+    .chart-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-radius: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid rgba(18,58,90,0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .quote {
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      border-left: 5px solid var(--amber);
+      background: rgba(255,245,223,0.6);
+    }
+
+    .callout {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: rgba(18,58,90,0.05);
+      border: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .kpi-stack {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .mini {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(18,58,90,0.08);
+    }
+
+    .mini strong {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .file-list a {
+      display: block;
+      padding: 8px 0;
+      border-bottom: 1px dashed rgba(18,58,90,0.1);
+      word-break: break-all;
+    }
+
+    .file-list a:last-child { border-bottom: none; }
+
+    @media (max-width: 900px) {
+      .score-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="nav">
+      <div class="nav-links">
+        <a href="#summary">요약</a>
+        <a href="#kpi">핵심 수치</a>
+        <a href="#charts">그래프</a>
+        <a href="#assessment">현업 평가</a>
+        <a href="#req">수정 REQ</a>
+      </div>
+      <div class="nav-links">
+        <a href="./20260329_report.html">상세 보고서</a>
+        <a href="../error/index.html">에러 히스토리</a>
+      </div>
+    </div>
+
+    <section class="hero" id="summary">
+      <span class="eyebrow">2026-03-29 Evaluation</span>
+      <h1>AV_Drone 회피기동 현업 평가서</h1>
+      <p class="lede">
+        이 평가는 <strong>ros_states recording</strong> 세션
+        <code>20260328_173022_drone1_recording</code>,
+        동일 시뮬레이션 런 artifact, 그리고 2026년 3월 29일 기준 현재 코드 상태를 함께 본 결과입니다.
+        결론부터 말하면 <strong>센싱·통합·로그 체계는 강하고</strong>, <strong>좁은 corridor 회피 성능은 아직 현업 투입 기준에 미달</strong>합니다.
+        특히 planner가 명령을 내고 있는데 safety가 계속 0으로 끊는 구조가 명확하게 관측됩니다.
+      </p>
+      <div class="tag-row">
+        <span class="tag err">총평 74 / 100</span>
+        <span class="tag err">판정: 회피 임무 실패</span>
+        <span class="tag ok">강점: 통합, 센서 스트림, 로그/디버깅</span>
+        <span class="tag warn">핵심 이슈: emergency_stop_obstacle 반복</span>
+        <span class="tag info">영상 자산: 저장소 루트에서 발견되지 않음</span>
+      </div>
+    </section>
+
+    <section class="panel" id="kpi">
+      <h2>핵심 수치</h2>
+      <p class="muted">
+        아래 수치는 두 층으로 읽어야 합니다. 첫째는 <code>ros_states recording</code> 고정 세션(약 230초)이고,
+        둘째는 같은 런의 artifact가 문서 작성 시점까지 계속 갱신된 long-run 지표입니다.
+      </p>
+      <div class="card-grid">
+        <article class="card">
+          <div class="metric status-err">실패</div>
+          <h3>임무 결과</h3>
+          <p class="muted">세션 종료 시점에도 <code>FOLLOW_PLAN</code> 상태였고 <code>goal_reached=false</code>였습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric status-err">0.22m</div>
+          <h3>Recording 최근접 장애물</h3>
+          <p class="muted">세션 마지막 요약은 <code>goal pending | 0.22m obstacle</code>였습니다. Safety threshold 1.0m보다 훨씬 안쪽입니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric status-err">41 / 47</div>
+          <h3>Recording 에러 샘플 비중</h3>
+          <p class="muted">5초 간격 timeline 47개 중 41개가 <code>overall_status=error</code>였습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric status-warn">10k+</div>
+          <h3>누적 Safety Event</h3>
+          <p class="muted">동일 artifact는 문서 작성 시점에도 계속 실행 중이며, latest metrics 기준 safety event가 1만 회 이상 누적되었습니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric status-ok">29.9Hz</div>
+          <h3>Pose 수신 주기</h3>
+          <p class="muted">Pose stream은 충분히 안정적입니다. 문제의 본질은 pose dropout이 아니라 회피 판단과 안전 정지의 충돌입니다.</p>
+        </article>
+        <article class="card">
+          <div class="metric status-ok">14.9Hz</div>
+          <h3>LiDAR 수신 주기</h3>
+          <p class="muted">LiDAR도 stale이 아니라 정상 수신입니다. 즉 센서를 못 읽어서 실패한 런은 아니었습니다.</p>
+        </article>
+      </div>
+      <div class="quote" style="margin-top:16px;">
+        <strong>핵심 해석</strong><br />
+        이번 실패는 “센서가 안 와서 멈춤”이 아니라, <strong>센서는 정상이고 planner 출력도 있는데 safety가 emergency stop으로 계속 끊는 구조</strong>였습니다.
+        현업에서는 이런 경우를 planner 품질 이슈와 safety-planner coordination 이슈로 분류합니다.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>무엇이 좋았는가</h2>
+      <div class="score-grid">
+        <article class="card">
+          <h3>1. 통합 경로는 살아 있다</h3>
+          <ul class="list">
+            <li>PX4 / MAVROS / ROS2 / Gazebo Classic / LiDAR topic 체인은 살아 있습니다.</li>
+            <li><code>FCU connected</code>, <code>OFFBOARD</code>, <code>armed</code> 상태가 유지됐습니다.</li>
+            <li>즉 실패가 “부팅 실패”나 “연결 끊김”이 아니라는 점이 중요합니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>2. Safety 계층은 일을 제대로 했다</h3>
+          <ul class="list">
+            <li>최근접 장애물이 1.0m 안으로 들어오면 실제로 <code>safe_cmd=0</code>로 자르고 있습니다.</li>
+            <li>현업 기준으로 safety monitor가 planner보다 상위에서 최종 제어를 보수적으로 잡고 있다는 점은 바람직합니다.</li>
+            <li>즉 지금은 “안전하게 실패하는 시스템”에 가깝습니다.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>3. 로그/기록 체계는 강하다</h3>
+          <ul class="list">
+            <li><code>metrics.csv</code>, <code>events.log</code>, <code>summary.json</code>, <code>ros_states timeline/report</code>가 모두 남습니다.</li>
+            <li>실패 원인을 사람 감이 아니라 수치와 이벤트 시퀀스로 읽을 수 있습니다.</li>
+            <li>논문화/실험관리 관점에서는 매우 큰 장점입니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>무엇이 문제였는가</h2>
+      <div class="req-grid">
+        <article class="card">
+          <h3>Planner는 계속 “가라”고 말한다</h3>
+          <p class="muted">
+            ros_states timeline에서 planner speed는 대부분 <strong>0.60~0.75m/s</strong> 수준을 유지합니다.
+            즉 planner는 좁은 틈을 여전히 통과 가능하다고 보고 있습니다.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Safety는 “지금은 안 된다”고 끊는다</h3>
+          <p class="muted">
+            같은 timeline에서 safe speed는 대부분 <strong>0.0m/s</strong>이고 이벤트는 <code>emergency_stop_obstacle</code>입니다.
+            이는 planner와 safety가 동일 공간을 다르게 해석한다는 뜻입니다.
+          </p>
+        </article>
+        <article class="card">
+          <h3>가장 늦게 피하고 있다</h3>
+          <p class="muted">
+            recording 마지막 요약이 0.22m이고, live metrics에서도 nearest obstacle이 거의 계속 0.20m를 유지합니다.
+            회피가 일찍 시작되는 것이 아니라, 마지막 순간까지 접근한 뒤 safety가 끊는 패턴입니다.
+          </p>
+        </article>
+        <article class="card">
+          <h3>현업 관점 판정</h3>
+          <p class="muted">
+            지금 상태는 corridor obstacle avoidance demo를 “보여주는 PoC” 단계는 넘었지만,
+            <strong>좁은 통로를 통과하는 controller/planner 성능 검증</strong> 단계로 가기엔 아직 이릅니다.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="charts">
+      <h2>그래프 기반 평가</h2>
+      <div class="chart-grid">
+        <article class="chart-card">
+          <h3>ros_states Recording: 장애물 거리 vs Planner/Safety 속도</h3>
+          <div id="timelineChart" class="chart"></div>
+          <div class="legend">
+            <span><i style="background:#b42318;"></i> 최근접 장애물(m)</span>
+            <span><i style="background:#2563eb;"></i> Planner 속도(m/s)</span>
+            <span><i style="background:#0f766e;"></i> Safety 속도(m/s)</span>
+            <span><i style="background:#f59e0b;"></i> EMG threshold 1.0m</span>
+          </div>
+          <p class="chart-note">
+            좋은 점: planner는 명령을 꾸준히 냅니다. 나쁜 점: nearest obstacle이 대부분 1.0m 아래인데도 planner 속도가 유지됩니다.
+            즉 planner가 너무 늦게 틀거나 너무 공격적으로 gap을 해석하고 있고, 그 결과 safety가 최종 명령을 계속 0으로 만듭니다.
+          </p>
+        </article>
+        <article class="chart-card">
+          <h3>artifact Metrics: current obstacle / nearest obstacle</h3>
+          <div id="obstacleChart" class="chart"></div>
+          <div class="legend">
+            <span><i style="background:#1d4ed8;"></i> current_obstacle_m</span>
+            <span><i style="background:#b42318;"></i> nearest_obstacle_m</span>
+            <span><i style="background:#f59e0b;"></i> EMG threshold 1.0m</span>
+          </div>
+          <p class="chart-note">
+            current obstacle 값은 들쑥날쑥하지만 nearest obstacle은 거의 0.20m에 붙어 있습니다.
+            이는 드론이 넓은 corridor를 새로 찾는 것이 아니라, 일부 beam 기준으로는 계속 매우 위험한 형상 안에 있다는 뜻입니다.
+          </p>
+        </article>
+        <article class="chart-card">
+          <h3>artifact Metrics: cumulative safety events</h3>
+          <div id="eventsChart" class="chart"></div>
+          <div class="legend">
+            <span><i style="background:#7c3aed;"></i> 누적 safety_event_count</span>
+          </div>
+          <p class="chart-note">
+            이 그래프가 완만하게 꺾이지 않고 계속 우상향한다는 건, 시스템이 어느 시점에서 복구한 게 아니라
+            <strong>같은 유형의 안전 개입을 장시간 반복</strong>했다는 의미입니다. 현업에서는 이런 패턴을 recovery 없는 chattering failure로 봅니다.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="assessment">
+      <h2>현업 관점 점수 평가</h2>
+      <div class="score-grid">
+        <article class="card">
+          <div class="metric">74 / 100</div>
+          <p class="muted">
+            전체 점수는 “실패했지만, 실패 원인을 구조적으로 분석할 수 있는 수준”이라는 뜻입니다.
+            안전, 관측, 재현성은 강하지만, mission success를 책임지는 local planning 품질이 아직 약합니다.
+          </p>
+        </article>
+        <article class="table-card">
+          <div class="score-row">
+            <strong>시뮬레이션 통합</strong>
+            <div class="bar"><span style="width:78%;"></span></div>
+            <strong>78</strong>
+          </div>
+          <div class="score-row">
+            <strong>로그/가시화</strong>
+            <div class="bar"><span style="width:90%;"></span></div>
+            <strong>90</strong>
+          </div>
+          <div class="score-row">
+            <strong>안전 제어</strong>
+            <div class="bar"><span style="width:84%;"></span></div>
+            <strong>84</strong>
+          </div>
+          <div class="score-row">
+            <strong>회피 planner</strong>
+            <div class="bar"><span style="width:46%;"></span></div>
+            <strong>46</strong>
+          </div>
+          <div class="score-row">
+            <strong>재현성</strong>
+            <div class="bar"><span style="width:79%;"></span></div>
+            <strong>79</strong>
+          </div>
+          <div class="score-row">
+            <strong>연구 확장성</strong>
+            <div class="bar"><span style="width:83%;"></span></div>
+            <strong>83</strong>
+          </div>
+        </article>
+      </div>
+      <div class="table-card" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>항목</th>
+              <th>좋은 점</th>
+              <th>아쉬운 점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>통합</td>
+              <td>PX4, MAVROS, ROS2, Gazebo, LiDAR pipeline이 실제로 동작함</td>
+              <td>런타임 성공 여부가 map/planner tuning에 과도하게 민감함</td>
+            </tr>
+            <tr>
+              <td>안전</td>
+              <td>위험 시 safe_cmd를 0으로 잘라 충돌을 막음</td>
+              <td>planner가 safety threshold 바깥에서 상황을 해결하지 못해 safety 의존이 큼</td>
+            </tr>
+            <tr>
+              <td>로그</td>
+              <td>ros_states recording과 run artifact가 동시에 남음</td>
+              <td>planner 내부 gap 선택 근거가 토픽/로그로 직접 드러나지 않음</td>
+            </tr>
+            <tr>
+              <td>알고리즘</td>
+              <td>reactive repulsion보다 gap-based가 방향성은 맞음</td>
+              <td>좁은 corridor에서는 gap center commitment와 hysteresis가 아직 부족함</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="req">
+      <h2>수정 REQ</h2>
+      <p class="muted">
+        아래는 현업 기준 우선순위입니다. 이미 일부는 현재 코드에 들어가기 시작했지만, 아직 “충분히 검증된 해결” 단계는 아닙니다.
+      </p>
+      <div class="req-grid">
+        <article class="card">
+          <h3>P0. Planner-Safety 협조 구조 개선</h3>
+          <ul class="list">
+            <li>gap target을 goal 쪽 edge가 아니라 center/committed target 위주로 고정</li>
+            <li>여러 장애물 동시 inflation</li>
+            <li>clearance를 평균이 아니라 보수적 percentile/min 기반으로 유지</li>
+            <li>escape 진입을 더 빠르게 시작</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>P0. 맵 난이도 단계화</h3>
+          <ul class="list">
+            <li><code>easy / medium / hard</code> corridor 맵을 분리</li>
+            <li>현재는 planner 검증과 map 스트레스 테스트가 섞여 있습니다</li>
+            <li>회피 알고리즘 변경 시 난이도별 회귀 테스트가 가능해야 합니다</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>P1. Planner 디버그 토픽 추가</h3>
+          <ul class="list">
+            <li>선택된 gap start/end/center/target angle publish</li>
+            <li>target clearance, escape mode, bubble count publish</li>
+            <li>ros_states에서 내부 의사결정을 바로 보게 만들기</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>P1. Recovery / Hysteresis</h3>
+          <ul class="list">
+            <li>normal ↔ emergency_stop 토글을 줄이는 hysteresis 필요</li>
+            <li>지속적으로 blocked일 때 side-commit recovery 로직 추가</li>
+            <li>현재는 chattering이 길게 이어집니다</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>P2. 논문용 비교 실험 구조</h3>
+          <ul class="list">
+            <li>현재 gap planner를 baseline으로 고정</li>
+            <li>향후 VFH+/MPPI와 동일 맵 세트에서 비교</li>
+            <li>성공률, 최소 장애물 거리, intervention count, runtime로 표준화</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>P2. 영상 자산 규칙 정리</h3>
+          <ul class="list">
+            <li>이번 평가용으로는 저장소 루트에서 mp4/mov/webm을 찾지 못했습니다</li>
+            <li>이후부터는 run_id와 연결된 영상 파일명 규칙을 정해야 합니다</li>
+            <li>예: <code>artifacts/&lt;run_id&gt;/replay.mp4</code></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>근거 자료</h2>
+      <div class="evidence-grid">
+        <article class="card file-list">
+          <h3>ros_states recording</h3>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/session_manifest.json">session_manifest.json</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/report_summary.json">report_summary.json</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/report.html">report.html</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/timeline.jsonl">timeline.jsonl</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173022_recording_start.json">snapshot_20260328_173022_recording_start.json</a>
+          <a href="../../artifacts/_ros_states_debug/20260328_173022_drone1_recording/snapshots/snapshot_20260328_173416_manual_stop.json">snapshot_20260328_173416_manual_stop.json</a>
+        </article>
+        <article class="card file-list">
+          <h3>동일 런 artifact</h3>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/summary.json">summary.json</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/metrics.csv">metrics.csv</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/events.log">events.log</a>
+          <a href="../../artifacts/2026-03-28_17-30-05_drone1/parameter_snapshot.json">parameter_snapshot.json</a>
+        </article>
+        <article class="card">
+          <h3>생성 시점 주의사항</h3>
+          <ul class="list">
+            <li>동일 run artifact는 문서 작성 시점에도 계속 갱신되고 있었습니다.</li>
+            <li>따라서 long-run 이벤트 카운터는 문서를 다시 열 때 더 커져 있을 수 있습니다.</li>
+            <li>저장소 루트에서는 별도 시뮬레이션 영상 파일을 찾지 못했습니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const timelineData = [{"t":0.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.671,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":5.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.23,"planner":0.68,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":10.0,"status":"info","phase":"FOLLOW_PLAN","nearest":3.93,"planner":0.68,"safe":0.669,"event":"normal"},{"t":15.0,"status":"info","phase":"FOLLOW_PLAN","nearest":4.05,"planner":0.676,"safe":0.639,"event":"normal"},{"t":20.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.743,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":25.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.65,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":30.0,"status":"info","phase":"FOLLOW_PLAN","nearest":3.56,"planner":0.65,"safe":0.65,"event":"normal"},{"t":35.0,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.644,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":40.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.728,"safe":0.728,"event":"normal"},{"t":45.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.648,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":50.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.712,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":55.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.751,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":60.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.724,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":65.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.641,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":70.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.602,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":75.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":80.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.25,"planner":0.693,"safe":0.687,"event":"normal"},{"t":85.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.647,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":90.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.75,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":95.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.748,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":100.1,"status":"error","phase":"FOLLOW_PLAN","nearest":0.23,"planner":0.699,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":105.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.63,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":110.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":115.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.27,"planner":0.607,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":120.2,"status":"error","phase":"FOLLOW_PLAN","nearest":2.25,"planner":0.648,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":125.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.65,"planner":0.707,"safe":0.707,"event":"normal"},{"t":130.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.536,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":135.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.649,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":140.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.22,"planner":0.732,"safe":0.691,"event":"normal"},{"t":145.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.2,"planner":0.603,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":150.2,"status":"error","phase":"FOLLOW_PLAN","nearest":1.48,"planner":0.602,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":155.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.672,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":160.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.609,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":165.2,"status":"warn","phase":"FOLLOW_PLAN","nearest":1.95,"planner":0.644,"safe":0.644,"event":"normal"},{"t":170.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.645,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":175.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.97,"planner":0.658,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":180.2,"status":"error","phase":"FOLLOW_PLAN","nearest":0.8,"planner":0.614,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":185.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.59,"planner":0.609,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":190.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.639,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":195.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.674,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":200.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":205.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.644,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":210.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.64,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":215.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":220.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.676,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":225.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.21,"planner":0.646,"safe":0.0,"event":"emergency_stop_obstacle"},{"t":230.3,"status":"error","phase":"FOLLOW_PLAN","nearest":0.22,"planner":0.675,"safe":0.0,"event":"emergency_stop_obstacle"}];
+    const sampledMetrics = [{"t":1.0,"nearest":3.707,"current":3.707,"events":1,"phase":"startup"},{"t":31.0,"nearest":0.2,"current":4.054,"events":72,"phase":"FOLLOW_PLAN"},{"t":61.0,"nearest":0.2,"current":0.237,"events":246,"phase":"FOLLOW_PLAN"},{"t":91.0,"nearest":0.2,"current":1.431,"events":390,"phase":"FOLLOW_PLAN"},{"t":121.0,"nearest":0.2,"current":0.22,"events":587,"phase":"FOLLOW_PLAN"},{"t":151.0,"nearest":0.2,"current":0.25,"events":801,"phase":"FOLLOW_PLAN"},{"t":181.0,"nearest":0.2,"current":2.045,"events":963,"phase":"FOLLOW_PLAN"},{"t":211.0,"nearest":0.2,"current":0.214,"events":1023,"phase":"FOLLOW_PLAN"},{"t":241.0,"nearest":0.2,"current":0.218,"events":1023,"phase":"FOLLOW_PLAN"},{"t":271.0,"nearest":0.2,"current":0.302,"events":1023,"phase":"FOLLOW_PLAN"},{"t":301.0,"nearest":0.2,"current":0.219,"events":1023,"phase":"FOLLOW_PLAN"},{"t":331.0,"nearest":0.2,"current":0.22,"events":1023,"phase":"FOLLOW_PLAN"},{"t":361.0,"nearest":0.2,"current":0.252,"events":1023,"phase":"FOLLOW_PLAN"},{"t":391.0,"nearest":0.2,"current":0.2,"events":1023,"phase":"FOLLOW_PLAN"},{"t":421.0,"nearest":0.2,"current":0.494,"events":1045,"phase":"FOLLOW_PLAN"},{"t":451.0,"nearest":0.2,"current":0.213,"events":1045,"phase":"FOLLOW_PLAN"},{"t":481.0,"nearest":0.2,"current":0.669,"events":1045,"phase":"FOLLOW_PLAN"},{"t":511.0,"nearest":0.2,"current":0.88,"events":1045,"phase":"FOLLOW_PLAN"},{"t":541.0,"nearest":0.2,"current":0.227,"events":1258,"phase":"FOLLOW_PLAN"},{"t":571.0,"nearest":0.2,"current":2.126,"events":1494,"phase":"FOLLOW_PLAN"},{"t":601.0,"nearest":0.2,"current":0.22,"events":1737,"phase":"FOLLOW_PLAN"},{"t":631.0,"nearest":0.2,"current":0.236,"events":1943,"phase":"FOLLOW_PLAN"},{"t":661.0,"nearest":0.2,"current":1.792,"events":2172,"phase":"FOLLOW_PLAN"},{"t":691.0,"nearest":0.2,"current":0.232,"events":2403,"phase":"FOLLOW_PLAN"},{"t":721.0,"nearest":0.2,"current":0.214,"events":2568,"phase":"FOLLOW_PLAN"},{"t":751.0,"nearest":0.2,"current":1.934,"events":2750,"phase":"FOLLOW_PLAN"},{"t":781.0,"nearest":0.2,"current":0.22,"events":2949,"phase":"FOLLOW_PLAN"},{"t":811.0,"nearest":0.2,"current":2.058,"events":3162,"phase":"FOLLOW_PLAN"},{"t":841.0,"nearest":0.2,"current":1.828,"events":3360,"phase":"FOLLOW_PLAN"},{"t":871.0,"nearest":0.2,"current":1.806,"events":3564,"phase":"FOLLOW_PLAN"},{"t":901.0,"nearest":0.2,"current":0.213,"events":3782,"phase":"FOLLOW_PLAN"},{"t":931.0,"nearest":0.2,"current":1.953,"events":3996,"phase":"FOLLOW_PLAN"},{"t":961.0,"nearest":0.2,"current":0.22,"events":4223,"phase":"FOLLOW_PLAN"},{"t":991.0,"nearest":0.2,"current":1.769,"events":4432,"phase":"FOLLOW_PLAN"},{"t":1021.0,"nearest":0.2,"current":1.897,"events":4642,"phase":"FOLLOW_PLAN"},{"t":1051.0,"nearest":0.2,"current":1.789,"events":4854,"phase":"FOLLOW_PLAN"},{"t":1081.0,"nearest":0.2,"current":2.245,"events":5083,"phase":"FOLLOW_PLAN"},{"t":1111.0,"nearest":0.2,"current":0.215,"events":5307,"phase":"FOLLOW_PLAN"},{"t":1141.0,"nearest":0.2,"current":0.236,"events":5515,"phase":"FOLLOW_PLAN"},{"t":1171.0,"nearest":0.2,"current":2.149,"events":5717,"phase":"FOLLOW_PLAN"},{"t":1201.0,"nearest":0.2,"current":2.192,"events":5912,"phase":"FOLLOW_PLAN"},{"t":1231.0,"nearest":0.2,"current":1.777,"events":6144,"phase":"FOLLOW_PLAN"},{"t":1261.0,"nearest":0.2,"current":1.877,"events":6342,"phase":"FOLLOW_PLAN"},{"t":1291.0,"nearest":0.2,"current":1.909,"events":6564,"phase":"FOLLOW_PLAN"},{"t":1321.0,"nearest":0.2,"current":0.221,"events":6770,"phase":"FOLLOW_PLAN"},{"t":1351.0,"nearest":0.2,"current":1.642,"events":6986,"phase":"FOLLOW_PLAN"},{"t":1381.0,"nearest":0.2,"current":0.237,"events":7187,"phase":"FOLLOW_PLAN"},{"t":1411.0,"nearest":0.2,"current":2.299,"events":7412,"phase":"FOLLOW_PLAN"},{"t":1441.0,"nearest":0.2,"current":1.829,"events":7666,"phase":"FOLLOW_PLAN"},{"t":1471.0,"nearest":0.2,"current":1.822,"events":7866,"phase":"FOLLOW_PLAN"},{"t":1501.0,"nearest":0.2,"current":0.226,"events":8063,"phase":"FOLLOW_PLAN"},{"t":1531.0,"nearest":0.2,"current":0.218,"events":8249,"phase":"FOLLOW_PLAN"},{"t":1561.0,"nearest":0.2,"current":0.214,"events":8427,"phase":"FOLLOW_PLAN"},{"t":1591.0,"nearest":0.2,"current":2.065,"events":8612,"phase":"FOLLOW_PLAN"},{"t":1621.0,"nearest":0.2,"current":0.223,"events":8778,"phase":"FOLLOW_PLAN"},{"t":1651.0,"nearest":0.2,"current":2.296,"events":8980,"phase":"FOLLOW_PLAN"},{"t":1681.0,"nearest":0.2,"current":2.304,"events":9150,"phase":"FOLLOW_PLAN"},{"t":1711.0,"nearest":0.2,"current":0.278,"events":9329,"phase":"FOLLOW_PLAN"},{"t":1741.0,"nearest":0.2,"current":2.011,"events":9573,"phase":"FOLLOW_PLAN"},{"t":1771.0,"nearest":0.2,"current":0.234,"events":9795,"phase":"FOLLOW_PLAN"},{"t":1801.0,"nearest":0.2,"current":0.223,"events":10009,"phase":"FOLLOW_PLAN"},{"t":1827.0,"nearest":0.2,"current":0.214,"events":10191,"phase":"FOLLOW_PLAN"}];
+
+    function renderLineChart(containerId, data, series, options = {}) {
+      const el = document.getElementById(containerId);
+      const width = el.clientWidth || 520;
+      const height = 260;
+      const pad = { top: 18, right: 16, bottom: 34, left: 42 };
+      const innerW = width - pad.left - pad.right;
+      const innerH = height - pad.top - pad.bottom;
+      const xs = data.map(d => d.t);
+      const xMin = Math.min(...xs);
+      const xMax = Math.max(...xs);
+      let values = [];
+      series.forEach(s => data.forEach(d => {
+        const v = d[s.key];
+        if (typeof v === "number" && Number.isFinite(v)) values.push(v);
+      }));
+      (options.thresholds || []).forEach(t => values.push(t.value));
+      const yMin = typeof options.yMin === "number" ? options.yMin : Math.min(...values, 0);
+      const yMax = typeof options.yMax === "number" ? options.yMax : Math.max(...values, 1);
+      const x = v => pad.left + ((v - xMin) / Math.max(xMax - xMin, 1e-6)) * innerW;
+      const y = v => pad.top + innerH - ((v - yMin) / Math.max(yMax - yMin, 1e-6)) * innerH;
+
+      let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${options.ariaLabel || 'chart'}">`;
+      for (let i = 0; i < 5; i++) {
+        const gy = pad.top + (innerH / 4) * i;
+        const label = (yMax - ((yMax - yMin) / 4) * i).toFixed(1);
+        svg += `<line x1="${pad.left}" y1="${gy}" x2="${width - pad.right}" y2="${gy}" stroke="rgba(18,58,90,0.10)" />`;
+        svg += `<text x="${pad.left - 8}" y="${gy + 4}" fill="#61727c" font-size="11" text-anchor="end">${label}</text>`;
+      }
+      (options.thresholds || []).forEach(t => {
+        const ty = y(t.value);
+        svg += `<line x1="${pad.left}" y1="${ty}" x2="${width - pad.right}" y2="${ty}" stroke="${t.color}" stroke-dasharray="6 5" />`;
+        svg += `<text x="${width - pad.right}" y="${ty - 6}" fill="${t.color}" font-size="11" text-anchor="end">${t.label}</text>`;
+      });
+      svg += `<line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" stroke="rgba(18,58,90,0.18)" />`;
+      svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" stroke="rgba(18,58,90,0.18)" />`;
+
+      [xMin, xMin + (xMax - xMin) * 0.33, xMin + (xMax - xMin) * 0.66, xMax].forEach(v => {
+        svg += `<text x="${x(v)}" y="${height - 10}" fill="#61727c" font-size="11" text-anchor="middle">${Math.round(v)}s</text>`;
+      });
+
+      series.forEach(s => {
+        const pts = data
+          .filter(d => typeof d[s.key] === "number" && Number.isFinite(d[s.key]))
+          .map(d => `${x(d.t)},${y(d[s.key])}`)
+          .join(" ");
+        svg += `<polyline fill="none" stroke="${s.color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />`;
+      });
+
+      svg += `</svg>`;
+      el.innerHTML = svg;
+    }
+
+    renderLineChart("timelineChart", timelineData, [
+      { key: "nearest", color: "#b42318" },
+      { key: "planner", color: "#2563eb" },
+      { key: "safe", color: "#0f766e" }
+    ], {
+      yMin: 0,
+      yMax: 4.3,
+      thresholds: [{ value: 1.0, color: "#f59e0b", label: "EMG 1.0m" }],
+      ariaLabel: "ros_states recording obstacle and speed chart"
+    });
+
+    renderLineChart("obstacleChart", sampledMetrics, [
+      { key: "current", color: "#1d4ed8" },
+      { key: "nearest", color: "#b42318" }
+    ], {
+      yMin: 0,
+      yMax: 4.3,
+      thresholds: [{ value: 1.0, color: "#f59e0b", label: "EMG 1.0m" }],
+      ariaLabel: "artifact obstacle chart"
+    });
+
+    renderLineChart("eventsChart", sampledMetrics, [
+      { key: "events", color: "#7c3aed" }
+    ], {
+      yMin: 0,
+      yMax: 10500,
+      ariaLabel: "artifact cumulative safety events"
+    });
+  </script>
+</body>
+</html>

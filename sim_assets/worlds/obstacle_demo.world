@@ -17,6 +17,15 @@
       <shadows>true</shadows>
     </scene>
 
+
+    <gui fullscreen='0'>
+      <camera name='user_camera'>
+        <pose>16.0 0.0 30.0 0.0 1.22 0.0</pose>
+        <view_controller>fps</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+
     <physics type="ode">
       <real_time_update_rate>1000</real_time_update_rate>
       <max_step_size>0.001</max_step_size>
@@ -25,19 +34,19 @@
 
     <model name="corridor_wall_left">
       <static>true</static>
-      <pose>15.50 4.60 3.00 0 0 0</pose>
+      <pose>15.50 5.20 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>35.00 0.35 6.00</size>
+              <size>35.00 0.30 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>35.00 0.35 6.00</size>
+              <size>35.00 0.30 6.00</size>
             </box>
           </geometry>
           <material>
@@ -50,19 +59,19 @@
 
     <model name="corridor_wall_right">
       <static>true</static>
-      <pose>15.50 -4.60 3.00 0 0 0</pose>
+      <pose>15.50 -5.20 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <box>
-              <size>35.00 0.35 6.00</size>
+              <size>35.00 0.30 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>35.00 0.35 6.00</size>
+              <size>35.00 0.30 6.00</size>
             </box>
           </geometry>
           <material>
@@ -80,14 +89,14 @@
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.35 9.20 6.00</size>
+              <size>0.30 10.40 6.00</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.35 9.20 6.00</size>
+              <size>0.30 10.40 6.00</size>
             </box>
           </geometry>
           <material>
@@ -100,12 +109,12 @@
 
     <model name="pole_01">
       <static>true</static>
-      <pose>4.00 -3.00 3.00 0 0 0</pose>
+      <pose>4.00 3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -113,7 +122,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -127,12 +136,12 @@
 
     <model name="pole_02">
       <static>true</static>
-      <pose>6.70 2.80 3.00 0 0 0</pose>
+      <pose>8.00 3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -140,7 +149,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -154,12 +163,12 @@
 
     <model name="pole_03">
       <static>true</static>
-      <pose>9.40 -2.60 3.00 0 0 0</pose>
+      <pose>12.00 3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -167,7 +176,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -181,12 +190,12 @@
 
     <model name="pole_04">
       <static>true</static>
-      <pose>12.10 3.00 3.00 0 0 0</pose>
+      <pose>16.00 3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -194,7 +203,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -208,12 +217,12 @@
 
     <model name="pole_05">
       <static>true</static>
-      <pose>14.80 -2.80 3.00 0 0 0</pose>
+      <pose>20.00 3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -221,7 +230,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -235,12 +244,12 @@
 
     <model name="pole_06">
       <static>true</static>
-      <pose>17.50 2.60 3.00 0 0 0</pose>
+      <pose>6.00 -3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -248,7 +257,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -262,12 +271,12 @@
 
     <model name="pole_07">
       <static>true</static>
-      <pose>20.20 -3.00 3.00 0 0 0</pose>
+      <pose>10.00 -3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -275,7 +284,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -289,12 +298,12 @@
 
     <model name="pole_08">
       <static>true</static>
-      <pose>22.90 2.70 3.00 0 0 0</pose>
+      <pose>14.00 -3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -302,7 +311,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -316,12 +325,12 @@
 
     <model name="pole_09">
       <static>true</static>
-      <pose>25.60 -2.50 3.00 0 0 0</pose>
+      <pose>18.00 -3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -329,7 +338,7 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -343,12 +352,12 @@
 
     <model name="pole_10">
       <static>true</static>
-      <pose>28.30 2.90 3.00 0 0 0</pose>
+      <pose>22.00 -3.75 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
@@ -356,13 +365,121 @@
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>0.90</radius>
+              <radius>0.35</radius>
               <length>6.00</length>
             </cylinder>
           </geometry>
           <material>
             <ambient>0.10 0.10 0.10 1</ambient>
             <diffuse>0.10 0.10 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="center_pole_01">
+      <static>true</static>
+      <pose>9.50 -0.95 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.16 0.16 0.16 1</ambient>
+            <diffuse>0.16 0.16 0.16 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="center_pole_02">
+      <static>true</static>
+      <pose>15.50 0.95 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.16 0.16 0.16 1</ambient>
+            <diffuse>0.16 0.16 0.16 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="center_pole_03">
+      <static>true</static>
+      <pose>21.50 -0.95 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.16 0.16 0.16 1</ambient>
+            <diffuse>0.16 0.16 0.16 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="center_pole_04">
+      <static>true</static>
+      <pose>27.50 0.95 3.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.80</radius>
+              <length>6.00</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.16 0.16 0.16 1</ambient>
+            <diffuse>0.16 0.16 0.16 1</diffuse>
           </material>
         </visual>
       </link>

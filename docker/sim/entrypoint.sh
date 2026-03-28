@@ -39,6 +39,11 @@ case "${HEADLESS:-}" in
     ;;
 esac
 
+if [ -z "${HEADLESS:-}" ]; then
+  # Reset stale Gazebo Classic GUI state so the world camera pose controls the first view.
+  rm -f /root/.gazebo/gui.ini
+fi
+
 # PX4's generated make->shell->sitl_run chain drops DISPLAY, but keeps PX4_GAZEBO_DISPLAY.
 # Install a lightweight gzserver wrapper earlier in PATH so server-side rendering still works.
 cat >/usr/local/bin/gzserver <<'EOF'

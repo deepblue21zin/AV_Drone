@@ -75,8 +75,8 @@ def generate_launch_description():
             autonomy_yaml,
             {
                 "baseline_name": "single_drone_autonomy_baseline",
-                "planner_name": "local_planner_lidar_reactive",
-                "planner_version": "2026-03-26_reactive_v1",
+                "planner_name": "local_planner_follow_the_gap",
+                "planner_version": "2026-03-29_gap_v1",
                 "controller_version": "autonomy_manager_v1",
                 "experiment_seed": 0,
                 "scenario_manifest_path": scenario_manifest_yaml,
