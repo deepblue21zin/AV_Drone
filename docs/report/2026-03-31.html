@@ -125,6 +125,25 @@
     </section>
 
     <section class="section">
+      <h2>3-A. Audit Addendum</h2>
+      <p>이 정적 export만 봐도 최종 상태는 성공이지만, 과정 중 health fluctuation이 꽤 컸다는 점을 분리해서 읽는 것이 좋다.</p>
+      <div class="mini-grid">
+        <div class="mini-stat"><div class="mini-label">Final Outcome</div><div class="mini-value">OK / HOVER_AT_GOAL</div></div>
+        <div class="mini-stat"><div class="mini-label">Timeline Points</div><div class="mini-value">40</div></div>
+        <div class="mini-stat"><div class="mini-label">Error Samples</div><div class="mini-value" style="color:#c64642;">29</div></div>
+        <div class="mini-stat"><div class="mini-label">Warn Samples</div><div class="mini-value" style="color:#c78015;">4</div></div>
+        <div class="mini-stat"><div class="mini-label">Non-OK Ratio</div><div class="mini-value">82.5%</div></div>
+        <div class="mini-stat"><div class="mini-label">Interpretation</div><div class="mini-value">Succeeded, but not smooth</div></div>
+      </div>
+      <div class="artifact-box" style="margin-top:14px;">
+        <div class="artifact-grid">
+          <div class="mini-stat"><div class="mini-label">What This Means</div><div class="mini-value">최종 성공 여부만 보면 놓치기 쉬운 중간 불안정 구간이 많았다.</div></div>
+          <div class="mini-stat"><div class="mini-label">Current Export Gap</div><div class="mini-value">run id / git / config linkage와 previous run 비교는 이 정적 export에서 충분히 드러나지 않는다.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
       <h2>4. 그래프로 보는 디버깅 흐름</h2>
       <div class="charts"><div class="chart-card">
       <div class="chart-head"><h4>Overall Health Timeline</h4></div>

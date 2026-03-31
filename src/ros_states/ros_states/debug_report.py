@@ -320,6 +320,199 @@ def _latest_full_snapshot(snapshots):
     return snapshots[-1] if snapshots else {}
 
 
+def _status_sample_count(samples, status):
+    return sum(1 for sample in samples if sample.get('overall_status') == status)
+
+
+def _longest_streak_sec(samples, target_statuses):
+    target_statuses = set(target_statuses)
+    if not samples:
+        return 0.0
+
+    longest = 0.0
+    start = None
+    last_elapsed = 0.0
+
+    for sample in samples:
+        elapsed = float(sample.get('elapsed_sec') or 0.0)
+        if sample.get('overall_status') in target_statuses:
+            if start is None:
+                start = elapsed
+            last_elapsed = elapsed
+        elif start is not None:
+            longest = max(longest, last_elapsed - start)
+            start = None
+
+    if start is not None:
+        longest = max(longest, last_elapsed - start)
+
+    return longest
+
+
+def _build_stability_summary(samples):
+    total = len(samples)
+    error_samples = _status_sample_count(samples, 'error')
+    warn_samples = _status_sample_count(samples, 'warn')
+    unstable_samples = error_samples + warn_samples
+    unstable_ratio = (unstable_samples / total) if total else 0.0
+    latest_status = samples[-1].get('overall_status') if samples else 'info'
+    goal_reached = bool(samples[-1].get('goal_reached')) if samples else False
+    recovered = bool(
+        samples
+        and latest_status == 'ok'
+        and unstable_samples > 0
+    )
+
+    if goal_reached and recovered:
+        headline = 'Mission succeeded, but runtime health fluctuated before it stabilized.'
+    elif latest_status == 'ok':
+        headline = 'Runtime remained mostly healthy through the captured session.'
+    elif latest_status == 'error':
+        headline = 'Session ended while one or more critical checks were still unhealthy.'
+    else:
+        headline = 'Session ended in a partially degraded state.'
+
+    return {
+        'headline': headline,
+        'total_samples': total,
+        'error_samples': error_samples,
+        'warn_samples': warn_samples,
+        'unstable_samples': unstable_samples,
+        'unstable_ratio': unstable_ratio,
+        'longest_error_streak_sec': _longest_streak_sec(samples, {'error'}),
+        'longest_unstable_streak_sec': _longest_streak_sec(samples, {'warn', 'error'}),
+        'recovered_before_finish': recovered,
+    }
+
+
+def _check_status_stats(records):
+    stats = {}
+    for record in records:
+        flight_debug = record.get('flight_debug') or {}
+        for check in flight_debug.get('checks', []):
+            if not isinstance(check, dict):
+                continue
+            check_id = check.get('id') or check.get('label') or 'unknown'
+            entry = stats.setdefault(check_id, {
+                'id': check_id,
+                'label': check.get('label') or check_id,
+                'error_count': 0,
+                'warn_count': 0,
+                'latest_status': 'info',
+                'latest_headline': '-',
+                'latest_detail': '-',
+            })
+            status = check.get('status') or 'info'
+            if status == 'error':
+                entry['error_count'] += 1
+            elif status == 'warn':
+                entry['warn_count'] += 1
+            entry['latest_status'] = status
+            entry['latest_headline'] = check.get('headline') or '-'
+            entry['latest_detail'] = check.get('detail') or '-'
+    return stats
+
+
+def _root_cause_message(check_id):
+    mapping = {
+        'fcu': 'FCU link or MAVROS connectivity was unstable during the run.',
+        'offboard': 'OFFBOARD / arm readiness took time to stabilize or dropped out.',
+        'pose': 'Pose freshness crossed the configured timeout threshold.',
+        'scan': 'LiDAR freshness or scan validity degraded during the session.',
+        'obstacle': 'Obstacle clearance repeatedly entered stop or emergency bands.',
+        'autonomy_cmd': 'The planner stopped producing fresh commands at one or more points.',
+        'safe_cmd': 'The safety layer had to clamp or replace planner output.',
+        'setpoint_cmd': 'Forwarding from autonomy output to MAVROS setpoint was not consistently fresh.',
+        'mission_phase': 'Mission phase progression stalled or lagged during part of the run.',
+        'goal_reached': 'Goal completion remained pending until late in the session.',
+        'safety_event': 'Safety events reported startup hold, timeout, or stop conditions.',
+    }
+    return mapping.get(check_id, 'This check contributed repeated warn/error states during the run.')
+
+
+def _build_root_causes(records):
+    ranked = []
+    for check_id, entry in _check_status_stats(records).items():
+        score = (entry['error_count'] * 3) + entry['warn_count']
+        if score <= 0:
+            continue
+        ranked.append({
+            **entry,
+            'score': score,
+            'summary': _root_cause_message(check_id),
+        })
+
+    ranked.sort(key=lambda item: (-item['score'], -item['error_count'], -item['warn_count'], item['label']))
+    return ranked[:3]
+
+
+def _build_artifact_audit(latest_artifact):
+    latest_artifact = latest_artifact or {}
+    summary = latest_artifact.get('summary') or {}
+    metadata = latest_artifact.get('metadata') or {}
+    artifact_dir = latest_artifact.get('artifact_dir')
+    run_id = summary.get('run_id') or metadata.get('run_id')
+    if not run_id and artifact_dir:
+        run_id = Path(artifact_dir).name
+
+    planner_name = summary.get('planner_name') or metadata.get('planner_name')
+    planner_version = summary.get('planner_version') or metadata.get('planner_version')
+    controller_version = summary.get('controller_version') or metadata.get('controller_version')
+    git_commit = metadata.get('git_commit') or summary.get('git_commit')
+    git_branch = metadata.get('git_branch') or summary.get('git_branch')
+    git_dirty = metadata.get('git_dirty')
+
+    return {
+        'status': latest_artifact.get('status') or 'warn',
+        'artifact_dir': artifact_dir,
+        'run_id': run_id,
+        'scenario_name': summary.get('scenario_name') or metadata.get('scenario_name'),
+        'planner_name': planner_name,
+        'planner_version': planner_version,
+        'controller_version': controller_version,
+        'git_commit': git_commit,
+        'git_branch': git_branch,
+        'git_dirty': git_dirty,
+        'parameter_snapshot_path': metadata.get('parameter_snapshot_path'),
+        'config_snapshot_dir': metadata.get('config_snapshot_dir'),
+        'config_snapshot_files': metadata.get('config_snapshot_files') or {},
+        'recent_events': latest_artifact.get('recent_events') or [],
+        'goal_reached': summary.get('goal_reached'),
+        'mission_phase': summary.get('mission_phase'),
+        'failure_code': summary.get('failure_code'),
+    }
+
+
+def _previous_session_summary(session_path: Path):
+    root_dir = session_path.parent
+    if not root_dir.exists():
+        return None
+
+    candidates = sorted(
+        [path for path in root_dir.iterdir() if path.is_dir() and path != session_path],
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for candidate in candidates:
+        report_summary = _read_json(candidate / 'report_summary.json', default={}) or {}
+        manifest = _read_json(candidate / 'session_manifest.json', default={}) or {}
+        if report_summary or manifest:
+            return {
+                'session_name': candidate.name,
+                'generated_at': report_summary.get('generated_at'),
+                'started_at': manifest.get('started_at'),
+                'latest_overall_status': report_summary.get('latest_overall_status'),
+                'latest_phase': report_summary.get('latest_phase'),
+                'goal_reached': report_summary.get('goal_reached'),
+                'timeline_count': report_summary.get('timeline_count'),
+                'snapshot_count': report_summary.get('snapshot_count'),
+                'stability': report_summary.get('stability') or {},
+                'artifact_run_id': report_summary.get('artifact_run_id'),
+                'artifact_git_commit': report_summary.get('artifact_git_commit'),
+            }
+    return None
+
+
 def generate_session_report(session_dir):
     session_path = Path(session_dir)
     manifest = _read_json(session_path / 'session_manifest.json', default={}) or {}
@@ -378,6 +571,10 @@ def generate_session_report(session_dir):
     hints = list(latest_flight.get('hints', []))
     topic_rows = list(latest_flight.get('watch_topics', []))
     subscription_errors = list(latest_flight.get('subscription_errors', []))
+    stability = _build_stability_summary(samples)
+    root_causes = _build_root_causes(records)
+    artifact_audit = _build_artifact_audit(latest_artifact)
+    previous_session = _previous_session_summary(session_path)
 
     charts = [
         _svg_band_timeline('Overall Health Timeline', samples, 'overall_status', _STATUS_COLORS, '#9eb2cc'),
@@ -431,18 +628,94 @@ def generate_session_report(session_dir):
         for key, value in sorted(status_counts.items(), key=lambda item: _STATUS_ORDER.get(item[0], 99))
     ) or '<div class="empty">No status summary yet.</div>'
 
+    stability_cards_html = ''.join(
+        f'<div class="mini-stat"><div class="mini-label">{label}</div><div class="mini-value">{value}</div></div>'
+        for label, value in [
+            ('Unstable Samples', html.escape(f'{stability["unstable_samples"]} / {stability["total_samples"]} ({stability["unstable_ratio"] * 100:.0f}%)') if stability['total_samples'] else '-'),
+            ('Error Samples', html.escape(str(stability['error_samples']))),
+            ('Warn Samples', html.escape(str(stability['warn_samples']))),
+            ('Longest Error Streak', html.escape(_fmt_value(stability['longest_error_streak_sec'], ' s'))),
+            ('Longest Unstable Streak', html.escape(_fmt_value(stability['longest_unstable_streak_sec'], ' s'))),
+            ('Recovered Before Finish', html.escape('Yes' if stability['recovered_before_finish'] else 'No')),
+        ]
+    )
+
+    root_cause_html = ''.join(
+        f'''<div class="hint-card">
+          <div class="hint-head">{_status_badge("error" if item.get("error_count") else "warn")}<strong>{html.escape(item.get("label") or "-")}</strong></div>
+          <p>{html.escape(item.get("summary") or "-")}</p>
+          <ul>
+            <li>Error samples: <strong>{item.get("error_count", 0)}</strong></li>
+            <li>Warn samples: <strong>{item.get("warn_count", 0)}</strong></li>
+            <li>Latest evidence: <code>{html.escape(item.get("latest_headline") or "-")}</code></li>
+          </ul>
+        </div>'''
+        for item in root_causes
+    ) or '<div class="empty">No repeated warn/error root causes were detected in the captured timeline.</div>'
+
+    config_rows = ''.join(
+        f'<tr><td>{html.escape(label)}</td><td><code>{html.escape(str(path))}</code></td></tr>'
+        for label, path in sorted((artifact_audit.get('config_snapshot_files') or {}).items())
+    ) or '<tr><td colspan="2" class="empty-cell">No copied config snapshots were recorded.</td></tr>'
+
+    artifact_recent_events_html = ''.join(
+        f'<li><code>{html.escape(str(line))}</code></li>'
+        for line in artifact_audit.get('recent_events', [])
+    ) or '<li>No recent artifact events were captured.</li>'
+
+    comparison_html = '<div class="empty">No previous debug session report was found for comparison.</div>'
+    if previous_session:
+        previous_goal = previous_session.get("goal_reached")
+        comparison_html = f'''
+        <div class="artifact-box">
+          <div class="artifact-grid">
+            <div class="mini-stat"><div class="mini-label">Previous Session</div><div class="mini-value">{html.escape(str(previous_session.get("session_name") or "-"))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Previous Status</div><div class="mini-value">{html.escape(str(previous_session.get("latest_overall_status") or "-"))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Previous Phase</div><div class="mini-value">{html.escape(str(previous_session.get("latest_phase") or "-"))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Previous Goal</div><div class="mini-value">{html.escape("Yes" if previous_goal is True else "No" if previous_goal is False else "-")}</div></div>
+          </div>
+        </div>
+        '''
+
     if latest_artifact:
         artifact_html = f'''
         <div class="artifact-box">
           <div class="artifact-grid">
-            <div class="mini-stat"><div class="mini-label">Artifact Status</div><div class="mini-value">{html.escape(str(latest_artifact.get('status') or '-'))}</div></div>
-            <div class="mini-stat"><div class="mini-label">Run ID</div><div class="mini-value">{html.escape(str(latest_artifact.get('run_id') or '-'))}</div></div>
-            <div class="mini-stat"><div class="mini-label">Summary</div><div class="mini-value">{html.escape(str(latest_artifact.get('summary_line') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Artifact Status</div><div class="mini-value">{html.escape(str(artifact_audit.get('status') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Run ID</div><div class="mini-value">{html.escape(str(artifact_audit.get('run_id') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Scenario</div><div class="mini-value">{html.escape(str(artifact_audit.get('scenario_name') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Planner</div><div class="mini-value">{html.escape(str(artifact_audit.get('planner_name') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Planner Version</div><div class="mini-value">{html.escape(str(artifact_audit.get('planner_version') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Controller</div><div class="mini-value">{html.escape(str(artifact_audit.get('controller_version') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Git Commit</div><div class="mini-value">{html.escape(str(artifact_audit.get('git_commit') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Git Branch</div><div class="mini-value">{html.escape(str(artifact_audit.get('git_branch') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Git Dirty</div><div class="mini-value">{html.escape(str(artifact_audit.get('git_dirty') if artifact_audit.get('git_dirty') is not None else '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Mission Phase</div><div class="mini-value">{html.escape(str(artifact_audit.get('mission_phase') or '-'))}</div></div>
+            <div class="mini-stat"><div class="mini-label">Goal Reached</div><div class="mini-value">{html.escape('Yes' if artifact_audit.get('goal_reached') is True else 'No' if artifact_audit.get('goal_reached') is False else '-')}</div></div>
+            <div class="mini-stat"><div class="mini-label">Failure Code</div><div class="mini-value">{html.escape(str(artifact_audit.get('failure_code') or '-'))}</div></div>
           </div>
         </div>
         '''
     else:
         artifact_html = '<div class="empty">No artifact summary was available in the latest snapshot.</div>'
+
+    artifact_linkage_html = f'''
+    <div class="artifact-box">
+      <div class="artifact-grid">
+        <div class="mini-stat"><div class="mini-label">Artifact Dir</div><div class="mini-value">{html.escape(str(artifact_audit.get("artifact_dir") or "-"))}</div></div>
+        <div class="mini-stat"><div class="mini-label">Parameter Snapshot</div><div class="mini-value">{html.escape(str(artifact_audit.get("parameter_snapshot_path") or "-"))}</div></div>
+        <div class="mini-stat"><div class="mini-label">Config Snapshot Dir</div><div class="mini-value">{html.escape(str(artifact_audit.get("config_snapshot_dir") or "-"))}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Copied Config</th><th>Path</th></tr></thead>
+        <tbody>{config_rows}</tbody>
+      </table>
+      <div style="margin-top:14px;">
+        <div class="mini-label">Recent Artifact Events</div>
+        <ul>{artifact_recent_events_html}</ul>
+      </div>
+    </div>
+    '''
 
     subscription_error_html = ''.join(f'<li><code>{html.escape(str(item))}</code></li>' for item in subscription_errors)
     if not subscription_error_html:
@@ -586,20 +859,40 @@ def generate_session_report(session_dir):
     </section>
 
     <section class="section">
-      <h2>4. 그래프로 보는 디버깅 흐름</h2>
+      <h2>4. Audit Snapshot</h2>
+      <p>{html.escape(stability.get('headline') or '-')}</p>
+      <div class="mini-grid">{stability_cards_html}</div>
+      <div style="margin-top:14px;">{comparison_html}</div>
+    </section>
+
+    <section class="section">
+      <h2>5. Artifact Linkage</h2>
+      <p>이 섹션은 debug session과 실험 artifact를 직접 연결해 run id, git/config, 최근 event를 함께 보이도록 만든 audit 관점 보강 정보다.</p>
+      <div style="margin-top:14px;">{artifact_html}</div>
+      <div style="margin-top:14px;">{artifact_linkage_html}</div>
+    </section>
+
+    <section class="section">
+      <h2>6. Root Cause Summary</h2>
+      <p>최종 성공 여부와 별개로, 세션 중 warn/error를 반복해서 만들었던 상위 원인을 자동 요약한다.</p>
+      <div class="hint-stack">{root_cause_html}</div>
+    </section>
+
+    <section class="section">
+      <h2>7. 그래프로 보는 디버깅 흐름</h2>
       <div class="charts">{''.join(charts)}</div>
     </section>
 
     <section class="section two-col">
       <div>
-        <h2>5. Latest Mission Health</h2>
+        <h2>8. Latest Mission Health</h2>
         <table>
           <thead><tr><th>Check</th><th>Status</th><th>Headline</th><th>Detail</th></tr></thead>
           <tbody>{check_rows}</tbody>
         </table>
       </div>
       <div>
-        <h2>6. Latest Watch Topics</h2>
+        <h2>9. Latest Watch Topics</h2>
         <table>
           <thead><tr><th>Signal</th><th>Status</th><th>Topic</th><th>Headline</th><th>Detail</th></tr></thead>
           <tbody>{watch_rows}</tbody>
@@ -609,18 +902,17 @@ def generate_session_report(session_dir):
 
     <section class="section two-col">
       <div>
-        <h2>7. Artifact / Status Summary</h2>
+        <h2>10. Artifact / Status Summary</h2>
         <div class="mini-grid">{status_counter_html}</div>
-        <div style="margin-top:14px;">{artifact_html}</div>
       </div>
       <div>
-        <h2>8. Troubleshooting Hints</h2>
+        <h2>11. Troubleshooting Hints</h2>
         <div class="hint-stack">{hint_rows}</div>
       </div>
     </section>
 
     <section class="section">
-      <h2>9. Subscription Errors</h2>
+      <h2>12. Subscription Errors</h2>
       <ul>{subscription_error_html}</ul>
     </section>
   </div>
@@ -644,6 +936,15 @@ def generate_session_report(session_dir):
         'latest_topic_count': len((latest_payload or {}).get('topics', [])),
         'latest_node_count': len((latest_payload or {}).get('nodes', [])),
         'latest_snapshot_path': (latest_payload or {}).get('_snapshot_path'),
+        'artifact_run_id': artifact_audit.get('run_id'),
+        'artifact_git_commit': artifact_audit.get('git_commit'),
+        'artifact_git_branch': artifact_audit.get('git_branch'),
+        'artifact_planner_name': artifact_audit.get('planner_name'),
+        'artifact_planner_version': artifact_audit.get('planner_version'),
+        'artifact_controller_version': artifact_audit.get('controller_version'),
+        'stability': stability,
+        'root_causes': root_causes,
+        'previous_session': previous_session,
         'profile': profile,
         'status_counts': dict(status_counts),
     }
