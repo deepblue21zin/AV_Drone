@@ -816,6 +816,7 @@ let updateInterval = {{ update_interval }};
 let debugRecordingActive = false;
 let debugReportReady = false;
 let debugSessionReady = false;
+let debugReportUrl = '/debug/report/current';
 let paramMsg = '';
 let paramMsgType = '';
 
@@ -914,6 +915,7 @@ function clearPanels() {
   debugRecordingActive = false;
   debugReportReady = false;
   debugSessionReady = false;
+  debugReportUrl = '/debug/report/current';
   expanded.topics.clear();
   expanded.services.clear();
   expanded.actions.clear();
@@ -1181,10 +1183,12 @@ function renderArtifact(artifact) {
   `;
 }
 
-function renderDebugRecording(status) {
+function renderDebugRecording(status, reports) {
+  const safeReports = Array.isArray(reports) ? reports : [];
   debugRecordingActive = !!(status && status.recording_active);
   debugReportReady = !!(status && status.report_path);
   debugSessionReady = !!(status && status.session_dir);
+  debugReportUrl = (status && (status.report_url || status.current_report_url)) || '/debug/report/current';
   document.getElementById('debugRecordCount').textContent = String(status && status.snapshot_count != null ? status.snapshot_count : 0);
   updateUI();
 
@@ -1195,6 +1199,7 @@ function renderDebugRecording(status) {
 
   const rows = [
     ['Recording', debugRecordingActive ? 'Active' : 'Stopped'],
+    ['Session Name', status.session_name || '-'],
     ['Session Dir', status.session_dir || '-'],
     ['Snapshots Dir', status.snapshots_dir || '-'],
     ['Timeline Path', status.timeline_path || '-'],
@@ -1205,10 +1210,23 @@ function renderDebugRecording(status) {
     ['Last Snapshot', status.last_snapshot_path || '-'],
     ['Last Snapshot At', status.last_snapshot_at || '-'],
     ['Report Path', status.report_path || '-'],
+    ['Session Report URL', status.report_url || '-'],
+    ['Current Alias URL', status.current_report_url || '-'],
     ['Report Summary', status.report_summary_path || '-'],
     ['Report Generated At', status.report_generated_at || '-'],
     ['Last Error', status.last_error || '-'],
   ];
+
+  const recentReportsHtml = safeReports.length ? `
+    <ul class="events">
+      ${safeReports.map((report) => `
+        <li>
+          <a href="${escAttr(report.report_url || '#')}" target="_blank" rel="noopener">${esc(report.session_name || 'unknown session')}</a>
+          <span class="tiny muted"> | ${esc(report.report_generated_at || report.started_at || '-')}</span>
+        </li>
+      `).join('')}
+    </ul>
+  ` : '<div class="empty">아직 생성된 report 세션이 없습니다.</div>';
 
   document.getElementById('debugRecordBody').innerHTML = `
     <div class="artifact-wrap">
@@ -1229,10 +1247,13 @@ function renderDebugRecording(status) {
           <li>아무것도 누르지 않으면 계속 자동 저장되지는 않습니다.</li>
           <li>Save Snapshot: 지금 화면 기준 상태를 즉시 JSON + report로 저장</li>
           <li>Start Recording: 일정 주기마다 timeline.jsonl에 누적 기록 시작</li>
-          <li>Stop Recording: recording 종료 + 마지막 snapshot 저장</li>
+          <li>Stop Recording: recording 종료 + 마지막 snapshot 저장 + report 자동 생성</li>
           <li>Generate Report: 저장된 JSON을 읽어서 summary + visualization + graphs HTML로 다시 생성</li>
-          <li>Open Report: 최근 생성된 report.html을 새 탭에서 열기</li>
+          <li>Open Report: 현재 세션 report를 새 탭에서 열기</li>
+          <li>세션별 report는 아래 Recent Reports 목록에서 각각 고정 URL로 열 수 있습니다.</li>
         </ul>
+        <div class="metric-label" style="margin-top:14px;">Recent Reports</div>
+        ${recentReportsHtml}
       </div>
     </div>
   `;
@@ -1240,12 +1261,17 @@ function renderDebugRecording(status) {
 
 async function refreshDebugStatus() {
   try {
-    const res = await fetch('/api/debug/status');
-    const data = await res.json();
-    renderDebugRecording(data);
+    const [statusRes, reportsRes] = await Promise.all([
+      fetch('/api/debug/status'),
+      fetch('/api/debug/reports?limit=8'),
+    ]);
+    const status = await statusRes.json();
+    const reportsData = await reportsRes.json();
+    renderDebugRecording(status, reportsData.reports || []);
   } catch (error) {
     document.getElementById('debugRecordBody').innerHTML = `<div class="empty">Failed to load debug recording status: ${esc(error)}</div>`;
     debugRecordingActive = false;
+    debugReportUrl = '/debug/report/current';
     updateUI();
   }
 }
@@ -1311,7 +1337,12 @@ async function stopDebugRecording() {
     const data = await res.json();
     if (data.status === 'ok') {
       await refreshDebugStatus();
-      setHealthMessage('Debug recording stopped.', 'info');
+      const reportUrl = data.report && (data.report.report_url || data.report.current_report_url);
+      if (data.auto_generated_report && reportUrl) {
+        setHealthMessage(`Debug recording stopped. Report was generated automatically: ${reportUrl}`, 'info');
+      } else {
+        setHealthMessage('Debug recording stopped.', 'info');
+      }
     } else {
       setHealthMessage(`Stop recording failed: ${data.message || 'unknown error'}`, 'error');
     }
@@ -1350,7 +1381,7 @@ function openDebugReport() {
     setHealthMessage('No generated debug report yet. Save a snapshot or click Generate Report first.', 'info');
     return;
   }
-  window.open('/debug/report/current', '_blank', 'noopener');
+  window.open(debugReportUrl || '/debug/report/current', '_blank', 'noopener');
 }
 
 function toggleDetail(el, category, name) {

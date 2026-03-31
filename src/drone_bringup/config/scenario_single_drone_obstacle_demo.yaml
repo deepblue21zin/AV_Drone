@@ -10,7 +10,7 @@ start_pose:
   z: 0.0
 goal_pose:
   x: 31.0
-  y: 0.0
+  y: -1.5
   z: 3.0
 obstacles:
   - id: pole_01
@@ -80,7 +80,7 @@ obstacles:
     length: 6.0
   - id: center_pole_04
     shape: cylinder
-    pose: [27.5, 0.95, 3.0]
+    pose: [27.5, 2.10, 3.0]
     radius: 0.8
     length: 6.0
 communications:
@@ -92,5 +92,5 @@ notes:
   - Two corridor walls keep the vehicle inside the lane so it cannot simply escape to the far left or right.
   - Small side poles form simple left/right guide rows, similar to a slalom lane reference image.
   - Larger interior poles are staggered left and right but kept smaller and farther apart so the drone sees wider, cleaner gaps.
-  - The goal is farther away so the run lasts longer and produces a more convincing avoidance trace.
+  - The goal is farther away and slightly biased toward the final lower lane so the vehicle can finish without scraping the last interior pole.
   - The planner is a LiDAR gap-based local planner, so the map is intentionally simple and corridor-like rather than maze-dense.

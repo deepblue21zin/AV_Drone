@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ros_states Debug Report</title>
+  <style>
+    :root {
+      --bg: #eef3fb;
+      --panel: #ffffff;
+      --line: #dbe5f0;
+      --text: #17324d;
+      --muted: #5b738d;
+      --shadow: 0 20px 40px rgba(17, 45, 78, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Noto Sans KR", "Segoe UI", sans-serif; background: linear-gradient(180deg, #f4f8fd 0%, var(--bg) 100%); color: var(--text); }
+    .page { max-width: 1320px; margin: 0 auto; padding: 28px 22px 46px; }
+    .hero { background: linear-gradient(135deg, #113f6d 0%, #1d568f 100%); color: #fff; border-radius: 24px; padding: 28px; box-shadow: 0 20px 40px rgba(17, 45, 78, 0.08); }
+    .hero h1 { margin: 0 0 10px; font-size: 30px; }
+    .hero p { margin: 0; color: rgba(255,255,255,0.88); line-height: 1.6; }
+    .hero-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 22px; }
+    .hero-chip { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 12px 14px; }
+    .hero-chip .label { display: block; font-size: 12px; color: rgba(255,255,255,0.68); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .hero-chip .value { font-size: 15px; font-weight: 700; }
+    .section { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 20px 40px rgba(17, 45, 78, 0.08); }
+    .section h2 { margin: 0 0 12px; font-size: 22px; }
+    .section p { color: var(--muted); line-height: 1.7; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .metric-card { border: 1px solid var(--line); border-radius: 18px; padding: 16px; background: #fbfdff; min-height: 96px; }
+    .metric-card.compact { min-height: 84px; }
+    .metric-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .metric-value { font-size: 20px; font-weight: 800; line-height: 1.4; word-break: break-word; }
+    .badge { display: inline-flex; align-items: center; padding: 6px 10px; border: 1px solid transparent; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
+    .note-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    .note-card { background: #f8fbff; border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+    .note-card h3 { margin-top: 0; margin-bottom: 8px; }
+    .note-card ul { margin: 12px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    .charts { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .chart-card { border: 1px solid var(--line); border-radius: 18px; padding: 16px; background: #fff; }
+    .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .chart-head h4 { margin: 0; font-size: 18px; }
+    .chart-svg { width: 100%; height: auto; display: block; }
+    .axis-label { font-size: 11px; fill: #657d97; font-family: "Noto Sans KR", "Segoe UI", sans-serif; }
+    .band-label { font-size: 11px; fill: #17324d; font-family: "Noto Sans KR", "Segoe UI", sans-serif; font-weight: 700; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 999px; display: inline-block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    td { font-size: 14px; line-height: 1.5; }
+    .empty-cell, .empty { color: var(--muted); }
+    .two-col { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+    .mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .mini-stat { background: #f8fbff; border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .mini-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .mini-value { font-size: 18px; font-weight: 800; }
+    .hint-stack { display: grid; gap: 12px; }
+    .hint-card { border: 1px solid var(--line); background: #fbfdff; border-radius: 18px; padding: 16px; }
+    .hint-card p { margin: 10px 0; }
+    .hint-card ul { margin: 0 0 0 18px; color: var(--muted); }
+    .hint-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .artifact-box { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: #fbfdff; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+    code { background: #eef4fb; color: #21476c; padding: 2px 6px; border-radius: 8px; font-size: 0.94em; }
+    .footer-note { color: var(--muted); font-size: 13px; margin-top: 10px; }
+    @media (max-width: 980px) {
+      .two-col { grid-template-columns: 1fr; }
+      .page { padding: 18px 14px 32px; }
+      .hero { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>ros_states Debug Report</h1>
+      <p>저장된 ros_states 세션을 사람이 읽기 쉬운 요약, 상태 해석, 타임라인 그래프 형태로 다시 정리한 보고서다. 즉, “브라우저에서 무엇을 보고 있었는지”를 픽셀 스크린샷이 아니라 <strong>구조화된 상태 기록</strong>으로 복원한 결과다.</p>
+      <div class="hero-meta">
+        <div class="hero-chip"><span class="label">Generated At</span><span class="value">2026-03-31T10:11:30+0000</span></div>
+        <div class="hero-chip"><span class="label">Session</span><span class="value">20260331_094938_drone1_recording</span></div>
+        <div class="hero-chip"><span class="label">Latest Summary</span><span class="value">HOVER_AT_GOAL | goal reached | 2.79m obstacle | OFFBOARD | armed</span></div>
+        <div class="hero-chip"><span class="label">Recording Active</span><span class="value">No</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>1. 이 기록이 의미하는 것</h2>
+      
+    <div class="note-grid">
+      <div class="note-card">
+        <h3>이 보고서가 저장하는 것</h3>
+        <p>이건 브라우저 화면의 픽셀 스크린샷이 아니라, <strong>ros_states가 브라우저에 보여주던 백엔드 상태</strong>를 구조화해서 저장한 것이다.</p>
+        <ul>
+          <li>Mission Health 카드 상태</li>
+          <li>현재 핵심 토픽/노드/서비스 그래프 정보</li>
+          <li>artifact 요약, 힌트, subscription error</li>
+          <li>시간에 따라 누적된 timeline.jsonl 기록</li>
+        </ul>
+      </div>
+      <div class="note-card">
+        <h3>사용자가 직접 해야 하는 것</h3>
+        <p><strong>항상 자동 저장되는 구조는 아니다.</strong> 아래 동작 중 하나를 눌러야 기록이 남는다.</p>
+        <ul>
+          <li><code>Save Snapshot</code> : 지금 상태를 한 번 저장</li>
+          <li><code>Start Recording</code> : 일정 간격으로 timeline 기록 시작</li>
+          <li><code>Stop Recording</code> : recording 종료 + 마지막 snapshot 저장</li>
+          <li><code>Generate Report</code> : 저장된 JSON을 이 HTML 보고서와 그래프로 다시 정리</li>
+        </ul>
+      </div>
+    </div>
+    
+    </section>
+
+    <section class="section">
+      <h2>2. 세션 한눈에 보기</h2>
+      <div class="metric-grid"><div class="metric-card"><div class="metric-label">Latest Status</div><div class="metric-value"><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></div></div><div class="metric-card"><div class="metric-label">Latest Phase</div><div class="metric-value">HOVER_AT_GOAL</div></div><div class="metric-card"><div class="metric-label">Goal Reached</div><div class="metric-value">Yes</div></div><div class="metric-card"><div class="metric-label">Latest Obstacle</div><div class="metric-value">2.94 m</div></div><div class="metric-card"><div class="metric-label">Planner Speed</div><div class="metric-value">0.00 m/s</div></div><div class="metric-card"><div class="metric-label">Safety Speed</div><div class="metric-value">0.00 m/s</div></div><div class="metric-card"><div class="metric-label">Timeline Points</div><div class="metric-value">40</div></div><div class="metric-card"><div class="metric-label">Snapshots</div><div class="metric-value">2</div></div></div>
+    </section>
+
+    <section class="section">
+      <h2>3. 저장 파일과 환경 정보</h2>
+      <div class="metric-grid"><div class="metric-card compact"><div class="metric-label">Session Dir</div><div class="metric-value">/workspace/AV_Drone/artifacts/_ros_states_debug/20260331_094938_drone1_recording</div></div><div class="metric-card compact"><div class="metric-label">Started At</div><div class="metric-value">2026-03-31T09:49:38+0000</div></div><div class="metric-card compact"><div class="metric-label">Stopped At</div><div class="metric-value">2026-03-31T09:52:57+0000</div></div><div class="metric-card compact"><div class="metric-label">Interval</div><div class="metric-value">5.00 s</div></div><div class="metric-card compact"><div class="metric-label">Drone</div><div class="metric-value">drone1</div></div><div class="metric-card compact"><div class="metric-label">MAVROS</div><div class="metric-value">/mavros</div></div><div class="metric-card compact"><div class="metric-label">Topics in Latest Snapshot</div><div class="metric-value">168</div></div><div class="metric-card compact"><div class="metric-label">Nodes in Latest Snapshot</div><div class="metric-value">69</div></div></div>
+      <p class="footer-note">원본 파일은 <code>session_manifest.json</code>, <code>timeline.jsonl</code>, <code>snapshots/</code>에 그대로 남아 있고, 이 보고서는 그 위에 설명과 그래프를 추가한 2차 가공 결과다.</p>
+    </section>
+
+    <section class="section">
+      <h2>4. 그래프로 보는 디버깅 흐름</h2>
+      <div class="charts"><div class="chart-card">
+      <div class="chart-head"><h4>Overall Health Timeline</h4></div>
+      <svg viewBox="0 0 880 110" class="chart-svg" role="img" aria-label="Overall Health Timeline">
+        <rect x="0" y="0" width="880" height="110" rx="14" fill="#fbfdff" />
+        <rect x="18.0" y="30" width="21.6" height="28" rx="10" fill="#c78015" opacity="0.85" /><rect x="39.6" y="30" width="43.3" height="28" rx="10" fill="#345f9e" opacity="0.85" /><rect x="82.9" y="30" width="129.9" height="28" rx="10" fill="#c64642" opacity="0.85" /><rect x="212.8" y="30" width="21.6" height="28" rx="10" fill="#345f9e" opacity="0.85" /><rect x="234.4" y="30" width="324.6" height="28" rx="10" fill="#c64642" opacity="0.85" /><rect x="559.0" y="30" width="43.3" height="28" rx="10" fill="#c78015" opacity="0.85" /><rect x="602.3" y="30" width="43.3" height="28" rx="10" fill="#c64642" opacity="0.85" /><rect x="645.6" y="30" width="21.6" height="28" rx="10" fill="#c78015" opacity="0.85" /><rect x="667.2" y="30" width="21.6" height="28" rx="10" fill="#c64642" opacity="0.85" /><rect x="688.9" y="30" width="21.7" height="28" rx="10" fill="#345f9e" opacity="0.85" /><rect x="710.5" y="30" width="108.2" height="28" rx="10" fill="#c64642" opacity="0.85" /><rect x="818.7" y="30" width="21.6" height="28" rx="10" fill="#345f9e" opacity="0.85" /><rect x="840.4" y="30" width="21.6" height="28" rx="10" fill="#1d7f5f" opacity="0.85" />
+        <text x="28.8" y="48.0" text-anchor="middle" class="band-label">warn</text><text x="61.3" y="48.0" text-anchor="middle" class="band-label">info</text><text x="147.8" y="48.0" text-anchor="middle" class="band-label">error</text><text x="223.6" y="48.0" text-anchor="middle" class="band-label">info</text><text x="396.7" y="48.0" text-anchor="middle" class="band-label">error</text><text x="580.7" y="48.0" text-anchor="middle" class="band-label">warn</text><text x="624.0" y="48.0" text-anchor="middle" class="band-label">error</text><text x="656.4" y="48.0" text-anchor="middle" class="band-label">warn</text><text x="678.1" y="48.0" text-anchor="middle" class="band-label">error</text><text x="699.7" y="48.0" text-anchor="middle" class="band-label">info</text><text x="764.6" y="48.0" text-anchor="middle" class="band-label">error</text><text x="829.5" y="48.0" text-anchor="middle" class="band-label">info</text><text x="851.2" y="48.0" text-anchor="middle" class="band-label">ok</text>
+        <line x1="18.0" y1="64" x2="18.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="18.0" y="84.0" text-anchor="middle" class="axis-label">0s</text><line x1="229.0" y1="64" x2="229.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="229.0" y="84.0" text-anchor="middle" class="axis-label">49s</text><line x1="440.0" y1="64" x2="440.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="440.0" y="84.0" text-anchor="middle" class="axis-label">98s</text><line x1="651.0" y1="64" x2="651.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="651.0" y="84.0" text-anchor="middle" class="axis-label">146s</text><line x1="862.0" y1="64" x2="862.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="862.0" y="84.0" text-anchor="middle" class="axis-label">195s</text>
+      </svg>
+    </div><div class="chart-card">
+      <div class="chart-head"><h4>Mission Phase Timeline</h4></div>
+      <svg viewBox="0 0 880 110" class="chart-svg" role="img" aria-label="Mission Phase Timeline">
+        <rect x="0" y="0" width="880" height="110" rx="14" fill="#fbfdff" />
+        <rect x="18.0" y="30" width="21.6" height="28" rx="10" fill="#9eb2cc" opacity="0.85" /><rect x="39.6" y="30" width="43.3" height="28" rx="10" fill="#d8f0e5" opacity="0.85" /><rect x="82.9" y="30" width="757.5" height="28" rx="10" fill="#d4e4ff" opacity="0.85" /><rect x="840.4" y="30" width="21.6" height="28" rx="10" fill="#d9f4e3" opacity="0.85" />
+        <text x="28.8" y="48.0" text-anchor="middle" class="band-label">OFFBOARD_ARM</text><text x="61.3" y="48.0" text-anchor="middle" class="band-label">TAKEOFF</text><text x="461.6" y="48.0" text-anchor="middle" class="band-label">FOLLOW_PLAN</text><text x="851.2" y="48.0" text-anchor="middle" class="band-label">HOVER_AT_GOAL</text>
+        <line x1="18.0" y1="64" x2="18.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="18.0" y="84.0" text-anchor="middle" class="axis-label">0s</text><line x1="229.0" y1="64" x2="229.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="229.0" y="84.0" text-anchor="middle" class="axis-label">49s</text><line x1="440.0" y1="64" x2="440.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="440.0" y="84.0" text-anchor="middle" class="axis-label">98s</text><line x1="651.0" y1="64" x2="651.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="651.0" y="84.0" text-anchor="middle" class="axis-label">146s</text><line x1="862.0" y1="64" x2="862.0" y2="69" stroke="#8ca3bf" stroke-width="1" /><text x="862.0" y="84.0" text-anchor="middle" class="axis-label">195s</text>
+      </svg>
+    </div><div class="chart-card">
+      <div class="chart-head">
+        <h4>Nearest Obstacle Distance</h4>
+        <div class="legend"><div class="legend-item"><span class="legend-swatch" style="background:#345f9e;"></span>Obstacle distance</div></div>
+      </div>
+      <svg viewBox="0 0 880 280" class="chart-svg" role="img" aria-label="Nearest Obstacle Distance">
+        <rect x="0" y="0" width="880" height="280" rx="14" fill="#fbfdff" />
+        <line x1="54" y1="24" x2="54" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="244" x2="862" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="24.0" x2="862" y2="24.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="28.0" text-anchor="end" class="axis-label">4.98 m</text><line x1="54" y1="79.0" x2="862" y2="79.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="83.0" text-anchor="end" class="axis-label">3.66 m</text><line x1="54" y1="134.0" x2="862" y2="134.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="138.0" text-anchor="end" class="axis-label">2.34 m</text><line x1="54" y1="189.0" x2="862" y2="189.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="193.0" text-anchor="end" class="axis-label">1.02 m</text><line x1="54" y1="244.0" x2="862" y2="244.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="248.0" text-anchor="end" class="axis-label">-0.30 m</text>
+        <line x1="54.0" y1="244" x2="54.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="54.0" y="270" text-anchor="middle" class="axis-label">0s</text><line x1="256.0" y1="244" x2="256.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="256.0" y="270" text-anchor="middle" class="axis-label">49s</text><line x1="458.0" y1="244" x2="458.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="458.0" y="270" text-anchor="middle" class="axis-label">98s</text><line x1="660.0" y1="244" x2="660.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="660.0" y="270" text-anchor="middle" class="axis-label">146s</text><line x1="862.0" y1="244" x2="862.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="862.0" y="270" text-anchor="middle" class="axis-label">195s</text>
+        <line x1="54" y1="148.2" x2="862" y2="148.2" stroke="#c78015" stroke-width="1.2" stroke-dasharray="6 4" /><text x="858" y="142.2" text-anchor="end" class="axis-label" fill="#c78015">Planner stop band</text><line x1="54" y1="189.8" x2="862" y2="189.8" stroke="#c64642" stroke-width="1.2" stroke-dasharray="6 4" /><text x="858" y="183.8" text-anchor="end" class="axis-label" fill="#c64642">Emergency stop</text>
+        <polyline points="54.0,76.1 74.7,76.5 95.4,45.3 116.1,219.8 136.9,222.3 157.6,222.7 178.3,222.3 199.0,222.3 219.7,222.3 240.5,129.4 261.2,222.3 281.9,221.9 302.6,221.5 323.3,222.7 344.0,222.7 364.8,221.9 385.5,222.7 406.2,222.3 426.9,222.3 447.6,222.7 468.4,219.8 489.1,222.7 509.8,222.3 530.5,221.9 551.2,221.5 572.0,149.8 592.7,163.6 613.4,221.9 634.1,221.0 654.8,188.1 675.6,220.6 696.3,126.9 717.0,221.5 737.7,222.7 758.4,222.3 779.2,222.3 799.9,222.7 820.6,83.2 841.3,96.1 862.0,109.0" fill="none" stroke="#345f9e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="54.0" cy="76.1" r="2.8" fill="#345f9e" /><circle cx="74.7" cy="76.5" r="2.8" fill="#345f9e" /><circle cx="95.4" cy="45.3" r="2.8" fill="#345f9e" /><circle cx="116.1" cy="219.8" r="2.8" fill="#345f9e" /><circle cx="136.9" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="157.6" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="178.3" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="199.0" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="219.7" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="240.5" cy="129.4" r="2.8" fill="#345f9e" /><circle cx="261.2" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="281.9" cy="221.9" r="2.8" fill="#345f9e" /><circle cx="302.6" cy="221.5" r="2.8" fill="#345f9e" /><circle cx="323.3" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="344.0" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="364.8" cy="221.9" r="2.8" fill="#345f9e" /><circle cx="385.5" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="406.2" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="426.9" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="447.6" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="468.4" cy="219.8" r="2.8" fill="#345f9e" /><circle cx="489.1" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="509.8" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="530.5" cy="221.9" r="2.8" fill="#345f9e" /><circle cx="551.2" cy="221.5" r="2.8" fill="#345f9e" /><circle cx="572.0" cy="149.8" r="2.8" fill="#345f9e" /><circle cx="592.7" cy="163.6" r="2.8" fill="#345f9e" /><circle cx="613.4" cy="221.9" r="2.8" fill="#345f9e" /><circle cx="634.1" cy="221.0" r="2.8" fill="#345f9e" /><circle cx="654.8" cy="188.1" r="2.8" fill="#345f9e" /><circle cx="675.6" cy="220.6" r="2.8" fill="#345f9e" /><circle cx="696.3" cy="126.9" r="2.8" fill="#345f9e" /><circle cx="717.0" cy="221.5" r="2.8" fill="#345f9e" /><circle cx="737.7" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="758.4" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="779.2" cy="222.3" r="2.8" fill="#345f9e" /><circle cx="799.9" cy="222.7" r="2.8" fill="#345f9e" /><circle cx="820.6" cy="83.2" r="2.8" fill="#345f9e" /><circle cx="841.3" cy="96.1" r="2.8" fill="#345f9e" /><circle cx="862.0" cy="109.0" r="2.8" fill="#345f9e" />
+      </svg>
+    </div><div class="chart-card">
+      <div class="chart-head">
+        <h4>Planner vs Safety Speed</h4>
+        <div class="legend"><div class="legend-item"><span class="legend-swatch" style="background:#1d7f5f;"></span>Planner speed</div><div class="legend-item"><span class="legend-swatch" style="background:#345f9e;"></span>Safety speed</div></div>
+      </div>
+      <svg viewBox="0 0 880 280" class="chart-svg" role="img" aria-label="Planner vs Safety Speed">
+        <rect x="0" y="0" width="880" height="280" rx="14" fill="#fbfdff" />
+        <line x1="54" y1="24" x2="54" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="244" x2="862" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="24.0" x2="862" y2="24.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="28.0" text-anchor="end" class="axis-label">1.09 m/s</text><line x1="54" y1="79.0" x2="862" y2="79.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="83.0" text-anchor="end" class="axis-label">0.77 m/s</text><line x1="54" y1="134.0" x2="862" y2="134.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="138.0" text-anchor="end" class="axis-label">0.44 m/s</text><line x1="54" y1="189.0" x2="862" y2="189.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="193.0" text-anchor="end" class="axis-label">0.12 m/s</text><line x1="54" y1="244.0" x2="862" y2="244.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="248.0" text-anchor="end" class="axis-label">-0.20 m/s</text>
+        <line x1="54.0" y1="244" x2="54.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="54.0" y="270" text-anchor="middle" class="axis-label">0s</text><line x1="256.0" y1="244" x2="256.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="256.0" y="270" text-anchor="middle" class="axis-label">49s</text><line x1="458.0" y1="244" x2="458.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="458.0" y="270" text-anchor="middle" class="axis-label">98s</text><line x1="660.0" y1="244" x2="660.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="660.0" y="270" text-anchor="middle" class="axis-label">146s</text><line x1="862.0" y1="244" x2="862.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="862.0" y="270" text-anchor="middle" class="axis-label">195s</text>
+        
+        <polyline points="54.0,103.5 74.7,103.5 95.4,102.2 116.1,95.8 136.9,93.6 157.6,58.8 178.3,59.1 199.0,59.3 219.7,58.5 240.5,100.8 261.2,59.3 281.9,103.4 302.6,59.1 323.3,59.4 344.0,81.7 364.8,58.9 385.5,58.5 406.2,83.9 426.9,91.4 447.6,59.3 468.4,117.3 489.1,103.8 509.8,59.6 530.5,59.4 551.2,107.1 572.0,117.0 592.7,93.4 613.4,58.6 634.1,118.2 654.8,59.6 675.6,59.8 696.3,83.9 717.0,104.3 737.7,59.1 758.4,58.9 779.2,59.1 799.9,98.5 820.6,95.0 841.3,209.8 862.0,209.8" fill="none" stroke="#1d7f5f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="54.0" cy="103.5" r="2.8" fill="#1d7f5f" /><circle cx="74.7" cy="103.5" r="2.8" fill="#1d7f5f" /><circle cx="95.4" cy="102.2" r="2.8" fill="#1d7f5f" /><circle cx="116.1" cy="95.8" r="2.8" fill="#1d7f5f" /><circle cx="136.9" cy="93.6" r="2.8" fill="#1d7f5f" /><circle cx="157.6" cy="58.8" r="2.8" fill="#1d7f5f" /><circle cx="178.3" cy="59.1" r="2.8" fill="#1d7f5f" /><circle cx="199.0" cy="59.3" r="2.8" fill="#1d7f5f" /><circle cx="219.7" cy="58.5" r="2.8" fill="#1d7f5f" /><circle cx="240.5" cy="100.8" r="2.8" fill="#1d7f5f" /><circle cx="261.2" cy="59.3" r="2.8" fill="#1d7f5f" /><circle cx="281.9" cy="103.4" r="2.8" fill="#1d7f5f" /><circle cx="302.6" cy="59.1" r="2.8" fill="#1d7f5f" /><circle cx="323.3" cy="59.4" r="2.8" fill="#1d7f5f" /><circle cx="344.0" cy="81.7" r="2.8" fill="#1d7f5f" /><circle cx="364.8" cy="58.9" r="2.8" fill="#1d7f5f" /><circle cx="385.5" cy="58.5" r="2.8" fill="#1d7f5f" /><circle cx="406.2" cy="83.9" r="2.8" fill="#1d7f5f" /><circle cx="426.9" cy="91.4" r="2.8" fill="#1d7f5f" /><circle cx="447.6" cy="59.3" r="2.8" fill="#1d7f5f" /><circle cx="468.4" cy="117.3" r="2.8" fill="#1d7f5f" /><circle cx="489.1" cy="103.8" r="2.8" fill="#1d7f5f" /><circle cx="509.8" cy="59.6" r="2.8" fill="#1d7f5f" /><circle cx="530.5" cy="59.4" r="2.8" fill="#1d7f5f" /><circle cx="551.2" cy="107.1" r="2.8" fill="#1d7f5f" /><circle cx="572.0" cy="117.0" r="2.8" fill="#1d7f5f" /><circle cx="592.7" cy="93.4" r="2.8" fill="#1d7f5f" /><circle cx="613.4" cy="58.6" r="2.8" fill="#1d7f5f" /><circle cx="634.1" cy="118.2" r="2.8" fill="#1d7f5f" /><circle cx="654.8" cy="59.6" r="2.8" fill="#1d7f5f" /><circle cx="675.6" cy="59.8" r="2.8" fill="#1d7f5f" /><circle cx="696.3" cy="83.9" r="2.8" fill="#1d7f5f" /><circle cx="717.0" cy="104.3" r="2.8" fill="#1d7f5f" /><circle cx="737.7" cy="59.1" r="2.8" fill="#1d7f5f" /><circle cx="758.4" cy="58.9" r="2.8" fill="#1d7f5f" /><circle cx="779.2" cy="59.1" r="2.8" fill="#1d7f5f" /><circle cx="799.9" cy="98.5" r="2.8" fill="#1d7f5f" /><circle cx="820.6" cy="95.0" r="2.8" fill="#1d7f5f" /><circle cx="841.3" cy="209.8" r="2.8" fill="#1d7f5f" /><circle cx="862.0" cy="209.8" r="2.8" fill="#1d7f5f" /><polyline points="74.7,103.5 95.4,102.2 116.1,95.8 136.9,93.6 157.6,58.8 178.3,117.6 199.0,59.3 219.7,58.5 240.5,100.8 261.2,59.3 281.9,103.4 302.6,59.1 323.3,59.4 344.0,58.8 364.8,58.9 385.5,58.5 406.2,83.9 426.9,91.4 447.6,59.3 468.4,117.3 489.1,103.8 509.8,59.6 530.5,59.4 551.2,107.1 572.0,117.0 592.7,93.4 613.4,58.6 634.1,118.2 654.8,96.9 675.6,59.8 696.3,83.9 717.0,59.4 737.7,59.1 758.4,58.9 779.2,58.2 799.9,98.5 820.6,95.0 841.3,209.8 862.0,209.8" fill="none" stroke="#345f9e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="74.7" cy="103.5" r="2.8" fill="#345f9e" /><circle cx="95.4" cy="102.2" r="2.8" fill="#345f9e" /><circle cx="116.1" cy="95.8" r="2.8" fill="#345f9e" /><circle cx="136.9" cy="93.6" r="2.8" fill="#345f9e" /><circle cx="157.6" cy="58.8" r="2.8" fill="#345f9e" /><circle cx="178.3" cy="117.6" r="2.8" fill="#345f9e" /><circle cx="199.0" cy="59.3" r="2.8" fill="#345f9e" /><circle cx="219.7" cy="58.5" r="2.8" fill="#345f9e" /><circle cx="240.5" cy="100.8" r="2.8" fill="#345f9e" /><circle cx="261.2" cy="59.3" r="2.8" fill="#345f9e" /><circle cx="281.9" cy="103.4" r="2.8" fill="#345f9e" /><circle cx="302.6" cy="59.1" r="2.8" fill="#345f9e" /><circle cx="323.3" cy="59.4" r="2.8" fill="#345f9e" /><circle cx="344.0" cy="58.8" r="2.8" fill="#345f9e" /><circle cx="364.8" cy="58.9" r="2.8" fill="#345f9e" /><circle cx="385.5" cy="58.5" r="2.8" fill="#345f9e" /><circle cx="406.2" cy="83.9" r="2.8" fill="#345f9e" /><circle cx="426.9" cy="91.4" r="2.8" fill="#345f9e" /><circle cx="447.6" cy="59.3" r="2.8" fill="#345f9e" /><circle cx="468.4" cy="117.3" r="2.8" fill="#345f9e" /><circle cx="489.1" cy="103.8" r="2.8" fill="#345f9e" /><circle cx="509.8" cy="59.6" r="2.8" fill="#345f9e" /><circle cx="530.5" cy="59.4" r="2.8" fill="#345f9e" /><circle cx="551.2" cy="107.1" r="2.8" fill="#345f9e" /><circle cx="572.0" cy="117.0" r="2.8" fill="#345f9e" /><circle cx="592.7" cy="93.4" r="2.8" fill="#345f9e" /><circle cx="613.4" cy="58.6" r="2.8" fill="#345f9e" /><circle cx="634.1" cy="118.2" r="2.8" fill="#345f9e" /><circle cx="654.8" cy="96.9" r="2.8" fill="#345f9e" /><circle cx="675.6" cy="59.8" r="2.8" fill="#345f9e" /><circle cx="696.3" cy="83.9" r="2.8" fill="#345f9e" /><circle cx="717.0" cy="59.4" r="2.8" fill="#345f9e" /><circle cx="737.7" cy="59.1" r="2.8" fill="#345f9e" /><circle cx="758.4" cy="58.9" r="2.8" fill="#345f9e" /><circle cx="779.2" cy="58.2" r="2.8" fill="#345f9e" /><circle cx="799.9" cy="98.5" r="2.8" fill="#345f9e" /><circle cx="820.6" cy="95.0" r="2.8" fill="#345f9e" /><circle cx="841.3" cy="209.8" r="2.8" fill="#345f9e" /><circle cx="862.0" cy="209.8" r="2.8" fill="#345f9e" />
+      </svg>
+    </div><div class="chart-card">
+      <div class="chart-head">
+        <h4>Warn / Error Check Count</h4>
+        <div class="legend"><div class="legend-item"><span class="legend-swatch" style="background:#c78015;"></span>Warn count</div><div class="legend-item"><span class="legend-swatch" style="background:#c64642;"></span>Error count</div></div>
+      </div>
+      <svg viewBox="0 0 880 280" class="chart-svg" role="img" aria-label="Warn / Error Check Count">
+        <rect x="0" y="0" width="880" height="280" rx="14" fill="#fbfdff" />
+        <line x1="54" y1="24" x2="54" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="244" x2="862" y2="244" stroke="#9eb2cc" stroke-width="1.2" />
+        <line x1="54" y1="24.0" x2="862" y2="24.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="28.0" text-anchor="end" class="axis-label">2.24</text><line x1="54" y1="79.0" x2="862" y2="79.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="83.0" text-anchor="end" class="axis-label">1.62</text><line x1="54" y1="134.0" x2="862" y2="134.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="138.0" text-anchor="end" class="axis-label">1.00</text><line x1="54" y1="189.0" x2="862" y2="189.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="193.0" text-anchor="end" class="axis-label">0.38</text><line x1="54" y1="244.0" x2="862" y2="244.0" stroke="#d9e4f2" stroke-width="1" /><text x="46" y="248.0" text-anchor="end" class="axis-label">-0.24</text>
+        <line x1="54.0" y1="244" x2="54.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="54.0" y="270" text-anchor="middle" class="axis-label">0s</text><line x1="256.0" y1="244" x2="256.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="256.0" y="270" text-anchor="middle" class="axis-label">49s</text><line x1="458.0" y1="244" x2="458.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="458.0" y="270" text-anchor="middle" class="axis-label">98s</text><line x1="660.0" y1="244" x2="660.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="660.0" y="270" text-anchor="middle" class="axis-label">146s</text><line x1="862.0" y1="244" x2="862.0" y2="249" stroke="#9eb2cc" stroke-width="1" /><text x="862.0" y="270" text-anchor="middle" class="axis-label">195s</text>
+        
+        <polyline points="54.0,45.3 74.7,222.7 95.4,222.7 116.1,222.7 136.9,222.7 157.6,222.7 178.3,222.7 199.0,222.7 219.7,222.7 240.5,222.7 261.2,222.7 281.9,222.7 302.6,222.7 323.3,222.7 344.0,222.7 364.8,222.7 385.5,222.7 406.2,222.7 426.9,222.7 447.6,222.7 468.4,222.7 489.1,222.7 509.8,222.7 530.5,222.7 551.2,222.7 572.0,134.0 592.7,134.0 613.4,222.7 634.1,222.7 654.8,134.0 675.6,222.7 696.3,222.7 717.0,222.7 737.7,222.7 758.4,222.7 779.2,222.7 799.9,222.7 820.6,222.7 841.3,222.7 862.0,222.7" fill="none" stroke="#c78015" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="54.0" cy="45.3" r="2.8" fill="#c78015" /><circle cx="74.7" cy="222.7" r="2.8" fill="#c78015" /><circle cx="95.4" cy="222.7" r="2.8" fill="#c78015" /><circle cx="116.1" cy="222.7" r="2.8" fill="#c78015" /><circle cx="136.9" cy="222.7" r="2.8" fill="#c78015" /><circle cx="157.6" cy="222.7" r="2.8" fill="#c78015" /><circle cx="178.3" cy="222.7" r="2.8" fill="#c78015" /><circle cx="199.0" cy="222.7" r="2.8" fill="#c78015" /><circle cx="219.7" cy="222.7" r="2.8" fill="#c78015" /><circle cx="240.5" cy="222.7" r="2.8" fill="#c78015" /><circle cx="261.2" cy="222.7" r="2.8" fill="#c78015" /><circle cx="281.9" cy="222.7" r="2.8" fill="#c78015" /><circle cx="302.6" cy="222.7" r="2.8" fill="#c78015" /><circle cx="323.3" cy="222.7" r="2.8" fill="#c78015" /><circle cx="344.0" cy="222.7" r="2.8" fill="#c78015" /><circle cx="364.8" cy="222.7" r="2.8" fill="#c78015" /><circle cx="385.5" cy="222.7" r="2.8" fill="#c78015" /><circle cx="406.2" cy="222.7" r="2.8" fill="#c78015" /><circle cx="426.9" cy="222.7" r="2.8" fill="#c78015" /><circle cx="447.6" cy="222.7" r="2.8" fill="#c78015" /><circle cx="468.4" cy="222.7" r="2.8" fill="#c78015" /><circle cx="489.1" cy="222.7" r="2.8" fill="#c78015" /><circle cx="509.8" cy="222.7" r="2.8" fill="#c78015" /><circle cx="530.5" cy="222.7" r="2.8" fill="#c78015" /><circle cx="551.2" cy="222.7" r="2.8" fill="#c78015" /><circle cx="572.0" cy="134.0" r="2.8" fill="#c78015" /><circle cx="592.7" cy="134.0" r="2.8" fill="#c78015" /><circle cx="613.4" cy="222.7" r="2.8" fill="#c78015" /><circle cx="634.1" cy="222.7" r="2.8" fill="#c78015" /><circle cx="654.8" cy="134.0" r="2.8" fill="#c78015" /><circle cx="675.6" cy="222.7" r="2.8" fill="#c78015" /><circle cx="696.3" cy="222.7" r="2.8" fill="#c78015" /><circle cx="717.0" cy="222.7" r="2.8" fill="#c78015" /><circle cx="737.7" cy="222.7" r="2.8" fill="#c78015" /><circle cx="758.4" cy="222.7" r="2.8" fill="#c78015" /><circle cx="779.2" cy="222.7" r="2.8" fill="#c78015" /><circle cx="799.9" cy="222.7" r="2.8" fill="#c78015" /><circle cx="820.6" cy="222.7" r="2.8" fill="#c78015" /><circle cx="841.3" cy="222.7" r="2.8" fill="#c78015" /><circle cx="862.0" cy="222.7" r="2.8" fill="#c78015" /><polyline points="54.0,222.7 74.7,222.7 95.4,222.7 116.1,134.0 136.9,134.0 157.6,134.0 178.3,134.0 199.0,134.0 219.7,134.0 240.5,222.7 261.2,134.0 281.9,134.0 302.6,134.0 323.3,134.0 344.0,134.0 364.8,134.0 385.5,134.0 406.2,134.0 426.9,134.0 447.6,134.0 468.4,134.0 489.1,134.0 509.8,134.0 530.5,134.0 551.2,134.0 572.0,222.7 592.7,222.7 613.4,134.0 634.1,134.0 654.8,222.7 675.6,134.0 696.3,222.7 717.0,134.0 737.7,134.0 758.4,134.0 779.2,134.0 799.9,134.0 820.6,222.7 841.3,222.7 862.0,222.7" fill="none" stroke="#c64642" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="54.0" cy="222.7" r="2.8" fill="#c64642" /><circle cx="74.7" cy="222.7" r="2.8" fill="#c64642" /><circle cx="95.4" cy="222.7" r="2.8" fill="#c64642" /><circle cx="116.1" cy="134.0" r="2.8" fill="#c64642" /><circle cx="136.9" cy="134.0" r="2.8" fill="#c64642" /><circle cx="157.6" cy="134.0" r="2.8" fill="#c64642" /><circle cx="178.3" cy="134.0" r="2.8" fill="#c64642" /><circle cx="199.0" cy="134.0" r="2.8" fill="#c64642" /><circle cx="219.7" cy="134.0" r="2.8" fill="#c64642" /><circle cx="240.5" cy="222.7" r="2.8" fill="#c64642" /><circle cx="261.2" cy="134.0" r="2.8" fill="#c64642" /><circle cx="281.9" cy="134.0" r="2.8" fill="#c64642" /><circle cx="302.6" cy="134.0" r="2.8" fill="#c64642" /><circle cx="323.3" cy="134.0" r="2.8" fill="#c64642" /><circle cx="344.0" cy="134.0" r="2.8" fill="#c64642" /><circle cx="364.8" cy="134.0" r="2.8" fill="#c64642" /><circle cx="385.5" cy="134.0" r="2.8" fill="#c64642" /><circle cx="406.2" cy="134.0" r="2.8" fill="#c64642" /><circle cx="426.9" cy="134.0" r="2.8" fill="#c64642" /><circle cx="447.6" cy="134.0" r="2.8" fill="#c64642" /><circle cx="468.4" cy="134.0" r="2.8" fill="#c64642" /><circle cx="489.1" cy="134.0" r="2.8" fill="#c64642" /><circle cx="509.8" cy="134.0" r="2.8" fill="#c64642" /><circle cx="530.5" cy="134.0" r="2.8" fill="#c64642" /><circle cx="551.2" cy="134.0" r="2.8" fill="#c64642" /><circle cx="572.0" cy="222.7" r="2.8" fill="#c64642" /><circle cx="592.7" cy="222.7" r="2.8" fill="#c64642" /><circle cx="613.4" cy="134.0" r="2.8" fill="#c64642" /><circle cx="634.1" cy="134.0" r="2.8" fill="#c64642" /><circle cx="654.8" cy="222.7" r="2.8" fill="#c64642" /><circle cx="675.6" cy="134.0" r="2.8" fill="#c64642" /><circle cx="696.3" cy="222.7" r="2.8" fill="#c64642" /><circle cx="717.0" cy="134.0" r="2.8" fill="#c64642" /><circle cx="737.7" cy="134.0" r="2.8" fill="#c64642" /><circle cx="758.4" cy="134.0" r="2.8" fill="#c64642" /><circle cx="779.2" cy="134.0" r="2.8" fill="#c64642" /><circle cx="799.9" cy="134.0" r="2.8" fill="#c64642" /><circle cx="820.6" cy="222.7" r="2.8" fill="#c64642" /><circle cx="841.3" cy="222.7" r="2.8" fill="#c64642" /><circle cx="862.0" cy="222.7" r="2.8" fill="#c64642" />
+      </svg>
+    </div></div>
+    </section>
+
+    <section class="section two-col">
+      <div>
+        <h2>5. Latest Mission Health</h2>
+        <table>
+          <thead><tr><th>Check</th><th>Status</th><th>Headline</th><th>Detail</th></tr></thead>
+          <tbody><tr><td>FCU Link</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>FCU connected</td><td>armed | mode OFFBOARD | 0.87s ago</td></tr><tr><td>OFFBOARD / ARM</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>OFFBOARD and armed</td><td>0.87s ago</td></tr><tr><td>Vehicle Pose</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>x 31.09 | y -1.18 | z 2.78</td><td>0.01s ago</td></tr><tr><td>LiDAR Scan</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>min 2.79m</td><td>263 finite samples | 0.02s ago</td></tr><tr><td>Nearest Obstacle</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>2.79m</td><td>0.02s ago</td></tr><tr><td>Planner Cmd</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>vx 0.00 | vy 0.00 | vz 0.00 | yaw 0.00</td><td>0.02s ago</td></tr><tr><td>Safety Cmd</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>vx 0.00 | vy 0.00 | vz 0.00 | yaw 0.00</td><td>0.01s ago</td></tr><tr><td>PX4 Setpoint</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>vx 0.00 | vy 0.00 | vz -0.01 | yaw 0.00</td><td>0.01s ago</td></tr><tr><td>Mission Phase</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>HOVER_AT_GOAL</td><td>0.06s ago</td></tr><tr><td>Goal Reached</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>Goal reached</td><td>0.02s ago</td></tr><tr><td>Safety Event</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>normal</td><td>198s ago</td></tr></tbody>
+        </table>
+      </div>
+      <div>
+        <h2>6. Latest Watch Topics</h2>
+        <table>
+          <thead><tr><th>Signal</th><th>Status</th><th>Topic</th><th>Headline</th><th>Detail</th></tr></thead>
+          <tbody><tr><td>MAVROS State</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/mavros/state</td><td>FCU connected</td><td>armed | mode OFFBOARD | 0.87s ago</td></tr><tr><td>Vehicle Pose</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/mavros/local_position/pose</td><td>x 31.09 | y -1.18 | z 2.78</td><td>0.01s ago</td></tr><tr><td>LiDAR Scan</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/scan</td><td>min 2.79m</td><td>263 finite samples | 0.02s ago</td></tr><tr><td>Nearest Obstacle</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/perception/nearest_obstacle_distance</td><td>2.79m</td><td>0.02s ago</td></tr><tr><td>Mission Phase</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/mission/phase</td><td>HOVER_AT_GOAL</td><td>0.06s ago</td></tr><tr><td>Goal Reached</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/mission/goal_reached</td><td>Goal reached</td><td>0.02s ago</td></tr><tr><td>Planner Cmd</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/autonomy/cmd_vel</td><td>vx 0.00 | vy 0.00 | vz 0.00 | yaw 0.00</td><td>0.02s ago</td></tr><tr><td>Safety Cmd</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/safety/cmd_vel</td><td>vx 0.00 | vy 0.00 | vz 0.00 | yaw 0.00</td><td>0.01s ago</td></tr><tr><td>PX4 Setpoint</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/mavros/setpoint_velocity/cmd_vel</td><td>vx 0.00 | vy 0.00 | vz -0.01 | yaw 0.00</td><td>0.01s ago</td></tr><tr><td>Safety Event</td><td><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span></td><td>/drone1/safety/event</td><td>normal</td><td>198s ago</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section two-col">
+      <div>
+        <h2>7. Artifact / Status Summary</h2>
+        <div class="mini-grid"><div class="mini-stat"><div class="mini-label">OK</div><div class="mini-value" style="color:#1d7f5f;">2</div></div><div class="mini-stat"><div class="mini-label">INFO</div><div class="mini-value" style="color:#345f9e;">5</div></div><div class="mini-stat"><div class="mini-label">WARN</div><div class="mini-value" style="color:#c78015;">4</div></div><div class="mini-stat"><div class="mini-label">ERROR</div><div class="mini-value" style="color:#c64642;">29</div></div></div>
+        <div style="margin-top:14px;">
+        <div class="artifact-box">
+          <div class="artifact-grid">
+            <div class="mini-stat"><div class="mini-label">Artifact Status</div><div class="mini-value">ok</div></div>
+            <div class="mini-stat"><div class="mini-label">Run ID</div><div class="mini-value">-</div></div>
+            <div class="mini-stat"><div class="mini-label">Summary</div><div class="mini-value">-</div></div>
+          </div>
+        </div>
+        </div>
+      </div>
+      <div>
+        <h2>8. Troubleshooting Hints</h2>
+        <div class="hint-stack"><div class="hint-card"><div class="hint-head"><span class="badge" style="background:#1d7f5f22;color:#1d7f5f;border-color:#1d7f5f33;">OK</span><strong>Pipeline looks healthy</strong></div><p>Core flight topics, node graph, and artifact output all look reasonable for the current mission state.</p><ul><li><code>ros2 topic echo /drone1/mission/phase --once</code></li><li><code>ros2 topic echo /drone1/mission/goal_reached --once</code></li></ul></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>9. Subscription Errors</h2>
+      <ul><li>No subscription errors were recorded.</li></ul>
+    </section>
+  </div>
+</body>
+</html>

@@ -77,6 +77,8 @@ class LocalPlannerNode(Node):
         self.declare_parameter("cruise_speed", 0.9)
         self.declare_parameter("max_speed", 1.1)
         self.declare_parameter("max_reverse_speed", 0.3)
+        self.declare_parameter("emergency_stop_distance", 1.0)
+        self.declare_parameter("preferred_clearance_margin", 0.15)
         self.declare_parameter("obstacle_stop_distance", 1.5)
         self.declare_parameter("obstacle_slow_distance", 3.0)
         self.declare_parameter("obstacle_influence_distance", 4.5)
@@ -273,10 +275,7 @@ class LocalPlannerNode(Node):
             if (usable_end - usable_start + 1) < min_points:
                 continue
 
-            target_idx = min(
-                range(usable_start, usable_end + 1),
-                key=lambda candidate_idx: abs(normalize_angle(angles[candidate_idx] - goal_angle)),
-            )
+            target_idx = (usable_start + usable_end) // 2
             start_angle = angles[usable_start]
             end_angle = angles[usable_end]
             width_rad = max(0.0, end_angle - start_angle)
@@ -329,6 +328,21 @@ class LocalPlannerNode(Node):
         percentile_idx = int(math.floor(percentile * max(len(values) - 1, 0)))
         return values[percentile_idx]
 
+    def _nearest_clearance(
+        self,
+        ranges: Sequence[float],
+        valid: Sequence[bool],
+    ) -> float:
+        values = [ranges[idx] for idx in range(len(ranges)) if valid[idx]]
+        if not values:
+            return float("inf")
+        return min(values)
+
+    def _preferred_clearance(self) -> float:
+        emergency_stop_distance = float(self.get_parameter("emergency_stop_distance").value)
+        preferred_clearance_margin = max(0.0, float(self.get_parameter("preferred_clearance_margin").value))
+        return emergency_stop_distance + preferred_clearance_margin
+
     def _side_clearance(
         self,
         angles: Sequence[float],
@@ -363,14 +377,21 @@ class LocalPlannerNode(Node):
         lateral_gain = float(self.get_parameter("lateral_bias_gain").value)
         cruise_speed = float(self.get_parameter("cruise_speed").value)
         max_reverse_speed = float(self.get_parameter("max_reverse_speed").value)
+        max_speed = float(self.get_parameter("max_speed").value)
+        preferred_clearance = self._preferred_clearance()
         front_sector = math.radians(float(self.get_parameter("front_sector_half_angle_deg").value))
         front_clearance = self._clearance_near_angle(angles, ranges, valid, 0.0, front_sector)
+        clearance_guard = front_clearance
 
-        reverse_speed = min(max_reverse_speed, backoff_gain * cruise_speed)
-        if front_clearance > float(self.get_parameter("obstacle_stop_distance").value):
+        severity = 0.0
+        if math.isfinite(clearance_guard) and preferred_clearance > 0.0:
+            severity = clamp((preferred_clearance - clearance_guard) / preferred_clearance, 0.0, 1.0)
+
+        reverse_speed = min(max_reverse_speed, backoff_gain * cruise_speed * (0.45 + 0.95 * severity))
+        if clearance_guard > preferred_clearance:
             reverse_speed = 0.0
 
-        lateral_speed = lateral_gain * min(cruise_speed * 0.8, max_reverse_speed + 0.25)
+        lateral_speed = lateral_gain * min(max_speed, cruise_speed * (0.80 + 0.90 * severity))
         return -reverse_speed, lateral_sign * lateral_speed
 
     def _direct_goal_body_cmd(self, x: float, y: float, yaw: float) -> Tuple[float, float]:
@@ -458,12 +479,9 @@ class LocalPlannerNode(Node):
             return
 
         target_sector_half_angle = math.radians(float(self.get_parameter("target_sector_half_angle_deg").value))
+        front_sector_half_angle = math.radians(float(self.get_parameter("front_sector_half_angle_deg").value))
         gap_center_angle = 0.5 * (best_gap.start_angle + best_gap.end_angle)
-        center_bias = clamp(float(self.get_parameter("gap_center_bias").value), 0.0, 1.0)
-        target_angle = normalize_angle(
-            center_bias * gap_center_angle + (1.0 - center_bias) * best_gap.target_angle
-        )
-        target_angle = clamp(target_angle, best_gap.start_angle, best_gap.end_angle)
+        target_angle = clamp(gap_center_angle, best_gap.start_angle, best_gap.end_angle)
 
         commitment = clamp(float(self.get_parameter("gap_target_commitment").value), 0.0, 1.0)
         if (
@@ -482,6 +500,13 @@ class LocalPlannerNode(Node):
             target_angle,
             target_sector_half_angle,
         )
+        front_clearance = self._clearance_near_angle(
+            angles,
+            ranges,
+            valid,
+            0.0,
+            front_sector_half_angle,
+        )
         if not math.isfinite(target_clearance):
             target_clearance = best_gap.target_clearance
 
@@ -495,11 +520,18 @@ class LocalPlannerNode(Node):
         lateral_gain = float(self.get_parameter("lateral_bias_gain").value)
         max_speed = float(self.get_parameter("max_speed").value)
         escape_distance = float(self.get_parameter("gap_escape_distance").value)
+        preferred_clearance = self._preferred_clearance()
 
         base_speed = min(max_speed, cruise_speed * speed_scale)
         speed = base_speed * turn_scale
 
-        if target_clearance <= escape_distance:
+        buffer_clearance = min(target_clearance, front_clearance)
+        if math.isfinite(buffer_clearance) and preferred_clearance > 0.0 and buffer_clearance < preferred_clearance:
+            buffer_scale = clamp(buffer_clearance / preferred_clearance, 0.0, 1.0)
+            base_speed *= buffer_scale * buffer_scale
+            speed = min(speed, base_speed)
+
+        if target_clearance <= escape_distance or buffer_clearance <= preferred_clearance:
             vx_body, vy_body = self._escape_command(angles, ranges, valid)
             self._last_target_angle = None
         else:

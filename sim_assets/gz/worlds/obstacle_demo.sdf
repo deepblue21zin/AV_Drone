@@ -180,7 +180,7 @@
 
     <model name="corridor_wall_end">
       <static>true</static>
-      <pose>33.20 0.00 3.00 0 0 0</pose>
+      <pose>35.00 0.00 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
@@ -556,7 +556,7 @@
 
     <model name="center_pole_04">
       <static>true</static>
-      <pose>27.50 0.95 3.00 0 0 0</pose>
+      <pose>27.50 2.10 3.00 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>

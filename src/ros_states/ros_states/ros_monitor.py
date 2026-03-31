@@ -1157,11 +1157,16 @@ class RosMonitor:
     def get_debug_recording_status(self):
         with self._debug_lock:
             data = dict(self._debug_state)
+        session_name = None
+        if data.get('session_dir'):
+            session_name = Path(data['session_dir']).name
         data['recording_active'] = bool(data.get('active'))
         data['root_dir'] = str(self._debug_root_dir())
         data['domain_id'] = self._domain_id
         data['profile'] = self._profile.to_dict()
-        data['report_url'] = '/debug/report/current' if data.get('report_path') else None
+        data['session_name'] = session_name
+        data['report_url'] = f'/debug/report/{session_name}' if data.get('report_path') and session_name else None
+        data['current_report_url'] = '/debug/report/current' if data.get('report_path') else None
         return _json_safe_value(data)
 
     def _set_debug_error(self, message):
@@ -1169,7 +1174,60 @@ class RosMonitor:
             self._debug_state['last_error'] = message
         self._write_debug_manifest()
 
-    def get_debug_report_path(self):
+    def _resolve_debug_session_dir(self, session_name):
+        if not session_name:
+            return None
+        root_dir = self._debug_root_dir()
+        candidate = root_dir / Path(session_name).name
+        if candidate.parent != root_dir:
+            return None
+        if not candidate.exists() or not candidate.is_dir():
+            return None
+        return candidate
+
+    def list_debug_reports(self, limit=20):
+        root_dir = self._debug_root_dir()
+        if not root_dir.exists():
+            return []
+
+        sessions = []
+        for session_dir in sorted(root_dir.iterdir(), key=lambda path: path.stat().st_mtime, reverse=True):
+            if not session_dir.is_dir():
+                continue
+            manifest_path = session_dir / 'session_manifest.json'
+            manifest = self._read_json_file(manifest_path) if manifest_path.exists() else {}
+            report_path = Path(manifest.get('report_path') or (session_dir / 'report.html'))
+            report_exists = report_path.exists()
+            session_name = session_dir.name
+            sessions.append(_json_safe_value({
+                'session_name': session_name,
+                'session_dir': str(session_dir),
+                'started_at': manifest.get('started_at'),
+                'stopped_at': manifest.get('stopped_at'),
+                'interval_sec': manifest.get('interval_sec'),
+                'snapshot_count': manifest.get('snapshot_count', 0),
+                'recording_active': bool(manifest.get('recording_active')),
+                'report_generated_at': manifest.get('report_generated_at'),
+                'report_path': str(report_path) if report_exists else None,
+                'report_url': f'/debug/report/{session_name}' if report_exists else None,
+                'current_alias_url': '/debug/report/current' if report_exists else None,
+            }))
+            if len(sessions) >= max(int(limit), 1):
+                break
+        return sessions
+
+    def get_debug_report_path(self, session_name=None):
+        if session_name:
+            session_dir = self._resolve_debug_session_dir(session_name)
+            if not session_dir:
+                return None
+            manifest_path = session_dir / 'session_manifest.json'
+            manifest = self._read_json_file(manifest_path) if manifest_path.exists() else {}
+            report_path = manifest.get('report_path')
+            if report_path and Path(report_path).exists():
+                return report_path
+            fallback = session_dir / 'report.html'
+            return str(fallback) if fallback.exists() else None
         with self._debug_lock:
             return self._debug_state.get('report_path')
 
@@ -1188,7 +1246,10 @@ class RosMonitor:
         self._write_debug_manifest()
 
         result = dict(result)
-        result['report_url'] = '/debug/report/current'
+        session_name = Path(session_dir).name
+        result['report_url'] = f'/debug/report/{session_name}'
+        result['current_report_url'] = '/debug/report/current'
+        result['session_name'] = session_name
         result['reason'] = reason
         result['recording'] = self.get_debug_recording_status()
         return _json_safe_value(result)
@@ -1236,14 +1297,23 @@ class RosMonitor:
 
     def stop_debug_recording(self, reason='manual_stop'):
         was_active = bool(self._debug_state.get('active'))
+        snapshot_result = None
         if was_active:
             self._debug_stop_event.set()
             with self._debug_lock:
                 self._debug_state['active'] = False
                 self._debug_state['stopped_at'] = self._debug_iso()
             self._write_debug_manifest()
-            self.save_debug_snapshot(reason=reason, include_graph=True)
-        return self.get_debug_recording_status()
+            snapshot_result = self.save_debug_snapshot(reason=reason, include_graph=True)
+
+        result = {
+            'recording': self.get_debug_recording_status(),
+            'auto_generated_report': bool(snapshot_result and snapshot_result.get('report')),
+            'snapshot_path': snapshot_result.get('snapshot_path') if snapshot_result else None,
+            'captured_at': snapshot_result.get('captured_at') if snapshot_result else None,
+            'report': snapshot_result.get('report') if snapshot_result else None,
+        }
+        return _json_safe_value(result)
 
     # --- API methods ---
 

@@ -90,9 +90,23 @@ http://localhost:5050
 
 - `Save Snapshot` : 현재 화면 기준 상태를 한 번 JSON으로 저장하고, 바로 HTML report도 갱신
 - `Start Recording` : 일정 간격으로 디버깅 타임라인을 계속 기록 시작
-- `Stop Recording` : 기록 세션 종료 후 마지막 스냅샷 저장
+- `Stop Recording` : 기록 세션 종료 후 마지막 스냅샷 저장, 그리고 report를 바로 자동 생성
 - `Generate Report` : 저장된 JSON/timeline을 읽어서 사람이 보기 쉬운 요약 + 시각화 + 그래프로 다시 생성
 - `Open Report` : 가장 최근 생성된 report를 브라우저 새 탭에서 열기
+
+즉 일반적인 사용 흐름에서는 `Generate Report`를 꼭 따로 누를 필요가 없습니다.
+
+- `Start Recording`
+- 실험 진행
+- `Stop Recording`
+
+이렇게만 해도 마지막 시점에 report가 자동으로 생성됩니다. `Generate Report` 버튼은 기존 세션을 다시 변환하거나, 수동 snapshot만 저장한 뒤 다시 HTML을 만들고 싶을 때 쓰는 재생성 용도입니다.
+
+세션별로 report를 나눠서 여는 방식도 이제 지원합니다.
+
+- 최신 report 별칭: `http://localhost:5050/debug/report/current`
+- 세션별 고정 URL: `http://localhost:5050/debug/report/<session_name>`
+- 세션 목록 API: `http://localhost:5050/api/debug/reports`
 
 저장 위치는 기본적으로 아래입니다.
 
@@ -113,6 +127,20 @@ report를 직접 여는 URL은 아래입니다.
 ```text
 http://localhost:5050/debug/report/current
 ```
+
+특정 세션을 고정해서 열려면 session 폴더 이름을 그대로 붙이면 됩니다.
+
+예:
+
+```text
+http://localhost:5050/debug/report/20260331_084137_drone1_recording
+```
+
+중요:
+
+- `artifacts/_ros_states_debug/.../report.html` 파일을 로컬 경로로 직접 열면 브라우저나 IDE preview에서 막힐 수 있습니다.
+- 가장 안정적인 방법은 항상 `http://localhost:5050/debug/report/current` 또는 세션별 `http://localhost:5050/debug/report/<session_name>` 로 여는 것입니다.
+- 생성된 `report.html` 자체는 정적 HTML이라서 공유용 결과물로 쓸 수 있습니다. 다만 로컬 파일 직접 열기는 환경에 따라 막힐 수 있어서, 로컬에서는 Flask URL로 여는 쪽이 더 안정적입니다.
 
 한 번 코드 변경 후에는 `ros_states`만 다시 빌드하고 재실행하면 됩니다.
 

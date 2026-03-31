@@ -121,6 +121,14 @@ def create_app():
     def debug_status():
         return jsonify(monitor.get_debug_recording_status())
 
+    @app.route('/api/debug/reports')
+    def debug_reports():
+        limit = request.args.get('limit', default=20, type=int)
+        return jsonify({
+            'reports': monitor.list_debug_reports(limit=max(limit, 1)),
+            'current': monitor.get_debug_recording_status(),
+        })
+
     @app.route('/api/debug/snapshot', methods=['POST'])
     def debug_snapshot():
         data = request.get_json(silent=True) or {}
@@ -166,6 +174,16 @@ def create_app():
         report_path = monitor.get_debug_report_path()
         if not report_path:
             return 'No debug report has been generated yet.', 404
+        report_file = Path(report_path)
+        if not report_file.exists():
+            return f'Report file not found: {report_path}', 404
+        return send_file(report_file)
+
+    @app.route('/debug/report/<session_name>')
+    def debug_report_by_session(session_name):
+        report_path = monitor.get_debug_report_path(session_name=session_name)
+        if not report_path:
+            return f'No debug report was found for session: {session_name}', 404
         report_file = Path(report_path)
         if not report_file.exists():
             return f'Report file not found: {report_path}', 404
