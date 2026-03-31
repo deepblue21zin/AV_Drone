@@ -1,0 +1,47 @@
+mppi_lidar:
+  ros__parameters:
+    takeoff_z: 3.0
+    goal_x: 24.0
+    goal_y: 0.0
+    goal_z: 3.0
+    goal_yaw: 0.0
+
+    hover_sec_after_takeoff: 2.0
+    hover_sec_at_goal: 3.0
+    goal_tol_xy: 0.6
+
+    dt: 0.05
+    horizon: 100
+    num_samples: 400
+
+    v_max: 2.0
+    yaw_rate_max: 1.2
+
+    safety_margin: 1.1
+    near_buffer: 0.8
+    w_obst: 120.0
+
+    kp_z: 1.2
+    vz_max: 1.2
+
+    cmd_rate_hz: 20.0
+    startup_wait_sec: 3.0
+
+    use_lidar_obstacles: true
+    scan_topic: /scan
+    scan_valid_max_range: 8.0
+    scan_downsample: 2
+    cluster_dist_thresh: 0.8
+    cluster_min_points: 3
+    dynamic_obs_max: 8
+    dynamic_obs_radius_pad: 0.25
+
+    lidar_forward_only: false
+    lidar_fov_deg: 220.0
+    scan_timeout_sec: 2.0
+
+    lidar_offset_x: 0.0
+    lidar_offset_y: 0.0
+    lidar_yaw_offset: 0.0
+
+    emergency_stop_dist: 1.0

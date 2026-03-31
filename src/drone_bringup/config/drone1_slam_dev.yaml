@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    drone_name: "drone1"
+    scenario_name: "single_drone_obstacle_demo"
+    mavros_namespace: "/mavros"
+    scan_topic: "/drone1/scan"
+    pose_topic: "/mavros/local_position/pose"
+    nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
+    slam_status_topic: "/drone1/slam/status"
+    slam_input_ready_topic: "/drone1/slam/input_ready"
+    slam_map_ready_topic: "/drone1/slam/map_ready"
+    slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    slam_home_pose_topic: "/drone1/slam/home_pose"
+    input_timeout_sec: 0.5
+    heartbeat_hz: 2.0

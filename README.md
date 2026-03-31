@@ -2,6 +2,7 @@
 
 `AV_Drone`는 현재 `PX4 SITL + Gazebo Classic 11 + ROS 2 Humble + MAVROS` 기준으로 정리된 단일 드론 baseline 저장소입니다.
 지금 active path의 핵심은 `LiDAR sensing -> reactive obstacle avoidance -> artifact/logging -> 이후 multi-UAV / MPPI 연구 확장`으로 이어지는 재현 가능한 시작점을 유지하는 것입니다.
+이제 저장소 안에는 팀 분리 개발을 위한 `회피`, `SLAM`, `MPPI`, `MPPI LiDAR` 관련 패키지와 개별 실행 프로필도 같이 들어 있습니다.
 
 ## 1. 현재 기준 스택
 
@@ -9,6 +10,7 @@
 - `ros` 컨테이너: ROS 2 Humble + MAVROS + autonomy nodes + `ros_states`
 - 센서 입력: Gazebo Classic LiDAR가 `/drone1/scan`으로 직접 publish
 - 주 실행 경로: `single_drone_autonomy.launch.py`
+- 개발 실행 경로: `single_drone_avoidance_dev.launch.py`, `single_drone_slam_dev.launch.py`, `single_drone_mppi_dev.launch.py`
 - 상태 대시보드: `ros_states`
 
 중요:
@@ -17,9 +19,111 @@
 - `sim`과 `ros`는 `host network + host ipc + UDP-only Fast DDS`로 맞춰져 있습니다.
 - 이 설정이 맞아야 `/drone1/scan`이 `sim` 컨테이너에서 `ros` 컨테이너로 정상 전달됩니다.
 
-## 2. 기본 실행 순서
+## 2. 분리 개발 프로필
 
-### 2-1. Gazebo Classic + PX4 시작
+현재 저장소는 팀원별로 아래 세 가지 프로필을 따로 실행하도록 세팅되어 있습니다.
+
+- 회피 개발: `drone_bringup/single_drone_avoidance_dev.launch.py`
+- SLAM 개발: `drone_bringup/single_drone_slam_dev.launch.py`
+- MPPI 개발: `drone_bringup/single_drone_mppi_dev.launch.py`
+
+중요:
+
+- 같은 `drone1` 네임스페이스 기준으로는 한 번에 **하나의 프로필만** 띄우는 것을 원칙으로 합니다.
+- 회피와 MPPI는 지금 단계에서 섞어 돌리지 않습니다.
+- SLAM 프로필은 `drone_slam/slam_scaffold_node`를 기본으로 올립니다. 이 노드는 실제 SLAM 알고리즘이 아니라, 팀원이 나중에 실제 구현으로 교체할 수 있게 만든 인터페이스 예약용 scaffold입니다.
+- 현재 MPPI는 아직 공통 planner selector에 연결된 형태가 아니라, 기존 팀원이 만든 독립 미션형 노드를 wrapper launch로 감싼 상태입니다.
+
+### 2-1. 공통 빌드
+
+```bash
+docker compose exec ros bash
+source /opt/ros/humble/setup.bash
+cd /workspace/AV_Drone
+colcon build --packages-select drone_bringup drone_control drone_perception drone_planning drone_safety drone_metrics ros_states drone_slam mppi mppi_lidar --symlink-install
+source install/setup.bash
+```
+
+### 2-2. 회피 개발 프로필
+
+```bash
+ros2 launch drone_bringup single_drone_avoidance_dev.launch.py
+```
+
+이 프로필은 아래 경로를 사용합니다.
+
+- 회피 planner 출력: `/drone1/planner/avoid/cmd_vel`
+- safety 입력 planner command: `/drone1/planner/avoid/cmd_vel`
+- safety 출력: `/drone1/safety/cmd_vel`
+- controller는 기존처럼 safe command를 받아 비행합니다.
+
+즉 회피 알고리즘 담당자는 기존 baseline과 거의 같은 방식으로 테스트하되, planner 출력 토픽이 독립되어 나중 통합 시 충돌이 줄어들도록 맞춰 둔 상태입니다.
+
+### 2-3. SLAM 개발 프로필
+
+```bash
+ros2 launch drone_bringup single_drone_slam_dev.launch.py
+```
+
+이 프로필은 MAVROS + LiDAR perception + SLAM scaffold만 띄웁니다.
+
+예약된 SLAM 상태 토픽은 아래입니다.
+
+- `/drone1/slam/status`
+- `/drone1/slam/input_ready`
+- `/drone1/slam/map_ready`
+- `/drone1/slam/localization_ok`
+
+즉 SLAM 담당자는 scan/pose 입력 경로를 따로 확인하면서, 나중에 실제 SLAM 패키지 구현으로 `drone_slam` 패키지 안 scaffold를 교체해 나가면 됩니다.
+
+### 2-4. MPPI 개발 프로필
+
+```bash
+ros2 launch drone_bringup single_drone_mppi_dev.launch.py
+```
+
+이 프로필은 현재 `mppi/mppi.launch.py`를 wrapper로 감싼 것입니다.
+
+중요:
+
+- 현재 MPPI 노드는 planner 단독 노드가 아니라 `takeoff -> mppi -> hover/land` 성격의 독립 미션 노드입니다.
+- 따라서 지금 단계에서는 회피 baseline과 동시에 실행하지 않고, MPPI 성능 확인용으로만 따로 실행하는 것이 맞습니다.
+- 나중에 통합 단계에서 planner core와 mission wrapper를 분리하는 것이 권장됩니다.
+
+참고:
+
+- LiDAR를 직접 읽는 별도 MPPI 구현은 이제 `src/mppi_lidar` 패키지로 정리되어 있습니다.
+- 이 패키지는 자체 launch를 포함하므로 필요하면 아래처럼 독립 실행할 수 있습니다.
+
+```bash
+ros2 launch mppi_lidar mppi_lidar.launch.py
+```
+
+### 2-5. 향후 통합을 위한 토픽 계약
+
+지금 바로 다 쓰지는 않지만, 나중 통합을 위해 아래 토픽 이름을 먼저 잡아 두었습니다.
+
+- 회피 planner 출력: `/drone1/planner/avoid/cmd_vel`
+- MPPI planner 출력 예약: `/drone1/planner/mppi/cmd_vel`
+- 최종 selector 출력 예약: `/drone1/planner/selected/cmd_vel`
+- safety 입력 planner command는 통합 시 최종적으로 selector 출력에 맞추는 방향입니다.
+
+즉 개발 단계에서는 분리 실행, 통합 단계에서는 planner selector를 추가해 hard switch 방식으로 붙이는 전략을 기본으로 합니다.
+
+### 2-6. Git 협업 권장 범위
+
+merge 충돌을 줄이기 위해, 각 담당자는 아래 범위를 우선 소유하는 식으로 작업하는 것을 권장합니다.
+
+- 회피 담당: `src/drone_planning`, `src/drone_bringup/launch/single_drone_avoidance_dev.launch.py`, `src/drone_bringup/config/drone1_avoidance_dev.yaml`
+- SLAM 담당: `src/drone_slam`, `src/drone_bringup/launch/single_drone_slam_dev.launch.py`, `src/drone_bringup/config/drone1_slam_dev.yaml`
+- MPPI 담당: `src/mppi`, `src/mppi_lidar`, `src/drone_bringup/launch/single_drone_mppi_dev.launch.py`
+- 통합 담당: `src/drone_bringup`, 이후 planner selector / behavior manager 추가 영역
+
+즉 알고리즘 구현은 각 패키지에서 분리하고, 공통 launch와 topic 계약만 최소한으로 맞추는 방식이 가장 안전합니다.
+
+## 3. 기본 실행 순서
+
+### 3-1. Gazebo Classic + PX4 시작
 
 이제 기본 경로는 예전처럼 `sim` 컨테이너가 올라갈 때 Gazebo Classic GUI가 같이 뜨는 방식입니다.
 helper 스크립트는 GUI가 꼬였을 때만 쓰는 보조 경로입니다.
@@ -41,7 +145,7 @@ Startup script returned successfully
 기본 경로에서는 이 시점에 Gazebo Classic GUI가 자동으로 떠야 합니다.
 helper 스크립트는 자동 GUI가 꼬였을 때만 보조로 사용합니다.
 
-### 2-2. autonomy launch 실행
+### 3-2. autonomy launch 실행
 
 ```bash
 docker compose exec ros bash
@@ -52,7 +156,7 @@ source install/setup.bash
 ros2 launch drone_bringup single_drone_autonomy.launch.py
 ```
 
-### 2-3. `ros_states` 실행
+### 3-3. `ros_states` 실행
 
 ```bash
 docker compose exec ros bash
@@ -76,7 +180,7 @@ http://localhost:5050
 
 같은 네트워크 다른 장치에서 볼 때는 호스트 IP 기준 `http://<host-ip>:5050`를 사용하면 됩니다.
 
-### 2-4. `ros_states` 디버깅 기록 저장
+### 3-4. `ros_states` 디버깅 기록 저장
 
 이제 `ros_states`에서 보고 있는 디버깅 상태를 그대로 저장할 수 있습니다.
 
@@ -158,7 +262,7 @@ ros2 launch ros_states ros_states.launch.py \
   open_browser:=false
 ```
 
-## 3. Gazebo GUI
+## 4. Gazebo GUI
 
 기본 경로에서는 `docker compose up -d --force-recreate sim ros`만으로 Gazebo Classic GUI가 자동으로 떠야 합니다.
 아래 helper는 정말로 GUI가 꼬였을 때만 수동 복구용으로 남겨둡니다.
@@ -181,7 +285,7 @@ xhost +SI:localuser:root
 xhost +local:docker
 ```
 
-## 4. 지금 obstacle demo 기준 값
+## 5. 지금 obstacle demo 기준 값
 
 현재 demo는 아래 기준으로 맞춰져 있습니다.
 
@@ -190,13 +294,13 @@ xhost +local:docker
 - `goal_tol_xy`: `0.35 m`
 - obstacle world: `obstacle_demo`
 - obstacle layout: side-wall corridor + thick poles
-- planner: `local_planner_lidar_reactive`
+- planner: `local_planner_follow_the_gap`
 
 즉 현재 코스는 양쪽 벽으로 폭을 제한한 corridor 안에 두꺼운 기둥을 번갈아 배치해, 드론이 옆으로 크게 도망가지 않고 장애물 사이를 통과하며 더 오래 회피하도록 설계되어 있습니다.
 
-## 5. 멈췄을 때 해석하는 법
+## 6. 멈췄을 때 해석하는 법
 
-### 5-1. 정상 종료
+### 6-1. 정상 종료
 
 `ros_states`에서 아래처럼 보이면 센싱 실패가 아니라 미션 완료입니다.
 
@@ -205,7 +309,7 @@ xhost +local:docker
 
 이 경우 planner/safety가 `0,0,0`을 내도 정상입니다. 이미 목표에 도달해서 hover 중인 상태입니다.
 
-### 5-2. 센싱/통신 문제
+### 6-2. 센싱/통신 문제
 
 아래면 런타임 문제를 먼저 의심해야 합니다.
 
@@ -228,7 +332,7 @@ docker compose exec ros bash -lc 'source /opt/ros/humble/setup.bash && cd /works
 docker compose exec ros bash -lc 'source /opt/ros/humble/setup.bash && cd /workspace/AV_Drone && source install/setup.bash && ros2 topic echo /mavros/state --once'
 ```
 
-## 6. 다시 처음부터 실행할 때
+## 7. 다시 처음부터 실행할 때
 
 ```bash
 cd /home/deepblue/AV_Drone
@@ -241,7 +345,7 @@ docker compose logs -f sim
 
 이후 `Startup script returned successfully`가 뜨면 autonomy와 `ros_states`를 다시 띄우면 됩니다.
 
-## 7. `source`, `colcon build`, `docker compose build` 의미
+## 8. `source`, `colcon build`, `docker compose build` 의미
 
 `source /opt/ros/humble/setup.bash`
 
@@ -264,7 +368,7 @@ docker compose logs -f sim
 - 컨테이너 이미지 자체를 다시 만드는 단계입니다.
 - Dockerfile이나 apt 의존성이 바뀌었을 때 주로 다시 합니다.
 
-## 8. 문서
+## 9. 문서
 
 - 구조 설명: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
 - 명령어 치트시트: [command-reference.md](/home/deepblue/AV_Drone/docs/command-reference.md)

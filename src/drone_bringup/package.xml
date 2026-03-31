@@ -14,8 +14,10 @@
   <exec_depend>drone_metrics</exec_depend>
   <exec_depend>drone_perception</exec_depend>
   <exec_depend>drone_planning</exec_depend>
+  <exec_depend>drone_slam</exec_depend>
   <exec_depend>drone_safety</exec_depend>
   <exec_depend>mavros</exec_depend>
+  <exec_depend>mppi</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
