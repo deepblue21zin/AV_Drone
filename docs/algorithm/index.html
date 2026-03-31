@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AV Drone 알고리즘 인덱스</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: #fffaf1;
+      --ink: #172026;
+      --muted: #5a6772;
+      --line: #d8cdbf;
+      --primary: #0e5a6f;
+      --accent: #b85c38;
+      --shadow: 0 18px 42px rgba(23, 32, 38, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(14, 90, 111, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(184, 92, 56, 0.18), transparent 30%),
+        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+    .hero, .panel {
+      background: var(--panel);
+      border: 1px solid rgba(216, 205, 191, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 34px;
+      margin-bottom: 22px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.1;
+    }
+    h1 {
+      font-size: clamp(2.1rem, 4vw, 3.6rem);
+      letter-spacing: -0.03em;
+    }
+    h2 { font-size: 1.35rem; }
+    h3 { font-size: 1.12rem; }
+    p {
+      margin: 0 0 14px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(14, 90, 111, 0.1);
+      color: var(--primary);
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .grid.cards {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      margin-top: 16px;
+    }
+    .panel {
+      padding: 24px;
+      margin-top: 18px;
+    }
+    .card {
+      padding: 22px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249,243,233,0.96));
+      border: 1px solid rgba(216, 205, 191, 0.9);
+    }
+    .chip {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(184, 92, 56, 0.12);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    ol, ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    a:hover { text-decoration: underline; }
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding-left: 14px;
+      color: var(--ink);
+    }
+    code {
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      background: rgba(23, 32, 38, 0.07);
+      color: var(--ink);
+    }
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <span class="eyebrow">알고리즘 문서</span>
+      <h1>현재 활성 알고리즘 맵</h1>
+      <p>
+        이 폴더는 현재 AV Drone 런타임에서 실제로 동작하는 알고리즘 경로를 설명합니다.
+        가장 중요한 점은 지금 실행 중인 planner가 MPPI가 아니라 <code>local_planner_follow_the_gap</code>라는 것입니다.
+      </p>
+      <p class="callout">
+        런타임 순서: 원시 LiDAR scan -> nearest obstacle metric 및 gap planner -> safety gate ->
+        PX4 offboard phase state machine.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>지금 실제로 활성인 알고리즘</h2>
+      <div class="grid cards">
+        <article class="card">
+          <span class="chip">플래너</span>
+          <h3><a href="./local_planner_follow_the_gap.html">local_planner_follow_the_gap</a></h3>
+          <p>
+            scan 안의 free gap을 찾고, goal 방향과 비교해 점수를 매긴 뒤,
+            body-to-world velocity command를 내보내는 반응형 local planner입니다.
+          </p>
+        </article>
+        <article class="card">
+          <span class="chip">인지</span>
+          <h3><a href="./nearest_obstacle_extraction.html">nearest_obstacle_extraction</a></h3>
+          <p>
+            모니터링과 리포팅을 위해 가장 가까운 valid obstacle distance만 뽑아내는
+            최소 LiDAR 요약 단계입니다.
+          </p>
+        </article>
+        <article class="card">
+          <span class="chip">안전</span>
+          <h3><a href="./safety_timeout_guard.html">safety_timeout_guard</a></h3>
+          <p>
+            timeout과 optional obstacle emergency stop으로 stale하거나 unsafe한
+            planner 출력을 차단하는 guard layer입니다.
+          </p>
+        </article>
+        <article class="card">
+          <span class="chip">제어</span>
+          <h3><a href="./autonomy_manager_state_machine.html">autonomy_manager_state_machine</a></h3>
+          <p>
+            setpoint stream, arm, takeoff, plan 추종, goal hover를 단계적으로 관리하는
+            phase 기반 비행 제어 래퍼입니다.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h2>런타임 흐름</h2>
+        <ol>
+          <li>LiDAR 노드가 <code>LaserScan</code>을 받고 nearest-obstacle metric을 발행합니다.</li>
+          <li>local planner가 pose와 scan을 읽고 gap 기반 velocity command를 선택합니다.</li>
+          <li>safety monitor가 pose, scan, planner command의 freshness를 확인한 뒤 전달 여부를 결정합니다.</li>
+          <li>autonomy manager가 safe XY motion에 altitude hold와 PX4 offboard phase logic을 합칩니다.</li>
+        </ol>
+      </article>
+      <article class="panel">
+        <h2>로그 읽는 법</h2>
+        <ul>
+          <li><code>PHASE =&gt; ...</code> 는 autonomy manager에서 나오며 mission state transition을 뜻합니다.</li>
+          <li><code>Safety state changed: ...</code> 는 safety guard에서 나오며 command가 왜 차단됐는지 설명합니다.</li>
+          <li>planner 자체는 조용한 편이라, 실제 동작은 command, phase, report artifact를 함께 보고 해석하는 경우가 많습니다.</li>
+          <li>이제 report에는 stability, root-cause summary, artifact linkage가 함께 들어갑니다.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>여기서 다루지 않는 것</h2>
+      <p>
+        저장소에는 여전히 <code>src/mppi/</code> 아래에 MPPI 코드가 남아 있지만, 현재 active launch path는 planner를
+        <code>local_planner_follow_the_gap</code>로 식별합니다. 그래서 이 폴더는 현재 런타임 알고리즘을 우선 문서화하고,
+        MPPI는 현재 mission planner가 아닌 참고용 코드로 취급합니다.
+      </p>
+    </section>
+
+    <footer>
+      2026-03-31 기준 코드 구조를 바탕으로 정리했습니다. 각 링크 페이지에서 정확한 동작 방식, 입력과 출력,
+      실패 모드, 로그 특징을 확인할 수 있습니다.
+    </footer>
+  </main>
+</body>
+</html>

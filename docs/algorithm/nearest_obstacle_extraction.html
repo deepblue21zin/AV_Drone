@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nearest_obstacle_extraction</title>
+  <style>
+    :root {
+      --bg: #edf4f1;
+      --panel: rgba(252, 255, 252, 0.94);
+      --ink: #162127;
+      --muted: #5b6870;
+      --line: #cfd9d4;
+      --primary: #1e6f5c;
+      --accent: #8d5a2b;
+      --shadow: 0 18px 40px rgba(22, 33, 39, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(30, 111, 92, 0.14), transparent 30%),
+        radial-gradient(circle at top right, rgba(141, 90, 43, 0.14), transparent 28%),
+        linear-gradient(180deg, #f5faf7 0%, var(--bg) 100%);
+    }
+    main {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+    .hero, .panel {
+      background: var(--panel);
+      border: 1px solid rgba(207, 217, 212, 0.95);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 34px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      padding: 24px;
+      margin-top: 18px;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+      line-height: 1.1;
+    }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      letter-spacing: -0.03em;
+    }
+    h2 { font-size: 1.28rem; }
+    p {
+      margin: 0 0 14px;
+      line-height: 1.72;
+      color: var(--muted);
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(30, 111, 92, 0.11);
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    ol, ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    code {
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      background: rgba(22, 33, 39, 0.07);
+      color: var(--ink);
+    }
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding-left: 14px;
+      color: var(--ink);
+    }
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <span class="eyebrow">인지 유틸리티</span>
+      <h1>nearest_obstacle_extraction</h1>
+      <p>
+        이 node는 최소한의 perception reduction 단계입니다. obstacle을 분류하거나 semantic scene을 만들지는 않고,
+        현재 LiDAR scan을 하나의 scalar 값, 즉 가장 가까운 valid obstacle distance로 압축합니다.
+      </p>
+      <p class="callout">
+        현재 stack에서는 완전한 autonomy algorithm이라기보다 monitoring과 reporting을 위한 signal에 가깝습니다.
+      </p>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h2>입력과 출력</h2>
+        <ul>
+          <li>입력 topic: <code>/drone1/scan</code></li>
+          <li>출력 topic: <code>/drone1/perception/nearest_obstacle_distance</code></li>
+          <li>출력 타입: <code>std_msgs/Float32</code></li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>이것이 아닌 것</h2>
+        <ul>
+          <li>tracker가 아닙니다.</li>
+          <li>clustering pipeline이 아닙니다.</li>
+          <li>main gap logic용 planner input transformer가 아닙니다.</li>
+          <li>world model이 아닙니다.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>알고리즘</h2>
+      <ol>
+        <li>raw <code>LaserScan</code>을 subscribe합니다.</li>
+        <li>non-finite range를 제거합니다.</li>
+        <li><code>range_min</code>보다 작은 sample을 제거합니다.</li>
+        <li>남은 range 중 최소값을 구합니다.</li>
+        <li>그 최소값을 nearest obstacle distance로 publish합니다.</li>
+      </ol>
+      <p>
+        valid range가 하나도 없으면 node는 <code>inf</code>를 publish합니다. 로직은 의도적으로 단순하고 deterministic합니다.
+      </p>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h2>어떻게 활용되는가</h2>
+        <p>
+          local planner와 safety monitor는 둘 다 raw scan을 직접 읽기 때문에, 이 topic은 observability signal로 이해하는 것이 맞습니다.
+          대시보드, metrics, alert threshold, 사람이 읽는 report에 특히 유용합니다.
+        </p>
+      </article>
+      <article class="panel">
+        <h2>로그에서 어떻게 보이는가</h2>
+        <ul>
+          <li>시작 시 <code>Perception scaffold ready: ...</code> 한 줄을 출력합니다.</li>
+          <li>값 자체는 주로 topic, metrics capture, downstream report에서 확인합니다.</li>
+          <li>값이 계속 <code>inf</code>라면 먼저 scan validity와 sensor freshness를 확인하는 것이 맞습니다.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>운영상 해석 포인트</h2>
+      <p>
+        이 node가 유용한 이유는 단일 nearest-distance 값이 시간축 그래프로 보기 쉽기 때문입니다. 실제로는 mission이
+        평온했는지, 공간이 빡빡했는지, emergency stop threshold 근처를 반복적으로 스쳤는지를 가장 빨리 보여주는 지표 중 하나입니다.
+      </p>
+      <p>
+        이 metric이 active stack 전체에서 어떤 위치인지 보려면 <a href="./index.html">algorithm index</a>로 돌아가면 됩니다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

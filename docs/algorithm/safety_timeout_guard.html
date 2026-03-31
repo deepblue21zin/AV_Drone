@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>safety_timeout_guard</title>
+  <style>
+    :root {
+      --bg: #f6efe9;
+      --panel: rgba(255, 250, 245, 0.95);
+      --ink: #171f26;
+      --muted: #5e6770;
+      --line: #dbcfc5;
+      --primary: #9a3412;
+      --accent: #0f4c5c;
+      --shadow: 0 18px 40px rgba(23, 31, 38, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(154, 52, 18, 0.16), transparent 32%),
+        radial-gradient(circle at 100% 0%, rgba(15, 76, 92, 0.16), transparent 28%),
+        linear-gradient(180deg, #fbf6f1 0%, var(--bg) 100%);
+    }
+    main {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+    .hero, .panel {
+      background: var(--panel);
+      border: 1px solid rgba(219, 207, 197, 0.95);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 34px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      padding: 24px;
+      margin-top: 18px;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+      line-height: 1.1;
+    }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      letter-spacing: -0.03em;
+    }
+    h2 { font-size: 1.28rem; }
+    p {
+      margin: 0 0 14px;
+      line-height: 1.72;
+      color: var(--muted);
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(154, 52, 18, 0.11);
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    ol, ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    code {
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      background: rgba(23, 31, 38, 0.07);
+      color: var(--ink);
+    }
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding-left: 14px;
+      color: var(--ink);
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <span class="eyebrow">안전 계층</span>
+      <h1>safety_timeout_guard</h1>
+      <p>
+        이 node는 planner와 flight controller 사이의 hard gate입니다. 더 나은 path를 계산하지는 않고,
+        현재 planner command가 충분히 fresh하고 safe한지 여부만 판단합니다.
+      </p>
+      <p class="callout">
+        중요한 입력이 stale하면 이 node는 zero velocity를 publish하고 safety reason code를 남깁니다.
+      </p>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h2>입력과 출력</h2>
+        <ul>
+          <li>입력: pose, raw scan, planner command</li>
+          <li>출력: safe command, safety event string</li>
+          <li>주 command path: <code>/drone1/autonomy/cmd_vel</code> -> <code>/drone1/safety/cmd_vel</code></li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>핵심 아이디어</h2>
+        <p>
+          stale data를 unsafe data로 취급합니다. 시스템이 pose, scan, planner command freshness를 잃으면,
+          pipeline이 다시 건강해질 때까지 motion 전달을 멈추는 것이 가장 안전하다는 철학입니다.
+        </p>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>판단 순서</h2>
+      <ol>
+        <li>startup grace time 동안 모든 motion을 hold합니다.</li>
+        <li>pose가 없거나 <code>pose_timeout_sec</code>보다 오래됐으면 command를 차단합니다.</li>
+        <li><code>require_scan</code>이 켜져 있으면 scan timeout 시 command를 차단합니다.</li>
+        <li>planner command가 없거나 stale하면 차단합니다.</li>
+        <li>필요하면 nearest scan distance가 threshold 아래일 때 emergency stop을 겁니다.</li>
+        <li>모든 검사가 통과했을 때만 latest planner command를 safe command로 전달합니다.</li>
+      </ol>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h2>보게 되는 Safety Reason</h2>
+        <ul>
+          <li><code>startup_grace</code></li>
+          <li><code>pose_timeout</code></li>
+          <li><code>scan_timeout</code></li>
+          <li><code>planner_cmd_timeout</code></li>
+          <li><code>emergency_stop_obstacle</code></li>
+          <li><code>normal</code></li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>로그에서 어떻게 보이는가</h2>
+        <ul>
+          <li>시작 로그: <code>Safety monitor ready: ...</code></li>
+          <li>상태 전환: <code>Safety state changed: &lt;reason&gt;</code></li>
+          <li>중간에 motion suppression이 반복되면 mission은 성공해도 과정이 불안정해 보일 수 있습니다.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>왜 report에서 중요한가</h2>
+      <p>
+        어떤 run은 <code>HOVER_AT_GOAL</code>로 끝나도, safety layer가 timeout이나 emergency-stop 상태를 반복하면
+        중간 구간은 꽤 요동칠 수 있습니다. 그래서 최신 report는 final outcome만이 아니라 stability counter,
+        root-cause summary, streak analysis까지 함께 보여주도록 바뀌었습니다.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>코드에서 같이 볼 위치</h2>
+      <p>
+        구현은 <code>src/drone_safety/drone_safety/safety_monitor_node.py</code>에 있습니다. 나머지 active chain을 보려면
+        <a href="./index.html">algorithm index</a>로 돌아가면 됩니다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
