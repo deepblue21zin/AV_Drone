@@ -10,6 +10,7 @@
     slam_input_ready_topic: "/drone1/slam/input_ready"
     slam_map_ready_topic: "/drone1/slam/map_ready"
     slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    slam_coverage_topic: "/drone1/slam/coverage"
     slam_home_pose_topic: "/drone1/slam/home_pose"
     input_timeout_sec: 0.5
     heartbeat_hz: 2.0

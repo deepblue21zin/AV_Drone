@@ -1,0 +1,32 @@
+experiment_name: slam_mppi_return_study
+scenario: single_drone_obstacle_demo
+repetitions: 5
+
+conditions:
+  - id: baseline_a_avoid_return
+    outbound: avoid
+    slam_recording: false
+    return: avoid
+    planner_version: baseline_a_v1
+
+  - id: baseline_b_slam_avoid_return
+    outbound: avoid
+    slam_recording: true
+    return: avoid
+    planner_version: baseline_b_v1
+
+  - id: proposed_slam_mppi_return
+    outbound: avoid
+    slam_recording: true
+    return: mppi
+    planner_version: proposed_v1
+
+metrics:
+  - outbound_time_s
+  - return_time_s
+  - total_path_length_m
+  - return_path_length_m
+  - min_obstacle_distance_m
+  - safety_event_count
+  - escape_count
+  - map_coverage

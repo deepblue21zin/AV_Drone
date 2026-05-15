@@ -615,6 +615,9 @@ class RosMonitor:
             'artifact_dir': None,
             'summary': {},
             'metadata': {},
+            'paper_metrics': {},
+            'phase_summary': {},
+            'slam_summary': {},
             'recent_events': [],
             'message': '',
         }
@@ -638,10 +641,16 @@ class RosMonitor:
         artifact_dir = candidates[0]
         summary_path = artifact_dir / 'summary.json'
         metadata_path = artifact_dir / 'metadata.json'
+        paper_metrics_path = artifact_dir / 'paper_metrics.json'
+        phase_summary_path = artifact_dir / 'phase_summary.json'
+        slam_summary_path = artifact_dir / 'slam_summary.json'
         events_path = artifact_dir / 'events.log'
 
         summary = self._read_json_file(summary_path) if summary_path.exists() else {}
         metadata = self._read_json_file(metadata_path) if metadata_path.exists() else {}
+        paper_metrics = self._read_json_file(paper_metrics_path) if paper_metrics_path.exists() else {}
+        phase_summary = self._read_json_file(phase_summary_path) if phase_summary_path.exists() else {}
+        slam_summary = self._read_json_file(slam_summary_path) if slam_summary_path.exists() else {}
         events = []
         if events_path.exists():
             try:
@@ -657,6 +666,9 @@ class RosMonitor:
             'artifact_dir': str(artifact_dir),
             'summary': summary or {},
             'metadata': metadata or {},
+            'paper_metrics': paper_metrics or {},
+            'phase_summary': phase_summary or {},
+            'slam_summary': slam_summary or {},
             'recent_events': events,
             'message': 'Loaded latest artifact' if summary else 'Artifact folder found, but summary.json is missing',
         })

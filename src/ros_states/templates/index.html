@@ -1144,13 +1144,25 @@ function renderArtifact(artifact) {
 
   const summary = artifact.summary || {};
   const metadata = artifact.metadata || {};
+  const paper = artifact.paper_metrics || {};
+  const slam = artifact.slam_summary || {};
   const metrics = [
     ['Artifact Dir', artifact.artifact_dir || '-'],
+    ['Condition', paper.condition || summary.experiment_condition || metadata.experiment_condition || '-'],
     ['Mission Phase', summary.mission_phase || '-'],
     ['Goal Reached', summary.goal_reached == null ? '-' : String(summary.goal_reached)],
+    ['Return Success', paper.return_success == null ? '-' : String(paper.return_success)],
+    ['Success Code', paper.success_code || '-'],
     ['Mode', summary.mode || metadata.mode || '-'],
     ['Closest Obstacle', summary.closest_obstacle_m == null ? '-' : `${summary.closest_obstacle_m} m`],
-    ['Runtime', summary.runtime_sec == null ? '-' : `${summary.runtime_sec} s`],
+    ['Runtime', summary.runtime_s == null ? '-' : `${summary.runtime_s} s`],
+    ['Outbound Time', paper.outbound_time_s == null ? '-' : `${paper.outbound_time_s} s`],
+    ['Return Time', paper.return_time_s == null ? '-' : `${paper.return_time_s} s`],
+    ['Path Length', paper.total_path_length_m == null ? '-' : `${Number(paper.total_path_length_m).toFixed(2)} m`],
+    ['Return Path Length', paper.return_path_length_m == null ? '-' : `${Number(paper.return_path_length_m).toFixed(2)} m`],
+    ['Escape Count', paper.escape_count == null ? '-' : String(paper.escape_count)],
+    ['SLAM Coverage', slam.coverage == null ? '-' : String(slam.coverage)],
+    ['SLAM Map Ready', slam.map_ready == null ? '-' : String(slam.map_ready)],
     ['Pose Count', summary.pose_count == null ? '-' : String(summary.pose_count)],
     ['Scan Count', summary.scan_count == null ? '-' : String(summary.scan_count)],
     ['Planner Cmd Count', summary.planner_cmd_count == null ? '-' : String(summary.planner_cmd_count)],
