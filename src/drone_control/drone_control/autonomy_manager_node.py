@@ -47,6 +47,9 @@ class AutonomyManagerNode(Node):
         self.declare_parameter("pose_timeout_sec", 0.5)
         self.declare_parameter("prestream_setpoints", 40)
         self.declare_parameter("takeoff_skip_margin", 0.25)
+
+        # NEW: keep FOLLOW_PLAN running even if goal_reached arrives
+        self.declare_parameter("continuous_mode", False)
         self.declare_parameter("return_home_enabled", False)
         self.declare_parameter("return_mode", "avoid")
 
@@ -236,6 +239,7 @@ class AutonomyManagerNode(Node):
         vz_max = float(self.get_parameter("vz_max").value)
         prestream_setpoints = int(self.get_parameter("prestream_setpoints").value)
         takeoff_skip_margin = float(self.get_parameter("takeoff_skip_margin").value)
+        continuous_mode = bool(self.get_parameter("continuous_mode").value)
         return_home_enabled = bool(self.get_parameter("return_home_enabled").value)
         return_mode = str(self.get_parameter("return_mode").value).strip().lower()
 
@@ -261,7 +265,6 @@ class AutonomyManagerNode(Node):
         self._publish_active_goal()
 
         if self._phase == "WAIT_STREAM":
-            # Pre-stream zero setpoints only until OFFBOARD can be requested.
             self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             self._prestream_count += 1
             if self._prestream_count >= prestream_setpoints:
@@ -340,6 +343,8 @@ class AutonomyManagerNode(Node):
                 self._enter_phase("MAPPING_TO_GOAL")
             return
 
+        if self._phase == "FOLLOW_PLAN":
+            if self._goal_reached and not continuous_mode:
         if self._phase == "MAPPING_TO_GOAL":
             if self._goal_reached:
                 self._enter_phase("HOVER_AT_GOAL")

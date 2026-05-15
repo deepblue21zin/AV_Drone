@@ -72,7 +72,7 @@ class LocalPlannerNode(Node):
     def __init__(self):
         super().__init__("local_planner")
 
-        self.declare_parameter("pose_topic", "/mavros/local_position/pose")
+        self.declare_parameter("pose_topic", "/local_position/pose")
         self.declare_parameter("scan_topic", "/drone1/scan")
         self.declare_parameter("autonomy_cmd_topic", "/drone1/autonomy/cmd_vel")
         self.declare_parameter("goal_reached_topic", "/drone1/mission/goal_reached")
@@ -98,6 +98,17 @@ class LocalPlannerNode(Node):
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_tol_xy", 0.5)
         self.declare_parameter("goal_latch_enabled", True)
+
+        # circular mode
+        self.declare_parameter("track_center_x", 0.0)
+        self.declare_parameter("track_center_y", 0.0)
+        self.declare_parameter("track_radius", 20.0)
+        self.declare_parameter("track_inner_radius", 15.0)
+        self.declare_parameter("track_outer_radius", 25.0)
+        self.declare_parameter("orbit_direction", "ccw")  # ccw | cw
+        self.declare_parameter("radial_error_gain", 0.22)
+        self.declare_parameter("heading_smoothing_gain", 0.35)
+
         self.declare_parameter("allow_motion_without_scan", False)
         self.declare_parameter("cruise_speed", 0.9)
         self.declare_parameter("max_speed", 1.1)
@@ -412,8 +423,6 @@ class LocalPlannerNode(Node):
         min_points = int(self.get_parameter("gap_min_points").value)
         edge_margin = math.radians(float(self.get_parameter("gap_edge_margin_deg").value))
         margin_points = max(0, int(math.ceil(edge_margin / max(angle_increment, 1e-6))))
-        search_half_angle = math.radians(float(self.get_parameter("gap_search_half_angle_deg").value))
-        clearance_norm = max(float(self.get_parameter("obstacle_influence_distance").value), 0.1)
         goal_weight = float(self.get_parameter("gap_goal_weight").value)
         clearance_weight = float(self.get_parameter("gap_clearance_weight").value)
         width_weight = float(self.get_parameter("gap_width_weight").value)
@@ -428,18 +437,9 @@ class LocalPlannerNode(Node):
                 idx += 1
                 continue
 
-            start_idx = idx
-            while idx < len(free_mask) and free_mask[idx]:
-                idx += 1
-            end_idx = idx - 1
-
-            usable_start = start_idx + margin_points
-            usable_end = end_idx - margin_points
+            usable_start = min(end_idx, start_idx + margin_points)
+            usable_end = max(start_idx, end_idx - margin_points)
             if usable_end < usable_start:
-                usable_start = start_idx
-                usable_end = end_idx
-
-            if (usable_end - usable_start + 1) < min_points:
                 continue
 
             target_idx = (usable_start + usable_end) // 2
@@ -502,27 +502,15 @@ class LocalPlannerNode(Node):
         angles: Sequence[float],
         ranges: Sequence[float],
         valid: Sequence[bool],
-        target_angle: float,
-        half_angle: float,
+        center_angle: float,
+        half_width: float,
     ) -> float:
-        values = [
-            ranges[idx]
-            for idx, angle in enumerate(angles)
-            if valid[idx] and abs(normalize_angle(angle - target_angle)) <= half_angle
-        ]
-        if not values:
-            return float("inf")
-        values.sort()
-        percentile = clamp(float(self.get_parameter("gap_clearance_percentile").value), 0.0, 1.0)
-        percentile_idx = int(math.floor(percentile * max(len(values) - 1, 0)))
-        return values[percentile_idx]
-
-    def _nearest_clearance(
-        self,
-        ranges: Sequence[float],
-        valid: Sequence[bool],
-    ) -> float:
-        values = [ranges[idx] for idx in range(len(ranges)) if valid[idx]]
+        values = []
+        for i, angle in enumerate(angles):
+            if not valid[i]:
+                continue
+            if abs(normalize_angle(angle - center_angle)) <= half_width:
+                values.append(ranges[i])
         if not values:
             return float("inf")
         return min(values)
@@ -571,14 +559,13 @@ class LocalPlannerNode(Node):
         preferred_clearance = self._preferred_clearance()
         front_sector = math.radians(float(self.get_parameter("front_sector_half_angle_deg").value))
         front_clearance = self._clearance_near_angle(angles, ranges, valid, 0.0, front_sector)
-        clearance_guard = front_clearance
 
         severity = 0.0
-        if math.isfinite(clearance_guard) and preferred_clearance > 0.0:
-            severity = clamp((preferred_clearance - clearance_guard) / preferred_clearance, 0.0, 1.0)
+        if math.isfinite(front_clearance) and preferred_clearance > 0.0:
+            severity = clamp((preferred_clearance - front_clearance) / preferred_clearance, 0.0, 1.0)
 
         reverse_speed = min(max_reverse_speed, backoff_gain * cruise_speed * (0.45 + 0.95 * severity))
-        if clearance_guard > preferred_clearance:
+        if front_clearance > preferred_clearance:
             reverse_speed = 0.0
 
         lateral_speed = lateral_gain * min(max_lateral_speed, cruise_speed * (0.80 + 0.90 * severity))
@@ -602,6 +589,81 @@ class LocalPlannerNode(Node):
         speed = min(self._effective_cruise_speed(), goal_norm)
         return speed * goal_vx_body / goal_norm, speed * goal_vy_body / goal_norm
 
+    def _circular_reference_body(
+        self,
+        x: float,
+        y: float,
+        yaw: float,
+    ) -> Tuple[float, float]:
+        cx = float(self.get_parameter("track_center_x").value)
+        cy = float(self.get_parameter("track_center_y").value)
+        r_ref = float(self.get_parameter("track_radius").value)
+        r_in = float(self.get_parameter("track_inner_radius").value)
+        r_out = float(self.get_parameter("track_outer_radius").value)
+        orbit_direction = str(self.get_parameter("orbit_direction").value).strip().lower()
+        radial_gain = float(self.get_parameter("radial_error_gain").value)
+        smoothing_gain = clamp(float(self.get_parameter("heading_smoothing_gain").value), 0.0, 1.0)
+        cruise_speed = float(self.get_parameter("cruise_speed").value)
+
+        dx = x - cx
+        dy = y - cy
+        r = math.hypot(dx, dy)
+
+        if r < 1e-6:
+            tangent_world = (0.0, 1.0 if orbit_direction != "cw" else -1.0)
+            vx_body, vy_body = world_to_body(tangent_world[0], tangent_world[1], yaw)
+            norm = math.hypot(vx_body, vy_body)
+            if norm < 1e-6:
+                return cruise_speed, 0.0
+            return cruise_speed * vx_body / norm, cruise_speed * vy_body / norm
+
+        rx = dx / r
+        ry = dy / r
+
+        if orbit_direction == "cw":
+            tx, ty = ry, -rx
+        else:
+            tx, ty = -ry, rx
+
+        radial_error = r - r_ref
+
+        edge_boost = 1.0
+        if r <= r_in + 1.0 or r >= r_out - 1.0:
+            edge_boost = 1.35
+
+        desired_world_x = tx - radial_gain * edge_boost * radial_error * rx
+        desired_world_y = ty - radial_gain * edge_boost * radial_error * ry
+
+        desired_body_x, desired_body_y = world_to_body(desired_world_x, desired_world_y, yaw)
+
+        norm = math.hypot(desired_body_x, desired_body_y)
+        if norm < 1e-6:
+            return cruise_speed, 0.0
+
+        desired_angle = math.atan2(desired_body_y, desired_body_x)
+        if self._last_target_angle is not None:
+            desired_angle = normalize_angle(
+                smoothing_gain * self._last_target_angle + (1.0 - smoothing_gain) * desired_angle
+            )
+
+        return cruise_speed * math.cos(desired_angle), cruise_speed * math.sin(desired_angle)
+
+    def _desired_direction_body(
+        self,
+        x: float,
+        y: float,
+        yaw: float,
+    ) -> Tuple[float, float, float]:
+        guidance_mode = str(self.get_parameter("guidance_mode").value).strip().lower()
+
+        if guidance_mode == "circular":
+            vx_body, vy_body = self._circular_reference_body(x, y, yaw)
+        else:
+            vx_body, vy_body = self._direct_goal_body_cmd(x, y, yaw)
+
+        angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else 0.0
+        return vx_body, vy_body, angle
+
     def _tick(self) -> None:
         if self.pose is None:
             self._publish_goal_reached(False)
@@ -622,12 +684,16 @@ class LocalPlannerNode(Node):
         goal_distance = math.hypot(goal_dx_world, goal_dy_world)
         current_goal_reached = goal_distance <= goal_tol_xy
 
-        if current_goal_reached and goal_latch_enabled:
-            self.goal_latched = True
-        if not goal_latch_enabled:
-            self.goal_latched = current_goal_reached
+        if guidance_mode == "circular":
+            goal_reached = False
+            self.goal_latched = False
+        else:
+            if current_goal_reached and goal_latch_enabled:
+                self.goal_latched = True
+            if not goal_latch_enabled:
+                self.goal_latched = current_goal_reached
+            goal_reached = self.goal_latched if goal_latch_enabled else current_goal_reached
 
-        goal_reached = self.goal_latched if goal_latch_enabled else current_goal_reached
         self._publish_goal_reached(goal_reached)
 
         if goal_reached:
@@ -662,8 +728,10 @@ class LocalPlannerNode(Node):
             return
 
         angles, ranges, valid, angle_increment = sample_bundle
-        goal_vx_body, goal_vy_body = world_to_body(goal_dx_world, goal_dy_world, yaw)
-        goal_angle = math.atan2(goal_vy_body, goal_vx_body)
+
+        desired_vx_body, desired_vy_body, goal_angle = self._desired_direction_body(
+            float(position.x), float(position.y), yaw
+        )
 
         desired_clearance = float(self.get_parameter("gap_min_clearance").value)
         free_mask = self._build_gap_mask(angles, ranges, valid, angle_increment, desired_clearance)
@@ -678,7 +746,8 @@ class LocalPlannerNode(Node):
 
         if best_gap is None:
             vx_body, vy_body = self._escape_command(angles, ranges, valid)
-            self._last_target_angle = None
+            self._last_target_angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else None
+            self._escape_until = time.time() + float(self.get_parameter("escape_hold_sec").value)
             vx_world, vy_world = body_to_world(vx_body, vy_body, yaw)
             max_speed = self._effective_max_speed()
             vx_world = clamp(vx_world, -max_speed, max_speed)
@@ -689,6 +758,8 @@ class LocalPlannerNode(Node):
 
         target_sector_half_angle = math.radians(float(self.get_parameter("target_sector_half_angle_deg").value))
         front_sector_half_angle = math.radians(float(self.get_parameter("front_sector_half_angle_deg").value))
+
+        desired_angle = goal_angle
         gap_center_angle = 0.5 * (best_gap.start_angle + best_gap.end_angle)
         goal_angle_in_gap = clamp(goal_angle, best_gap.start_angle, best_gap.end_angle)
         center_bias = clamp(float(self.get_parameter("gap_center_bias").value), 0.0, 1.0)
@@ -736,6 +807,7 @@ class LocalPlannerNode(Node):
         max_lateral_speed = self._effective_lateral_limit()
         escape_distance = float(self.get_parameter("gap_escape_distance").value)
         preferred_clearance = self._preferred_clearance()
+        forward_bias_min = float(self.get_parameter("forward_bias_min").value)
 
         base_speed = min(max_speed, cruise_speed * speed_scale)
         speed = base_speed * turn_scale
@@ -746,12 +818,15 @@ class LocalPlannerNode(Node):
             base_speed *= buffer_scale * buffer_scale
             speed = min(speed, base_speed)
 
+        now = time.time()
+        escape_hold_sec = float(self.get_parameter("escape_hold_sec").value)
+
         if target_clearance <= escape_distance or buffer_clearance <= preferred_clearance:
             vx_body, vy_body = self._escape_command(angles, ranges, valid)
             self._last_target_angle = None
             escape_active = True
         else:
-            forward_scale = max(0.0, math.cos(target_angle))
+            forward_scale = max(forward_bias_min, math.cos(target_angle))
             vx_body = forward_gain * speed * forward_scale
             vy_body = clamp(
                 lateral_gain * base_speed * math.sin(target_angle),
