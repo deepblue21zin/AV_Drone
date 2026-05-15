@@ -57,16 +57,27 @@ exec docker compose exec sim bash -lc '
   export GDK_BACKEND=x11;
   export XDG_SESSION_TYPE=x11;
   unset WAYLAND_DISPLAY;
+  unset LIBGL_ALWAYS_SOFTWARE;
+  unset GALLIUM_DRIVER;
+  unset MESA_LOADER_DRIVER_OVERRIDE;
+  export QT_OPENGL=desktop;
+  unset QT_XCB_GL_INTEGRATION;
+  unset MESA_GL_VERSION_OVERRIDE;
+  unset LIBGL_ALWAYS_INDIRECT;
+  unset __GLX_VENDOR_LIBRARY_NAME;
+  unset LIBGL_DRI3_DISABLE;
 
   PX4_HOME="${PX4_HOME:-'"${PX4_HOME_DEFAULT}"'}";
   BUILD_DIR="${PX4_HOME}/build/px4_sitl_default";
   GAZEBO_CLASSIC_DIR="${PX4_HOME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic";
 
-  export GAZEBO_MODEL_PATH="${GAZEBO_MODEL_PATH:+${GAZEBO_MODEL_PATH}:}${GAZEBO_CLASSIC_DIR}/models";
-  export GAZEBO_PLUGIN_PATH="${GAZEBO_PLUGIN_PATH:+${GAZEBO_PLUGIN_PATH}:}${BUILD_DIR}/build_gazebo-classic";
+  export GAZEBO_MODEL_PATH="/usr/share/gazebo-11/models:${GAZEBO_CLASSIC_DIR}/models${GAZEBO_MODEL_PATH:+:${GAZEBO_MODEL_PATH}}";
+  export GAZEBO_PLUGIN_PATH="${BUILD_DIR}/build_gazebo-classic${GAZEBO_PLUGIN_PATH:+:${GAZEBO_PLUGIN_PATH}}";
   export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:${BUILD_DIR}/build_gazebo-classic${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}";
   export GAZEBO_IP="${GAZEBO_IP:-127.0.0.1}";
   export GAZEBO_MASTER_URI="${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}";
+  export GAZEBO_MODEL_DATABASE_URI="";
+  export GAZEBO_RESOURCE_PATH="/usr/share/gazebo-11:${GAZEBO_CLASSIC_DIR}${GAZEBO_RESOURCE_PATH:+:${GAZEBO_RESOURCE_PATH}}";
 
   echo "[INFO] GAZEBO_IP=${GAZEBO_IP}";
   echo "[INFO] GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}";
