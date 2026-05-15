@@ -88,4 +88,12 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([mavros, perception, planner, safety, controller, metrics])
+    mapping = Node(
+        package="drone_slam",
+        executable="simple_2d_mapping_node",
+        name="simple_2d_mapping",
+        output="screen",
+        parameters=[autonomy_yaml],
+    )
+
+    return LaunchDescription([mavros, perception, planner, safety, controller, metrics, mapping])

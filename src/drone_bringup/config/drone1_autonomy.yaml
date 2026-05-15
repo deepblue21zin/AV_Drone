@@ -12,6 +12,20 @@
     nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
     safety_event_topic: "/drone1/safety/event"
     goal_reached_topic: "/drone1/mission/goal_reached"
+    slam_status_topic: "/drone1/slam/status"
+    slam_input_ready_topic: "/drone1/slam/input_ready"
+    slam_map_ready_topic: "/drone1/slam/map_ready"
+    slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    map_topic: "/map"
+    map_frame_id: "map"
+    map_resolution: 0.12
+    map_min_x: -3.0
+    map_max_x: 37.0
+    map_min_y: -7.0
+    map_max_y: 7.0
+    max_lidar_range: 10.0
+    ray_step_m: 0.08
+    publish_hz: 2.0
     fcu_url: "udp://:14540@127.0.0.1:14580"
     takeoff_z: 3.0
     goal_x: 31.0
