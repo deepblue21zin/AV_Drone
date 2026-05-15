@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: docker/sim/Dockerfile
       args:
-        PX4_VERSION: v1.15.4
+        PX4_VERSION: v1.14.3
     image: av-drone-sim:latest
     network_mode: host
     ipc: host
@@ -23,6 +23,9 @@ services:
       PX4_GZ_WORLD: ${PX4_GZ_WORLD:-}
       GAZEBO_IP: "127.0.0.1"
       GAZEBO_MASTER_URI: "http://127.0.0.1:11345"
+      GAZEBO_MODEL_DATABASE_URI: ""
+      GAZEBO_MODEL_PATH: "/usr/share/gazebo-11/models:/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models"
+      GAZEBO_RESOURCE_PATH: "/usr/share/gazebo-11:/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
       PX4_GAZEBO_DISPLAY: ${DISPLAY:-}
       PX4_NO_FOLLOW_MODE: "1"
     volumes:
@@ -30,6 +33,8 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:ro
       - sim-home:/root
+    devices:
+      - /dev/dri:/dev/dri
     working_dir: /opt/PX4-Autopilot
     init: true
     stdin_open: true
