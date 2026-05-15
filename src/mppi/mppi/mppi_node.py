@@ -438,7 +438,6 @@ class MPPIPlannerNode(Node):
             safety_margin=float(self.get_parameter('safety_margin').value),
             near_buffer=float(self.get_parameter('near_buffer').value),
             near_k=float(self.get_parameter('near_k').value),
-    node = MPPIPlannerNode()
             penetrate_k=float(self.get_parameter('penetrate_k').value),
             penetrate_bias=float(self.get_parameter('penetrate_bias').value),
             v_nom=float(self.get_parameter('v_nom').value),
