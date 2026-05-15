@@ -1,0 +1,31 @@
+scenario_name: random_corridor_generated
+baseline_name: gap_vs_mppi_return_random_corridor
+planner_name: local_planner_follow_the_gap
+world_name: random_corridor_generated
+vehicle_model: iris_rplidar
+drone_count: 1
+start_pose:
+  x: 0.0
+  y: 0.0
+  z: 0.0
+goal_pose:
+  x: 150.0
+  y: 0.0
+  z: 3.0
+map:
+  x_min: 0.0
+  x_max: 150.0
+  y_min: -15.0
+  y_max: 15.0
+obstacle_model:
+  shape: cylinder
+  radius: 0.5
+  length: 5.0
+  count: 50
+  requested_min_surface_gap_m: 4.0
+notes:
+  - Random corridor scenario for quantifying Gap outbound flight and return-planning baselines.
+  - The imported world keeps the provided cylinder layout but moves start/end walls outside the corridor to avoid spawn and goal collisions.
+  - Use PX4_SITL_WORLD=random_corridor_generated when starting the sim container.
+  - For full-corridor experiments, set the active goal near x=145-150 depending on the controller stability target.
+  - Use this scenario for repeated seeds when comparing Gap return against SLAM-assisted MPPI return.

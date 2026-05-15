@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import math
 import time
 from dataclasses import dataclass
@@ -10,7 +11,7 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 
 def clamp(value: float, lo: float, hi: float) -> float:
@@ -58,6 +59,12 @@ class GapCandidate:
     width_rad: float
     mean_clearance: float
     target_clearance: float
+    goal_alignment: float
+    clearance_score: float
+    width_score: float
+    mapping_gain_score: float
+    slam_stability_score: float
+    motion_penalty: float
     score: float
 
 
@@ -69,11 +76,24 @@ class LocalPlannerNode(Node):
         self.declare_parameter("scan_topic", "/drone1/scan")
         self.declare_parameter("autonomy_cmd_topic", "/drone1/autonomy/cmd_vel")
         self.declare_parameter("goal_reached_topic", "/drone1/mission/goal_reached")
-
-        # guidance mode
-        self.declare_parameter("guidance_mode", "goal")  # goal | circular
-
-        # legacy goal mode
+        self.declare_parameter("active_goal_topic", "/drone1/mission/active_goal")
+        self.declare_parameter("mission_phase_topic", "/drone1/mission/phase")
+        self.declare_parameter(
+            "planner_debug_selected_gap_topic",
+            "/drone1/planner/avoid/debug/selected_gap",
+        )
+        self.declare_parameter(
+            "planner_debug_score_terms_topic",
+            "/drone1/planner/avoid/debug/score_terms",
+        )
+        self.declare_parameter(
+            "planner_debug_mode_topic",
+            "/drone1/planner/avoid/debug/mode",
+        )
+        self.declare_parameter(
+            "planner_debug_escape_active_topic",
+            "/drone1/planner/avoid/debug/escape_active",
+        )
         self.declare_parameter("goal_x", 10.0)
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_tol_xy", 0.5)
@@ -121,21 +141,49 @@ class LocalPlannerNode(Node):
         self.declare_parameter("target_sector_half_angle_deg", 8.0)
         self.declare_parameter("gap_turn_min_scale", 0.35)
         self.declare_parameter("side_clearance_sector_deg", 75.0)
-
-        # anti-oscillation params
-        self.declare_parameter("forward_bias_min", 0.18)
-        self.declare_parameter("escape_hold_sec", 0.35)
-        self.declare_parameter("guidance_blend_ratio", 0.72)
+        self.declare_parameter("slam_mapping_mode_enabled", False)
+        self.declare_parameter("slam_cruise_speed", 0.45)
+        self.declare_parameter("slam_max_speed", 0.65)
+        self.declare_parameter("slam_max_lateral_speed", 0.45)
+        self.declare_parameter("slam_target_commitment", 0.70)
+        self.declare_parameter("slam_min_scan_overlap_ratio", 0.55)
+        self.declare_parameter("mapping_gain_weight", 0.60)
+        self.declare_parameter("slam_stability_weight", 0.40)
+        self.declare_parameter("motion_penalty_weight", 0.30)
 
         pose_topic = str(self.get_parameter("pose_topic").value)
         scan_topic = str(self.get_parameter("scan_topic").value)
         cmd_topic = str(self.get_parameter("autonomy_cmd_topic").value)
         goal_topic = str(self.get_parameter("goal_reached_topic").value)
+        active_goal_topic = str(self.get_parameter("active_goal_topic").value)
+        mission_phase_topic = str(self.get_parameter("mission_phase_topic").value)
 
         self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
         self.goal_pub = self.create_publisher(Bool, goal_topic, 10)
+        self.debug_selected_gap_pub = self.create_publisher(
+            String,
+            str(self.get_parameter("planner_debug_selected_gap_topic").value),
+            10,
+        )
+        self.debug_score_terms_pub = self.create_publisher(
+            String,
+            str(self.get_parameter("planner_debug_score_terms_topic").value),
+            10,
+        )
+        self.debug_mode_pub = self.create_publisher(
+            String,
+            str(self.get_parameter("planner_debug_mode_topic").value),
+            10,
+        )
+        self.debug_escape_pub = self.create_publisher(
+            Bool,
+            str(self.get_parameter("planner_debug_escape_active_topic").value),
+            10,
+        )
         self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)
         self.create_subscription(LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data)
+        self.create_subscription(PoseStamped, active_goal_topic, self._on_active_goal, 10)
+        self.create_subscription(String, mission_phase_topic, self._on_mission_phase, 10)
         self.create_timer(0.05, self._tick)
 
         self.pose: Optional[PoseStamped] = None
@@ -143,10 +191,13 @@ class LocalPlannerNode(Node):
         self.last_scan_time: Optional[float] = None
         self.goal_latched = False
         self._last_target_angle: Optional[float] = None
-        self._escape_until: float = 0.0
+        self._active_goal: Optional[PoseStamped] = None
+        self._last_goal_xy: Optional[Tuple[float, float]] = None
+        self._mission_phase = "startup"
 
         self.get_logger().info(
-            f"Gap-based local planner ready: pose={pose_topic}, scan={scan_topic}, cmd={cmd_topic}"
+            f"Gap-based local planner ready: pose={pose_topic}, scan={scan_topic}, "
+            f"cmd={cmd_topic}, active_goal={active_goal_topic}"
         )
 
     def _on_pose(self, msg: PoseStamped) -> None:
@@ -155,6 +206,19 @@ class LocalPlannerNode(Node):
     def _on_scan(self, msg: LaserScan) -> None:
         self.scan = msg
         self.last_scan_time = time.time()
+
+    def _on_active_goal(self, msg: PoseStamped) -> None:
+        x = float(msg.pose.position.x)
+        y = float(msg.pose.position.y)
+        if self._last_goal_xy is None or math.hypot(x - self._last_goal_xy[0], y - self._last_goal_xy[1]) > 0.05:
+            self.goal_latched = False
+            self._last_target_angle = None
+            self._last_goal_xy = (x, y)
+            self.get_logger().info(f"Active goal updated: x={x:.2f}, y={y:.2f}")
+        self._active_goal = msg
+
+    def _on_mission_phase(self, msg: String) -> None:
+        self._mission_phase = str(msg.data)
 
     def _publish_cmd(self, vx_world: float, vy_world: float, yaw_rate: float = 0.0) -> None:
         msg = TwistStamped()
@@ -168,6 +232,95 @@ class LocalPlannerNode(Node):
 
     def _publish_goal_reached(self, value: bool) -> None:
         self.goal_pub.publish(Bool(data=bool(value)))
+
+    def _phase_mode(self, escape_active: bool = False) -> str:
+        if escape_active:
+            return "escape"
+        phase = self._mission_phase
+        if phase == "MAPPING_TO_GOAL":
+            return "mapping_to_goal"
+        if phase == "RETURN_HOME_AVOID":
+            return "return_avoid"
+        if phase == "RETURN_HOME_MPPI":
+            return "return_mppi"
+        if phase in {"HOVER_AT_GOAL", "HOVER_AT_HOME"}:
+            return "goal_hold"
+        return phase.lower()
+
+    def _mapping_mode_active(self) -> bool:
+        return (
+            bool(self.get_parameter("slam_mapping_mode_enabled").value)
+            and self._mission_phase == "MAPPING_TO_GOAL"
+        )
+
+    def _effective_cruise_speed(self) -> float:
+        if self._mapping_mode_active():
+            return float(self.get_parameter("slam_cruise_speed").value)
+        return float(self.get_parameter("cruise_speed").value)
+
+    def _effective_max_speed(self) -> float:
+        if self._mapping_mode_active():
+            return float(self.get_parameter("slam_max_speed").value)
+        return float(self.get_parameter("max_speed").value)
+
+    def _effective_lateral_limit(self) -> float:
+        if self._mapping_mode_active():
+            return float(self.get_parameter("slam_max_lateral_speed").value)
+        return float(self.get_parameter("max_speed").value)
+
+    def _effective_target_commitment(self) -> float:
+        if self._mapping_mode_active():
+            return float(self.get_parameter("slam_target_commitment").value)
+        return float(self.get_parameter("gap_target_commitment").value)
+
+    def _current_goal_xy(self) -> Tuple[float, float]:
+        if self._active_goal is not None:
+            p = self._active_goal.pose.position
+            return float(p.x), float(p.y)
+        return (
+            float(self.get_parameter("goal_x").value),
+            float(self.get_parameter("goal_y").value),
+        )
+
+    def _publish_debug(
+        self,
+        escape_active: bool,
+        selected_gap: Optional[GapCandidate] = None,
+        target_angle: Optional[float] = None,
+        reason: str = "",
+    ) -> None:
+        mode = self._phase_mode(escape_active)
+        self.debug_mode_pub.publish(String(data=mode))
+        self.debug_escape_pub.publish(Bool(data=bool(escape_active)))
+
+        payload = {
+            "phase": self._mission_phase,
+            "mode": mode,
+            "escape_active": bool(escape_active),
+            "reason": reason,
+            "target_angle_deg": math.degrees(target_angle) if target_angle is not None else None,
+        }
+        if selected_gap is not None:
+            payload.update(
+                {
+                    "gap_start_deg": math.degrees(selected_gap.start_angle),
+                    "gap_end_deg": math.degrees(selected_gap.end_angle),
+                    "gap_width_deg": math.degrees(selected_gap.width_rad),
+                    "score": selected_gap.score,
+                    "goal_alignment": selected_gap.goal_alignment,
+                    "clearance_score": selected_gap.clearance_score,
+                    "width_score": selected_gap.width_score,
+                    "mapping_gain_score": selected_gap.mapping_gain_score,
+                    "slam_stability_score": selected_gap.slam_stability_score,
+                    "motion_penalty": selected_gap.motion_penalty,
+                    "mean_clearance": selected_gap.mean_clearance,
+                    "target_clearance": selected_gap.target_clearance,
+                }
+            )
+
+        text = json.dumps(payload, sort_keys=True)
+        self.debug_selected_gap_pub.publish(String(data=text))
+        self.debug_score_terms_pub.publish(String(data=text))
 
     def _front_speed_scale(self, distance: float) -> float:
         stop_distance = float(self.get_parameter("obstacle_stop_distance").value)
@@ -273,23 +426,15 @@ class LocalPlannerNode(Node):
         goal_weight = float(self.get_parameter("gap_goal_weight").value)
         clearance_weight = float(self.get_parameter("gap_clearance_weight").value)
         width_weight = float(self.get_parameter("gap_width_weight").value)
-        center_bias = clamp(float(self.get_parameter("gap_center_bias").value), 0.0, 1.0)
-        clearance_percentile = clamp(float(self.get_parameter("gap_clearance_percentile").value), 0.0, 1.0)
+        mapping_gain_weight = float(self.get_parameter("mapping_gain_weight").value)
+        slam_stability_weight = float(self.get_parameter("slam_stability_weight").value)
+        motion_penalty_weight = float(self.get_parameter("motion_penalty_weight").value)
 
-        gaps: List[Tuple[int, int]] = []
-        start_idx: Optional[int] = None
-        for i, is_free in enumerate(free_mask):
-            if is_free and start_idx is None:
-                start_idx = i
-            elif not is_free and start_idx is not None:
-                gaps.append((start_idx, i - 1))
-                start_idx = None
-        if start_idx is not None:
-            gaps.append((start_idx, len(free_mask) - 1))
-
-        candidates: List[GapCandidate] = []
-        for start_idx, end_idx in gaps:
-            if end_idx - start_idx + 1 < min_points:
+        best: Optional[GapCandidate] = None
+        idx = 0
+        while idx < len(free_mask):
+            if not free_mask[idx]:
+                idx += 1
                 continue
 
             usable_start = min(end_idx, start_idx + margin_points)
@@ -297,58 +442,60 @@ class LocalPlannerNode(Node):
             if usable_end < usable_start:
                 continue
 
-            best_idx = usable_start
-            best_score = -float("inf")
-            best_goal_align = -float("inf")
-            center_idx = 0.5 * (usable_start + usable_end)
+            target_idx = (usable_start + usable_end) // 2
+            start_angle = angles[usable_start]
+            end_angle = angles[usable_end]
+            width_rad = max(0.0, end_angle - start_angle)
+            mean_clearance = sum(ranges[usable_start : usable_end + 1]) / float(usable_end - usable_start + 1)
+            target_clearance = ranges[target_idx]
 
-            gap_ranges = sorted(ranges[usable_start : usable_end + 1])
-            if not gap_ranges:
-                continue
-            percentile_pos = int(round((len(gap_ranges) - 1) * clearance_percentile))
-            percentile_pos = int(clamp(percentile_pos, 0, len(gap_ranges) - 1))
-            representative_clearance = gap_ranges[percentile_pos]
-            width_rad = max(angle_increment, (usable_end - usable_start + 1) * angle_increment)
+            goal_alignment = 1.0 - min(abs(normalize_angle(angles[target_idx] - goal_angle)) / max(search_half_angle, 1e-6), 1.0)
+            clearance_score = clamp(mean_clearance / clearance_norm, 0.0, 1.5)
+            width_score = clamp(width_rad / max(2.0 * search_half_angle, 1e-6), 0.0, 1.0)
+            mapping_gain_score = 0.0
+            motion_penalty = 0.0
+            slam_stability_score = 1.0
+            if self._last_target_angle is not None:
+                target_delta = abs(normalize_angle(angles[target_idx] - self._last_target_angle))
+                motion_penalty = clamp(target_delta / max(search_half_angle, 1e-6), 0.0, 1.0)
+                slam_stability_score = 1.0 - motion_penalty
 
-            for idx in range(usable_start, usable_end + 1):
-                angle = angles[idx]
-                target_clearance = ranges[idx]
-                if target_clearance <= 0.0:
-                    continue
+            if not self._mapping_mode_active():
+                mapping_gain_score = 0.0
+                slam_stability_score = 0.0
+                motion_penalty = 0.0
 
-                goal_align = math.cos(normalize_angle(angle - goal_angle))
-                center_align = math.cos(normalize_angle(angle - angles[int(round(center_idx))]))
-                local_score = (
-                    goal_weight * goal_align
-                    + clearance_weight * target_clearance
-                    + width_weight * width_rad
-                    + center_bias * center_align
-                )
-                if local_score > best_score:
-                    best_score = local_score
-                    best_idx = idx
-                    best_goal_align = goal_align
-
-            candidates.append(
-                GapCandidate(
-                    start_idx=usable_start,
-                    end_idx=usable_end,
-                    target_idx=best_idx,
-                    start_angle=angles[usable_start],
-                    end_angle=angles[usable_end],
-                    target_angle=angles[best_idx],
-                    width_rad=width_rad,
-                    mean_clearance=representative_clearance,
-                    target_clearance=ranges[best_idx],
-                    score=best_score + 0.15 * best_goal_align,
-                )
+            score = (
+                goal_weight * goal_alignment
+                + clearance_weight * clearance_score
+                + width_weight * width_score
+                + mapping_gain_weight * mapping_gain_score
+                + slam_stability_weight * slam_stability_score
+                - motion_penalty_weight * motion_penalty
             )
 
-        if not candidates:
-            return None
+            candidate = GapCandidate(
+                start_idx=usable_start,
+                end_idx=usable_end,
+                target_idx=target_idx,
+                start_angle=start_angle,
+                end_angle=end_angle,
+                target_angle=angles[target_idx],
+                width_rad=width_rad,
+                mean_clearance=mean_clearance,
+                target_clearance=target_clearance,
+                goal_alignment=goal_alignment,
+                clearance_score=clearance_score,
+                width_score=width_score,
+                mapping_gain_score=mapping_gain_score,
+                slam_stability_score=slam_stability_score,
+                motion_penalty=motion_penalty,
+                score=score,
+            )
+            if best is None or candidate.score > best.score:
+                best = candidate
 
-        candidates.sort(key=lambda c: c.score, reverse=True)
-        return candidates[0]
+        return best
 
     def _clearance_near_angle(
         self,
@@ -405,9 +552,10 @@ class LocalPlannerNode(Node):
 
         backoff_gain = float(self.get_parameter("backoff_gain").value)
         lateral_gain = float(self.get_parameter("lateral_bias_gain").value)
-        cruise_speed = float(self.get_parameter("cruise_speed").value)
+        cruise_speed = self._effective_cruise_speed()
         max_reverse_speed = float(self.get_parameter("max_reverse_speed").value)
-        max_speed = float(self.get_parameter("max_speed").value)
+        max_speed = self._effective_max_speed()
+        max_lateral_speed = self._effective_lateral_limit()
         preferred_clearance = self._preferred_clearance()
         front_sector = math.radians(float(self.get_parameter("front_sector_half_angle_deg").value))
         front_clearance = self._clearance_near_angle(angles, ranges, valid, 0.0, front_sector)
@@ -420,18 +568,25 @@ class LocalPlannerNode(Node):
         if front_clearance > preferred_clearance:
             reverse_speed = 0.0
 
-        lateral_speed = lateral_gain * min(max_speed, cruise_speed * (0.80 + 0.90 * severity))
+        lateral_speed = lateral_gain * min(max_lateral_speed, cruise_speed * (0.80 + 0.90 * severity))
         return -reverse_speed, lateral_sign * lateral_speed
 
-    def _direct_goal_body_cmd(self, x: float, y: float, yaw: float) -> Tuple[float, float]:
-        goal_dx = float(self.get_parameter("goal_x").value) - x
-        goal_dy = float(self.get_parameter("goal_y").value) - y
+    def _direct_goal_body_cmd(
+        self,
+        x: float,
+        y: float,
+        yaw: float,
+        goal_x: float,
+        goal_y: float,
+    ) -> Tuple[float, float]:
+        goal_dx = goal_x - x
+        goal_dy = goal_y - y
         goal_vx_body, goal_vy_body = world_to_body(goal_dx, goal_dy, yaw)
         goal_norm = math.hypot(goal_vx_body, goal_vy_body)
         if goal_norm < 1e-6:
             return 0.0, 0.0
 
-        speed = min(float(self.get_parameter("cruise_speed").value), goal_norm)
+        speed = min(self._effective_cruise_speed(), goal_norm)
         return speed * goal_vx_body / goal_norm, speed * goal_vy_body / goal_norm
 
     def _circular_reference_body(
@@ -513,16 +668,14 @@ class LocalPlannerNode(Node):
         if self.pose is None:
             self._publish_goal_reached(False)
             self._publish_cmd(0.0, 0.0)
+            self._publish_debug(False, reason="no_pose")
             return
 
         position = self.pose.pose.position
         orientation = self.pose.pose.orientation
         yaw = yaw_from_quaternion(orientation.x, orientation.y, orientation.z, orientation.w)
 
-        guidance_mode = str(self.get_parameter("guidance_mode").value).strip().lower()
-
-        goal_x = float(self.get_parameter("goal_x").value)
-        goal_y = float(self.get_parameter("goal_y").value)
+        goal_x, goal_y = self._current_goal_xy()
         goal_tol_xy = float(self.get_parameter("goal_tol_xy").value)
         goal_latch_enabled = bool(self.get_parameter("goal_latch_enabled").value)
 
@@ -546,26 +699,32 @@ class LocalPlannerNode(Node):
         if goal_reached:
             self._last_target_angle = None
             self._publish_cmd(0.0, 0.0)
+            self._publish_debug(False, reason="goal_reached")
             return
 
         if self.scan is None:
             if not bool(self.get_parameter("allow_motion_without_scan").value):
                 self._last_target_angle = None
                 self._publish_cmd(0.0, 0.0)
+                self._publish_debug(False, reason="no_scan")
                 return
-
-            desired_vx_body, desired_vy_body, desired_angle = self._desired_direction_body(
-                float(position.x), float(position.y), yaw
+            vx_body, vy_body = self._direct_goal_body_cmd(
+                float(position.x),
+                float(position.y),
+                yaw,
+                goal_x,
+                goal_y,
             )
-            self._last_target_angle = desired_angle
-            vx_world, vy_world = body_to_world(desired_vx_body, desired_vy_body, yaw)
+            vx_world, vy_world = body_to_world(vx_body, vy_body, yaw)
             self._publish_cmd(vx_world, vy_world)
+            self._publish_debug(False, reason="direct_goal_no_scan")
             return
 
         sample_bundle = self._scan_samples()
         if sample_bundle is None:
             self._last_target_angle = None
             self._publish_cmd(0.0, 0.0)
+            self._publish_debug(False, reason="empty_scan_window")
             return
 
         angles, ranges, valid, angle_increment = sample_bundle
@@ -590,9 +749,11 @@ class LocalPlannerNode(Node):
             self._last_target_angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else None
             self._escape_until = time.time() + float(self.get_parameter("escape_hold_sec").value)
             vx_world, vy_world = body_to_world(vx_body, vy_body, yaw)
-            vx_world = clamp(vx_world, -float(self.get_parameter("max_speed").value), float(self.get_parameter("max_speed").value))
-            vy_world = clamp(vy_world, -float(self.get_parameter("max_speed").value), float(self.get_parameter("max_speed").value))
+            max_speed = self._effective_max_speed()
+            vx_world = clamp(vx_world, -max_speed, max_speed)
+            vy_world = clamp(vy_world, -max_speed, max_speed)
             self._publish_cmd(vx_world, vy_world)
+            self._publish_debug(True, reason="no_gap_escape")
             return
 
         target_sector_half_angle = math.radians(float(self.get_parameter("target_sector_half_angle_deg").value))
@@ -600,17 +761,21 @@ class LocalPlannerNode(Node):
 
         desired_angle = goal_angle
         gap_center_angle = 0.5 * (best_gap.start_angle + best_gap.end_angle)
-        guidance_blend_ratio = clamp(float(self.get_parameter("guidance_blend_ratio").value), 0.0, 1.0)
-
-        target_angle = clamp(
-            guidance_blend_ratio * desired_angle + (1.0 - guidance_blend_ratio) * gap_center_angle,
-            best_gap.start_angle,
-            best_gap.end_angle,
+        goal_angle_in_gap = clamp(goal_angle, best_gap.start_angle, best_gap.end_angle)
+        center_bias = clamp(float(self.get_parameter("gap_center_bias").value), 0.0, 1.0)
+        target_angle = normalize_angle(
+            center_bias * gap_center_angle + (1.0 - center_bias) * goal_angle_in_gap
         )
+        target_angle = clamp(target_angle, best_gap.start_angle, best_gap.end_angle)
 
-        commitment = clamp(float(self.get_parameter("gap_target_commitment").value), 0.0, 1.0)
-        if self._last_target_angle is not None and best_gap.start_angle <= self._last_target_angle <= best_gap.end_angle:
-            target_angle = normalize_angle(commitment * self._last_target_angle + (1.0 - commitment) * target_angle)
+        commitment = clamp(self._effective_target_commitment(), 0.0, 1.0)
+        if (
+            self._last_target_angle is not None
+            and best_gap.start_angle <= self._last_target_angle <= best_gap.end_angle
+        ):
+            target_angle = normalize_angle(
+                commitment * self._last_target_angle + (1.0 - commitment) * target_angle
+            )
             target_angle = clamp(target_angle, best_gap.start_angle, best_gap.end_angle)
 
         target_clearance = self._clearance_near_angle(
@@ -635,10 +800,11 @@ class LocalPlannerNode(Node):
             float(self.get_parameter("gap_turn_min_scale").value),
             math.cos(min(abs(target_angle), math.pi / 2.0)),
         )
-        cruise_speed = float(self.get_parameter("cruise_speed").value)
+        cruise_speed = self._effective_cruise_speed()
         forward_gain = float(self.get_parameter("forward_gain").value)
         lateral_gain = float(self.get_parameter("lateral_bias_gain").value)
-        max_speed = float(self.get_parameter("max_speed").value)
+        max_speed = self._effective_max_speed()
+        max_lateral_speed = self._effective_lateral_limit()
         escape_distance = float(self.get_parameter("gap_escape_distance").value)
         preferred_clearance = self._preferred_clearance()
         forward_bias_min = float(self.get_parameter("forward_bias_min").value)
@@ -656,24 +822,30 @@ class LocalPlannerNode(Node):
         escape_hold_sec = float(self.get_parameter("escape_hold_sec").value)
 
         if target_clearance <= escape_distance or buffer_clearance <= preferred_clearance:
-            if now >= self._escape_until:
-                vx_body, vy_body = self._escape_command(angles, ranges, valid)
-                self._escape_until = now + escape_hold_sec
-                self._last_target_angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else None
-            else:
-                hold_angle = self._last_target_angle if self._last_target_angle is not None else goal_angle
-                vx_body = 0.28 * cruise_speed * math.cos(hold_angle)
-                vy_body = 0.28 * cruise_speed * math.sin(hold_angle)
+            vx_body, vy_body = self._escape_command(angles, ranges, valid)
+            self._last_target_angle = None
+            escape_active = True
         else:
             forward_scale = max(forward_bias_min, math.cos(target_angle))
             vx_body = forward_gain * speed * forward_scale
-            vy_body = lateral_gain * base_speed * math.sin(target_angle)
+            vy_body = clamp(
+                lateral_gain * base_speed * math.sin(target_angle),
+                -max_lateral_speed,
+                max_lateral_speed,
+            )
             self._last_target_angle = target_angle
+            escape_active = False
 
         vx_world, vy_world = body_to_world(vx_body, vy_body, yaw)
         vx_world = clamp(vx_world, -max_speed, max_speed)
         vy_world = clamp(vy_world, -max_speed, max_speed)
         self._publish_cmd(vx_world, vy_world)
+        self._publish_debug(
+            escape_active,
+            selected_gap=best_gap,
+            target_angle=target_angle,
+            reason="gap_selected",
+        )
 
 
 def main(args=None) -> None:

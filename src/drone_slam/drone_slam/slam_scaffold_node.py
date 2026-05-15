@@ -8,7 +8,7 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Float32, String
 
 
 class SlamScaffoldNode(Node):
@@ -29,6 +29,7 @@ class SlamScaffoldNode(Node):
         self.declare_parameter("slam_input_ready_topic", "/drone1/slam/input_ready")
         self.declare_parameter("slam_map_ready_topic", "/drone1/slam/map_ready")
         self.declare_parameter("slam_localization_ok_topic", "/drone1/slam/localization_ok")
+        self.declare_parameter("slam_coverage_topic", "/drone1/slam/coverage")
         self.declare_parameter("input_timeout_sec", 0.5)
         self.declare_parameter("heartbeat_hz", 2.0)
 
@@ -38,6 +39,7 @@ class SlamScaffoldNode(Node):
         input_ready_topic = str(self.get_parameter("slam_input_ready_topic").value)
         map_ready_topic = str(self.get_parameter("slam_map_ready_topic").value)
         localization_ok_topic = str(self.get_parameter("slam_localization_ok_topic").value)
+        coverage_topic = str(self.get_parameter("slam_coverage_topic").value)
 
         self._last_scan_time: Optional[float] = None
         self._last_pose_time: Optional[float] = None
@@ -47,6 +49,7 @@ class SlamScaffoldNode(Node):
         self._input_ready_pub = self.create_publisher(Bool, input_ready_topic, 10)
         self._map_ready_pub = self.create_publisher(Bool, map_ready_topic, 10)
         self._localization_ok_pub = self.create_publisher(Bool, localization_ok_topic, 10)
+        self._coverage_pub = self.create_publisher(Float32, coverage_topic, 10)
 
         self.create_subscription(LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data)
         self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)
@@ -57,7 +60,8 @@ class SlamScaffoldNode(Node):
         self.get_logger().info(
             f"SLAM scaffold ready: scan={scan_topic}, pose={pose_topic}, "
             f"status={status_topic}, input_ready={input_ready_topic}, "
-            f"map_ready={map_ready_topic}, localization_ok={localization_ok_topic}"
+            f"map_ready={map_ready_topic}, localization_ok={localization_ok_topic}, "
+            f"coverage={coverage_topic}"
         )
 
     def _on_scan(self, _msg: LaserScan) -> None:
@@ -90,6 +94,7 @@ class SlamScaffoldNode(Node):
         self._input_ready_pub.publish(Bool(data=input_ready))
         self._map_ready_pub.publish(Bool(data=False))
         self._localization_ok_pub.publish(Bool(data=False))
+        self._coverage_pub.publish(Float32(data=0.0))
         self._publish_status(status)
 
 

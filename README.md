@@ -55,9 +55,18 @@ ros2 launch drone_bringup single_drone_avoidance_dev.launch.py
 - 회피 planner 출력: `/drone1/planner/avoid/cmd_vel`
 - safety 입력 planner command: `/drone1/planner/avoid/cmd_vel`
 - safety 출력: `/drone1/safety/cmd_vel`
+- mission active goal: `/drone1/mission/active_goal`
+- mission home pose: `/drone1/mission/home_pose`
 - controller는 기존처럼 safe command를 받아 비행합니다.
 
-즉 회피 알고리즘 담당자는 기존 baseline과 거의 같은 방식으로 테스트하되, planner 출력 토픽이 독립되어 나중 통합 시 충돌이 줄어들도록 맞춰 둔 상태입니다.
+현재 이 프로필은 `Baseline A` 논문 실험용 왕복 baseline입니다.
+
+- outbound: `MAPPING_TO_GOAL`
+- goal hover: `HOVER_AT_GOAL`
+- return: `RETURN_HOME_AVOID`
+- home hover: `HOVER_AT_HOME`
+
+즉 회피 알고리즘 담당자는 같은 회피 planner로 목표점까지 이동한 뒤, 이륙 후 저장한 `home_pose`를 `active_goal`로 다시 받아 출발 지점 근처까지 복귀하는지 확인하면 됩니다.
 
 ### 2-3. SLAM 개발 프로필
 
@@ -73,6 +82,7 @@ ros2 launch drone_bringup single_drone_slam_dev.launch.py
 - `/drone1/slam/input_ready`
 - `/drone1/slam/map_ready`
 - `/drone1/slam/localization_ok`
+- `/drone1/slam/coverage`
 
 즉 SLAM 담당자는 scan/pose 입력 경로를 따로 확인하면서, 나중에 실제 SLAM 패키지 구현으로 `drone_slam` 패키지 안 scaffold를 교체해 나가면 됩니다.
 

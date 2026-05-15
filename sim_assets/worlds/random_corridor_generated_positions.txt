@@ -1,0 +1,59 @@
+seed: unknown_from_imported_world
+num_obstacles: 50
+map_x: 0.0 ~ 150.0
+map_y: -15.0 ~ 15.0
+obstacle_radius: 0.5
+obstacle_height: 5.0
+requested_min_surface_gap: 4.0
+note: Imported from the provided random corridor world. start_wall/end_wall were moved outside the flight corridor to avoid spawning or goal collisions.
+
+cylinder_00: x=137.363, y=-2.491
+cylinder_01: x=134.101, y=3.982
+cylinder_02: x=33.748, y=5.612
+cylinder_03: x=39.443, y=1.216
+cylinder_04: x=15.375, y=-7.946
+cylinder_05: x=32.526, y=-8.836
+cylinder_06: x=124.895, y=-11.245
+cylinder_07: x=116.515, y=-7.705
+cylinder_08: x=92.837, y=-2.601
+cylinder_09: x=113.759, y=11.990
+cylinder_10: x=76.454, y=-3.536
+cylinder_11: x=133.016, y=-5.285
+cylinder_12: x=2.865, y=11.561
+cylinder_13: x=79.957, y=10.375
+cylinder_14: x=50.821, y=2.385
+cylinder_15: x=119.172, y=1.079
+cylinder_16: x=74.648, y=10.160
+cylinder_17: x=15.660, y=-2.135
+cylinder_18: x=125.373, y=2.855
+cylinder_19: x=107.105, y=12.266
+cylinder_20: x=23.361, y=-11.996
+cylinder_21: x=77.268, y=2.994
+cylinder_22: x=96.876, y=8.996
+cylinder_23: x=69.465, y=0.244
+cylinder_24: x=131.561, y=-12.251
+cylinder_25: x=20.795, y=1.528
+cylinder_26: x=63.389, y=7.989
+cylinder_27: x=51.846, y=-2.854
+cylinder_28: x=136.982, y=12.226
+cylinder_29: x=72.462, y=-11.907
+cylinder_30: x=101.401, y=-8.998
+cylinder_31: x=88.484, y=8.873
+cylinder_32: x=85.133, y=-7.264
+cylinder_33: x=121.671, y=9.811
+cylinder_34: x=77.788, y=-9.664
+cylinder_35: x=59.469, y=0.954
+cylinder_36: x=30.964, y=1.398
+cylinder_37: x=144.657, y=-7.133
+cylinder_38: x=103.224, y=-0.410
+cylinder_39: x=107.909, y=-5.223
+cylinder_40: x=49.839, y=10.773
+cylinder_41: x=55.318, y=-8.169
+cylinder_42: x=40.653, y=-6.217
+cylinder_43: x=126.878, y=-5.479
+cylinder_44: x=45.498, y=-4.483
+cylinder_45: x=26.813, y=-7.948
+cylinder_46: x=31.162, y=12.470
+cylinder_47: x=43.288, y=10.667
+cylinder_48: x=94.918, y=3.478
+cylinder_49: x=6.376, y=-7.676
