@@ -74,10 +74,12 @@ def generate_launch_description():
         parameters=[
             avoidance_yaml,
             {
-                "baseline_name": "avoidance_dev_profile",
+                "baseline_name": "baseline_a_avoid_return",
                 "planner_name": "local_planner_follow_the_gap",
-                "planner_version": "2026-03-29_gap_v1",
-                "controller_version": "autonomy_manager_v1",
+                "planner_version": "baseline_a_v1",
+                "controller_version": "autonomy_manager_return_v1",
+                "experiment_condition": "baseline_a_avoid_return",
+                "paper_metrics_success_requires_return": True,
                 "experiment_seed": 0,
                 "scenario_manifest_path": scenario_manifest_yaml,
                 "autonomy_config_path": avoidance_yaml,
