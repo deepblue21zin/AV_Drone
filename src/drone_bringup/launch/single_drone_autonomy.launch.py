@@ -77,7 +77,9 @@ def generate_launch_description():
                 "baseline_name": "single_drone_autonomy_baseline",
                 "planner_name": "local_planner_follow_the_gap",
                 "planner_version": "2026-03-29_gap_v1",
-                "controller_version": "autonomy_manager_v1",
+                "controller_version": "autonomy_manager_return_capable_v1",
+                "experiment_condition": "baseline_single_goal",
+                "paper_metrics_success_requires_return": False,
                 "experiment_seed": 0,
                 "scenario_manifest_path": scenario_manifest_yaml,
                 "autonomy_config_path": autonomy_yaml,
@@ -88,4 +90,12 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([mavros, perception, planner, safety, controller, metrics])
+    mapping = Node(
+        package="drone_slam",
+        executable="simple_2d_mapping_node",
+        name="simple_2d_mapping",
+        output="screen",
+        parameters=[autonomy_yaml],
+    )
+
+    return LaunchDescription([mavros, perception, planner, safety, controller, metrics, mapping])

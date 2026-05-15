@@ -1,0 +1,119 @@
+local_planner:
+  ros__parameters:
+    pose_topic: /local_position/pose
+    scan_topic: /drone1/scan
+    autonomy_cmd_topic: /drone1/autonomy/cmd_vel
+    goal_reached_topic: /drone1/mission/goal_reached
+
+    guidance_mode: circular
+
+    # legacy goal mode fallback
+    goal_x: 10.0
+    goal_y: 0.0
+    goal_tol_xy: 0.5
+    goal_latch_enabled: true
+
+    # circular track
+    track_center_x: 15.0
+    track_center_y: 15.0
+    track_radius: 20.0
+    track_inner_radius: 15.0
+    track_outer_radius: 25.0
+    orbit_direction: ccw
+
+    radial_error_gain: 0.16
+    heading_smoothing_gain: 0.82
+
+    allow_motion_without_scan: false
+
+    cruise_speed: 0.65
+    max_speed: 0.85
+    max_reverse_speed: 0.18
+
+    emergency_stop_distance: 1.0
+    preferred_clearance_margin: 0.10
+    obstacle_stop_distance: 1.2
+    obstacle_slow_distance: 2.6
+    obstacle_influence_distance: 3.8
+
+    forward_gain: 1.15
+    avoidance_gain: 1.0
+    lateral_bias_gain: 0.38
+    backoff_gain: 0.42
+
+    front_sector_half_angle_deg: 24.0
+    side_sector_width_deg: 80.0
+    gap_search_half_angle_deg: 85.0
+
+    gap_bubble_radius: 0.65
+    gap_max_bubbles: 5
+    gap_min_clearance: 1.10
+    gap_min_points: 10
+    gap_edge_margin_deg: 8.0
+
+    gap_goal_weight: 3.4
+    gap_clearance_weight: 0.55
+    gap_width_weight: 0.30
+    gap_clearance_relax_ratio: 0.90
+    gap_center_bias: 0.35
+    gap_target_commitment: 0.88
+    gap_clearance_percentile: 0.35
+    gap_escape_distance: 1.65
+    target_sector_half_angle_deg: 10.0
+    gap_turn_min_scale: 0.55
+    side_clearance_sector_deg: 65.0
+
+safety_monitor:
+  ros__parameters:
+    pose_topic: /local_position/pose
+    scan_topic: /drone1/scan
+    planner_cmd_topic: /drone1/autonomy/cmd_vel
+    safe_cmd_topic: /drone1/safety/cmd_vel
+
+    pose_timeout_sec: 1.0
+    scan_timeout_sec: 1.0
+    planner_cmd_timeout_sec: 1.0
+
+    require_scan: true
+    enable_obstacle_emergency_stop: false
+    emergency_stop_distance: 0.9
+
+autonomy_manager:
+  ros__parameters:
+    mavros_namespace: /
+    pose_topic: /local_position/pose
+    safe_cmd_topic: /drone1/safety/cmd_vel
+    goal_reached_topic: /drone1/mission/goal_reached
+    mission_phase_topic: /drone1/mission/phase
+
+    takeoff_z: 3.0
+    goal_z: 3.0
+    hover_sec_after_takeoff: 2.0
+    kp_z: 1.2
+    vz_max: 1.0
+    cmd_rate_hz: 20.0
+    pose_timeout_sec: 0.5
+    prestream_setpoints: 40
+    takeoff_skip_margin: 0.25
+
+    continuous_mode: true
+
+lidar_obstacle:
+  ros__parameters:
+    scan_topic: /drone1/scan
+    output_topic: /drone1/perception/nearest_obstacle_distance
+    valid_range_min: 0.05
+    valid_range_max: 30.0
+
+metrics_logger:
+  ros__parameters:
+    pose_topic: /local_position/pose
+    state_topic: /state
+    scan_topic: /drone1/scan
+    planner_cmd_topic: /drone1/autonomy/cmd_vel
+    safe_cmd_topic: /drone1/safety/cmd_vel
+    goal_reached_topic: /drone1/mission/goal_reached
+    mission_phase_topic: /drone1/mission/phase
+    nearest_obstacle_topic: /drone1/perception/nearest_obstacle_distance
+    artifacts_root: /workspace/AV_Drone/artifacts
+    run_name: circular_avoidance

@@ -9,16 +9,35 @@
     autonomy_cmd_topic: "/drone1/autonomy/cmd_vel"
     safe_cmd_topic: "/drone1/safety/cmd_vel"
     mission_phase_topic: "/drone1/mission/phase"
+    home_pose_topic: "/drone1/mission/home_pose"
+    active_goal_topic: "/drone1/mission/active_goal"
     nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
     safety_event_topic: "/drone1/safety/event"
     goal_reached_topic: "/drone1/mission/goal_reached"
+    slam_status_topic: "/drone1/slam/status"
+    slam_input_ready_topic: "/drone1/slam/input_ready"
+    slam_map_ready_topic: "/drone1/slam/map_ready"
+    slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    map_topic: "/map"
+    map_frame_id: "map"
+    map_resolution: 0.12
+    map_min_x: -3.0
+    map_max_x: 37.0
+    map_min_y: -7.0
+    map_max_y: 7.0
+    max_lidar_range: 10.0
+    ray_step_m: 0.08
+    publish_hz: 2.0
     fcu_url: "udp://:14540@127.0.0.1:14580"
     takeoff_z: 3.0
     goal_x: 31.0
     goal_y: -1.5
     goal_z: 3.0
+    home_goal_z: 3.0
     goal_tol_xy: 0.60
     goal_latch_enabled: true
+    return_home_enabled: false
+    return_mode: "avoid"
     allow_motion_without_scan: false
     cruise_speed: 0.75
     max_speed: 0.90
@@ -50,7 +69,18 @@
     target_sector_half_angle_deg: 8.0
     gap_turn_min_scale: 0.35
     side_clearance_sector_deg: 75.0
+    slam_mapping_mode_enabled: false
+    slam_cruise_speed: 0.45
+    slam_max_speed: 0.65
+    slam_max_lateral_speed: 0.45
+    slam_target_commitment: 0.70
+    slam_min_scan_overlap_ratio: 0.55
+    mapping_gain_weight: 0.60
+    slam_stability_weight: 0.40
+    motion_penalty_weight: 0.30
     hover_sec_after_takeoff: 2.0
+    hover_sec_at_goal: 2.0
+    hover_sec_at_home: 3.0
     kp_z: 1.2
     vz_max: 1.0
     cmd_rate_hz: 20.0

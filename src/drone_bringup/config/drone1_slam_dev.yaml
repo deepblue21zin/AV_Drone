@@ -10,6 +10,17 @@
     slam_input_ready_topic: "/drone1/slam/input_ready"
     slam_map_ready_topic: "/drone1/slam/map_ready"
     slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    slam_coverage_topic: "/drone1/slam/coverage"
     slam_home_pose_topic: "/drone1/slam/home_pose"
+    map_topic: "/map"
+    map_frame_id: "map"
+    map_resolution: 0.12
+    map_min_x: -3.0
+    map_max_x: 37.0
+    map_min_y: -7.0
+    map_max_y: 7.0
+    max_lidar_range: 10.0
+    ray_step_m: 0.08
+    publish_hz: 2.0
     input_timeout_sec: 0.5
     heartbeat_hz: 2.0
