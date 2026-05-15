@@ -6,7 +6,7 @@ mppi:
     cmd_rate_hz: 20.0
     pose_timeout_sec: 0.5
 
-    goal_x: 24.0
+    goal_x: 140.0
     goal_y: 0.0
     goal_yaw: 0.0
     goal_tol_xy: 0.6

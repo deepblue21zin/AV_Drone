@@ -6,26 +6,20 @@ import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_sensor_data
 
 from geometry_msgs.msg import PoseStamped, TwistStamped
-from mavros_msgs.msg import State
-from mavros_msgs.srv import CommandBool, SetMode
+from std_msgs.msg import Bool
 
 
 def clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
-
-
-def wrap_pi(a: float) -> float:
-    return (a + math.pi) % (2.0 * math.pi) - math.pi
 
 
 def quat_to_yaw(qx: float, qy: float, qz: float, qw: float) -> float:
@@ -35,13 +29,13 @@ def quat_to_yaw(qx: float, qy: float, qz: float, qw: float) -> float:
 
 
 def xml_tag_name(elem: ET.Element) -> str:
-    return elem.tag.split("}", 1)[-1] if "}" in elem.tag else elem.tag
+    return elem.tag.split('}', 1)[-1] if '}' in elem.tag else elem.tag
 
 
-def child_text(elem: ET.Element, child_name: str, default: str = "") -> str:
+def child_text(elem: ET.Element, child_name: str, default: str = '') -> str:
     for child in list(elem):
         if xml_tag_name(child) == child_name:
-            return (child.text or "").strip()
+            return (child.text or '').strip()
     return default
 
 
@@ -50,12 +44,6 @@ def first_child(elem: ET.Element, child_name: str) -> Optional[ET.Element]:
         if xml_tag_name(child) == child_name:
             return child
     return None
-
-
-def iter_children(elem: ET.Element, child_name: str):
-    for child in list(elem):
-        if xml_tag_name(child) == child_name:
-            yield child
 
 
 def parse_pose_xy(text: str) -> Tuple[float, float]:
@@ -77,7 +65,7 @@ class WorldObstacleLoader:
         self,
         world_path: str,
         cylinder_model_dir: str,
-        cylinder_model_name: str = "cylinder_r05_h5",
+        cylinder_model_name: str = 'cylinder_r05_h5',
         default_radius: float = 0.5,
         include_name_keywords: Optional[List[str]] = None,
         ignore_within_radius: float = 0.0,
@@ -88,28 +76,27 @@ class WorldObstacleLoader:
         self.cylinder_model_dir = Path(cylinder_model_dir)
         self.cylinder_model_name = cylinder_model_name
         self.default_radius = float(default_radius)
-        self.include_name_keywords = include_name_keywords or ["obstacle", "cylinder", cylinder_model_name]
+        self.include_name_keywords = include_name_keywords or ['obstacle', 'cylinder', cylinder_model_name]
         self.ignore_within_radius = float(ignore_within_radius)
         self.ignore_center_x = float(ignore_center_x)
         self.ignore_center_y = float(ignore_center_y)
 
     def load(self) -> List[Obstacle2D]:
         if not self.world_path.exists():
-            raise FileNotFoundError(f"world file not found: {self.world_path}")
+            raise FileNotFoundError(f'world file not found: {self.world_path}')
 
         root = ET.parse(str(self.world_path)).getroot()
         model_radius = self._load_cylinder_radius_from_model_sdf()
-
         obstacles: List[Obstacle2D] = []
         seen = set()
 
         for include in root.iter():
-            if xml_tag_name(include) != "include":
+            if xml_tag_name(include) != 'include':
                 continue
 
-            uri = child_text(include, "uri")
-            name = child_text(include, "name")
-            pose_text = child_text(include, "pose", "0 0 0 0 0 0")
+            uri = child_text(include, 'uri')
+            name = child_text(include, 'name')
+            pose_text = child_text(include, 'pose', '0 0 0 0 0 0')
 
             if not self._is_obstacle_include(uri, name):
                 continue
@@ -121,19 +108,18 @@ class WorldObstacleLoader:
                 continue
             seen.add(key)
 
-            if self._is_ignored_near_start(cx, cy):
-                continue
-            obstacles.append(Obstacle2D(cx=cx, cy=cy, r=r))
+            if not self._is_ignored_near_start(cx, cy):
+                obstacles.append(Obstacle2D(cx=cx, cy=cy, r=r))
 
         for model in root.iter():
-            if xml_tag_name(model) != "model":
+            if xml_tag_name(model) != 'model':
                 continue
 
-            name = model.attrib.get("name", "")
-            if name in {"ground_plane", "sun"}:
+            name = model.attrib.get('name', '')
+            if name in {'ground_plane', 'sun'}:
                 continue
 
-            pose_text = child_text(model, "pose", "0 0 0 0 0 0")
+            pose_text = child_text(model, 'pose', '0 0 0 0 0 0')
             cx, cy = parse_pose_xy(pose_text)
             radius = self._radius_from_inline_model(model)
             if radius is None:
@@ -142,26 +128,25 @@ class WorldObstacleLoader:
             if not self._is_obstacle_model_name(name) and self.cylinder_model_name not in name:
                 continue
 
-            key = (round(cx, 6), round(cy, 6), round(radius, 6), name, "inline")
+            key = (round(cx, 6), round(cy, 6), round(radius, 6), name, 'inline')
             if key in seen:
                 continue
             seen.add(key)
 
-            if self._is_ignored_near_start(cx, cy):
-                continue
-            obstacles.append(Obstacle2D(cx=cx, cy=cy, r=radius))
+            if not self._is_ignored_near_start(cx, cy):
+                obstacles.append(Obstacle2D(cx=cx, cy=cy, r=radius))
 
         return obstacles
 
     def _load_cylinder_radius_from_model_sdf(self) -> float:
-        model_sdf = self.cylinder_model_dir / "model.sdf"
+        model_sdf = self.cylinder_model_dir / 'model.sdf'
         if not model_sdf.exists():
             return self.default_radius
 
         try:
             root = ET.parse(str(model_sdf)).getroot()
             for elem in root.iter():
-                if xml_tag_name(elem) == "radius" and elem.text is not None:
+                if xml_tag_name(elem) == 'radius' and elem.text is not None:
                     return float(elem.text.strip())
         except Exception:
             return self.default_radius
@@ -169,7 +154,7 @@ class WorldObstacleLoader:
         return self.default_radius
 
     def _is_obstacle_include(self, uri: str, name: str) -> bool:
-        text = f"{uri} {name}".lower()
+        text = f'{uri} {name}'.lower()
         if self.cylinder_model_name.lower() in text:
             return True
         return any(k.lower() in text for k in self.include_name_keywords)
@@ -182,19 +167,19 @@ class WorldObstacleLoader:
         max_radius: Optional[float] = None
 
         for geom in model.iter():
-            if xml_tag_name(geom) != "geometry":
+            if xml_tag_name(geom) != 'geometry':
                 continue
 
-            cylinder = first_child(geom, "cylinder")
+            cylinder = first_child(geom, 'cylinder')
             if cylinder is not None:
-                radius_text = child_text(cylinder, "radius")
+                radius_text = child_text(cylinder, 'radius')
                 if radius_text:
                     r = float(radius_text)
                     max_radius = r if max_radius is None else max(max_radius, r)
 
-            box = first_child(geom, "box")
+            box = first_child(geom, 'box')
             if box is not None:
-                size_text = child_text(box, "size")
+                size_text = child_text(box, 'size')
                 if size_text:
                     vals = [float(v) for v in size_text.split()]
                     if len(vals) >= 2:
@@ -212,29 +197,23 @@ class WorldObstacleLoader:
 @dataclass
 class MPPIConfig:
     dt: float = 0.05
-    horizon: int = 100
-    num_samples: int = 400
+    horizon: int = 50
+    num_samples: int = 120
     lam: float = 1.0
-
     v_max: float = 2.0
     yaw_rate_max: float = 1.2
-
     sigma_v: float = 0.6
     sigma_yaw_rate: float = 0.6
-
     w_goal: float = 8.0
     w_goal_final: float = 30.0
     w_obst: float = 120.0
     w_ctrl: float = 0.2
     w_smooth: float = 0.4
-
     safety_margin: float = 0.9
     near_buffer: float = 0.6
-
     near_k: float = 18.0
     penetrate_k: float = 80.0
     penetrate_bias: float = 200.0
-
     v_nom: float = 1.2
 
 
@@ -245,31 +224,21 @@ class MPPIController:
         self.u_nom = np.zeros((cfg.horizon, 3), dtype=np.float32)
         self.rng = np.random.default_rng()
 
-    def reset(self):
+    def reset(self) -> None:
         self.u_nom[:] = 0.0
 
-    def set_obstacles(self, obstacles: List[Obstacle2D]):
-        self.obstacles = obstacles
-
-    def set_nominal_towards_goal(self, x: float, y: float, goal_x: float, goal_y: float):
+    def set_nominal_towards_goal(self, x: float, y: float, goal_x: float, goal_y: float) -> None:
         dx = goal_x - x
         dy = goal_y - y
         dist = math.hypot(dx, dy) + 1e-6
-
-        vx = self.cfg.v_nom * dx / dist
-        vy = self.cfg.v_nom * dy / dist
-        vx = clamp(vx, -self.cfg.v_max, self.cfg.v_max)
-        vy = clamp(vy, -self.cfg.v_max, self.cfg.v_max)
-
-        self.u_nom[:, 0] = vx
-        self.u_nom[:, 1] = vy
+        self.u_nom[:, 0] = clamp(self.cfg.v_nom * dx / dist, -self.cfg.v_max, self.cfg.v_max)
+        self.u_nom[:, 1] = clamp(self.cfg.v_nom * dy / dist, -self.cfg.v_max, self.cfg.v_max)
         self.u_nom[:, 2] = 0.0
 
     def step(self, state: Tuple[float, float, float], goal: Tuple[float, float, float]) -> Tuple[float, float, float]:
         cfg = self.cfg
         x0, y0, yaw0 = state
         gx, gy, gyaw = goal
-
         H = cfg.horizon
         N = cfg.num_samples
         dt = cfg.dt
@@ -297,16 +266,10 @@ class MPPIController:
             yaws[:, k + 1] = yaws[:, k] + u[:, k, 2] * dt
 
         costs = np.zeros((N,), dtype=np.float32)
-
         dx = xs[:, 1:] - gx
         dy = ys[:, 1:] - gy
-        dist2 = dx * dx + dy * dy
-        costs += cfg.w_goal * np.mean(dist2, axis=1)
-
-        dxf = xs[:, -1] - gx
-        dyf = ys[:, -1] - gy
-        costs += cfg.w_goal_final * (dxf * dxf + dyf * dyf)
-
+        costs += cfg.w_goal * np.mean(dx * dx + dy * dy, axis=1)
+        costs += cfg.w_goal_final * ((xs[:, -1] - gx) ** 2 + (ys[:, -1] - gy) ** 2)
         dyaw = (yaws[:, -1] - gyaw + np.pi) % (2.0 * np.pi) - np.pi
         costs += 0.5 * (dyaw * dyaw)
 
@@ -318,142 +281,95 @@ class MPPIController:
                 d = np.sqrt(ox * ox + oy * oy)
                 dmin = np.min(d, axis=1)
                 sdmin = dmin - (obs.r + cfg.safety_margin)
-
                 pen_depth = np.clip(-sdmin, 0.0, None)
-                pen_cost = (
-                    cfg.penetrate_bias * (pen_depth > 0.0).astype(np.float32)
-                    + cfg.penetrate_k * (pen_depth ** 2)
-                )
-
+                pen_cost = cfg.penetrate_bias * (pen_depth > 0.0).astype(np.float32) + cfg.penetrate_k * (pen_depth ** 2)
                 near_depth = np.clip(cfg.near_buffer - sdmin, 0.0, cfg.near_buffer)
                 near_cost = cfg.near_k * (near_depth ** 2)
-
                 obst_cost += pen_cost + near_cost
-
             costs += cfg.w_obst * obst_cost
 
-        costs += cfg.w_ctrl * np.mean(
-            u[:, :, 0] ** 2 + u[:, :, 1] ** 2 + 0.4 * u[:, :, 2] ** 2, axis=1
-        )
-
+        costs += cfg.w_ctrl * np.mean(u[:, :, 0] ** 2 + u[:, :, 1] ** 2 + 0.4 * u[:, :, 2] ** 2, axis=1)
         du = u[:, 1:, :] - u[:, :-1, :]
-        costs += cfg.w_smooth * np.mean(
-            du[:, :, 0] ** 2 + du[:, :, 1] ** 2 + 0.4 * du[:, :, 2] ** 2, axis=1
-        )
+        costs += cfg.w_smooth * np.mean(du[:, :, 0] ** 2 + du[:, :, 1] ** 2 + 0.4 * du[:, :, 2] ** 2, axis=1)
 
         cmin = float(np.min(costs))
         weights = np.exp(-(costs - cmin) / max(cfg.lam, 1e-6))
-        wsum = float(np.sum(weights)) + 1e-9
-        weights = (weights / wsum).astype(np.float32)
-
+        weights = (weights / (float(np.sum(weights)) + 1e-9)).astype(np.float32)
         self.u_nom = np.tensordot(weights, u, axes=(0, 0)).astype(np.float32)
 
         u0 = self.u_nom[0].copy()
         self.u_nom[:-1] = self.u_nom[1:]
         self.u_nom[-1] = self.u_nom[-2]
-
         return float(u0[0]), float(u0[1]), float(u0[2])
 
 
-class MPPIOffboardNode(Node):
+class MPPIPlannerNode(Node):
     def __init__(self):
-        super().__init__("mppi")
+        super().__init__('mppi')
+        self.declare_parameter('pose_topic', '/local_position/pose')
+        self.declare_parameter('cmd_topic', '/drone1/autonomy/cmd_vel')
+        self.declare_parameter('goal_reached_topic', '/drone1/mission/goal_reached')
+        self.declare_parameter('goal_x', 50.0)
+        self.declare_parameter('goal_y', 0.0)
+        self.declare_parameter('goal_z', 3.0)
+        self.declare_parameter('goal_yaw', 0.0)
+        self.declare_parameter('goal_tol_xy', 0.8)
+        self.declare_parameter('world_path', '/workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world')
+        self.declare_parameter('cylinder_model_dir', '/workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/cylinder_r05_h5')
+        self.declare_parameter('cylinder_model_name', 'cylinder_r05_h5')
+        self.declare_parameter('obstacle_default_radius', 0.5)
+        self.declare_parameter('ignore_obstacles_within_start_radius', 0.0)
+        self.declare_parameter('ignore_obstacles_center_x', 0.0)
+        self.declare_parameter('ignore_obstacles_center_y', 0.0)
+        self.declare_parameter('dt', 0.05)
+        self.declare_parameter('horizon', 50)
+        self.declare_parameter('num_samples', 120)
+        self.declare_parameter('lam', 1.0)
+        self.declare_parameter('v_max', 2.0)
+        self.declare_parameter('yaw_rate_max', 1.2)
+        self.declare_parameter('sigma_v', 0.6)
+        self.declare_parameter('sigma_yaw_rate', 0.6)
+        self.declare_parameter('v_nom', 1.2)
+        self.declare_parameter('w_goal', 8.0)
+        self.declare_parameter('w_goal_final', 30.0)
+        self.declare_parameter('w_obst', 120.0)
+        self.declare_parameter('w_ctrl', 0.2)
+        self.declare_parameter('w_smooth', 0.4)
+        self.declare_parameter('safety_margin', 0.9)
+        self.declare_parameter('near_buffer', 0.6)
+        self.declare_parameter('near_k', 18.0)
+        self.declare_parameter('penetrate_k', 80.0)
+        self.declare_parameter('penetrate_bias', 200.0)
+        self.declare_parameter('cmd_rate_hz', 20.0)
+        self.declare_parameter('pose_timeout_sec', 1.0)
+        self.declare_parameter('slowdown_dist', 3.0)
+        self.declare_parameter('min_goal_scale', 0.25)
+        self.declare_parameter('log_cmd_period_sec', 1.0)
 
-        self.declare_parameter("takeoff_z", 3.0)
-        self.declare_parameter("goal_x", 24.0)
-        self.declare_parameter("goal_y", 0.0)
-        self.declare_parameter("goal_z", 3.0)
-        self.declare_parameter("goal_yaw", 0.0)
-
-        self.declare_parameter("hover_sec_after_takeoff", 2.0)
-        self.declare_parameter("hover_sec_at_goal", 3.0)
-        self.declare_parameter("goal_tol_xy", 0.6)
-
-        self.declare_parameter(
-            "world_path",
-            "/workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world",
-        )
-        self.declare_parameter(
-            "cylinder_model_dir",
-            "/workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/cylinder_r05_h5",
-        )
-        self.declare_parameter("cylinder_model_name", "cylinder_r05_h5")
-        self.declare_parameter("obstacle_default_radius", 0.5)
-        self.declare_parameter("ignore_obstacles_within_start_radius", 0.0)
-        self.declare_parameter("ignore_obstacles_center_x", 0.0)
-        self.declare_parameter("ignore_obstacles_center_y", 0.0)
-
-        self.declare_parameter("use_world_obstacles", True)
-        self.declare_parameter("obs_x", Parameter.Type.DOUBLE_ARRAY)
-        self.declare_parameter("obs_y", Parameter.Type.DOUBLE_ARRAY)
-        self.declare_parameter("obs_r", Parameter.Type.DOUBLE_ARRAY)
-
-        self.declare_parameter("dt", 0.05)
-        self.declare_parameter("horizon", 100)
-        self.declare_parameter("num_samples", 400)
-        self.declare_parameter("lam", 1.0)
-
-        self.declare_parameter("v_max", 2.0)
-        self.declare_parameter("yaw_rate_max", 1.2)
-        self.declare_parameter("sigma_v", 0.6)
-        self.declare_parameter("sigma_yaw_rate", 0.6)
-        self.declare_parameter("v_nom", 1.2)
-
-        self.declare_parameter("w_goal", 8.0)
-        self.declare_parameter("w_goal_final", 30.0)
-        self.declare_parameter("w_obst", 120.0)
-        self.declare_parameter("w_ctrl", 0.2)
-        self.declare_parameter("w_smooth", 0.4)
-
-        self.declare_parameter("safety_margin", 0.9)
-        self.declare_parameter("near_buffer", 0.6)
-        self.declare_parameter("near_k", 18.0)
-        self.declare_parameter("penetrate_k", 80.0)
-        self.declare_parameter("penetrate_bias", 200.0)
-
-        self.declare_parameter("kp_z", 1.2)
-        self.declare_parameter("vz_max", 1.2)
-        self.declare_parameter("cmd_rate_hz", 20.0)
-
-        self.current_state = State()
         self.pose: Optional[PoseStamped] = None
         self.last_pose_t = 0.0
+        self.goal_reached = False
+        self.nominal_initialized = False
+        self.last_cmd_log_t = 0.0
 
-        self.phase = "WAIT_STREAM"
-        self.phase_t0 = time.time()
-        self.pre_stream_count = 0
-
-        self.create_subscription(State, "/mavros/state", self._on_state, 10)
-        self.create_subscription(
-            PoseStamped, "/mavros/local_position/pose", self._on_pose, qos_profile_sensor_data
-        )
-        self.cmd_pub = self.create_publisher(TwistStamped, "/mavros/setpoint_velocity/cmd_vel", 10)
-
-        self.arm_cli = self.create_client(CommandBool, "/mavros/cmd/arming")
-        self.mode_cli = self.create_client(SetMode, "/mavros/set_mode")
-        self.mode_future = None
-        self.arm_future = None
-        self.last_mode_req_t = 0.0
-        self.last_arm_req_t = 0.0
+        pose_topic = str(self.get_parameter('pose_topic').value)
+        cmd_topic = str(self.get_parameter('cmd_topic').value)
+        goal_reached_topic = str(self.get_parameter('goal_reached_topic').value)
+        self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)
+        self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
+        self.goal_pub = self.create_publisher(Bool, goal_reached_topic, 10)
 
         obstacles = self._load_obstacles()
         cfg = self._load_mppi_config()
         self.mppi = MPPIController(cfg, obstacles)
-
-        rate = float(self.get_parameter("cmd_rate_hz").value)
+        rate = float(self.get_parameter('cmd_rate_hz').value)
         self.create_timer(1.0 / max(rate, 1.0), self._tick)
 
         self._log_obstacles(obstacles, cfg)
-        self.get_logger().info(
-            f"mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, T={cfg.dt * cfg.horizon:.2f}s, "
-            f"samples={cfg.num_samples}, v_max={cfg.v_max}, w_obst={cfg.w_obst}, "
-            f"safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}"
-        )
+        self.get_logger().info(f'Known-map MPPI planner ready: pose={pose_topic}, cmd={cmd_topic}, goal_reached={goal_reached_topic}')
+        self.get_logger().info(f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, v_max={cfg.v_max}, w_obst={cfg.w_obst}, safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}')
 
-    def _on_state(self, msg: State):
-        self.current_state = msg
-
-    def _on_pose(self, msg: PoseStamped):
+    def _on_pose(self, msg: PoseStamped) -> None:
         self.pose = msg
         self.last_pose_t = time.time()
 
@@ -468,251 +384,127 @@ class MPPIOffboardNode(Node):
         yaw = quat_to_yaw(q.x, q.y, q.z, q.w)
         return float(p.x), float(p.y), float(p.z), float(yaw)
 
-    def _publish_cmd(self, vx: float, vy: float, vz: float, yaw_rate: float):
+    def _publish_cmd(self, vx: float, vy: float, yaw_rate: float) -> None:
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = 'map'
         msg.twist.linear.x = float(vx)
         msg.twist.linear.y = float(vy)
-        msg.twist.linear.z = float(vz)
+        msg.twist.linear.z = 0.0
         msg.twist.angular.z = float(yaw_rate)
         self.cmd_pub.publish(msg)
 
-    def _enter_phase(self, name: str):
-        if self.phase != name:
-            self.phase = name
-            self.phase_t0 = time.time()
-            self.get_logger().info(f"PHASE => {name}")
-
-    def _phase_elapsed(self) -> float:
-        return time.time() - self.phase_t0
-
-    @staticmethod
-    def _as_float_list(v: Any) -> List[float]:
-        if v is None:
-            return []
-        if isinstance(v, (float, int)):
-            return [float(v)]
-        try:
-            return [float(x) for x in list(v)]
-        except Exception:
-            return []
+    def _publish_goal_reached(self, reached: bool) -> None:
+        msg = Bool()
+        msg.data = bool(reached)
+        self.goal_pub.publish(msg)
 
     def _load_obstacles(self) -> List[Obstacle2D]:
-        use_world = bool(self.get_parameter("use_world_obstacles").value)
-        if use_world:
-            world_path = str(self.get_parameter("world_path").value)
-            cylinder_model_dir = str(self.get_parameter("cylinder_model_dir").value)
-            cylinder_model_name = str(self.get_parameter("cylinder_model_name").value)
-            default_radius = float(self.get_parameter("obstacle_default_radius").value)
-            ignore_radius = float(self.get_parameter("ignore_obstacles_within_start_radius").value)
-            ignore_cx = float(self.get_parameter("ignore_obstacles_center_x").value)
-            ignore_cy = float(self.get_parameter("ignore_obstacles_center_y").value)
-
-            try:
-                loader = WorldObstacleLoader(
-                    world_path=world_path,
-                    cylinder_model_dir=cylinder_model_dir,
-                    cylinder_model_name=cylinder_model_name,
-                    default_radius=default_radius,
-                    ignore_within_radius=ignore_radius,
-                    ignore_center_x=ignore_cx,
-                    ignore_center_y=ignore_cy,
-                )
-                obstacles = loader.load()
-                self.get_logger().info(f"world obstacle source: {world_path}")
-                self.get_logger().info(f"cylinder model source: {cylinder_model_dir}")
-                if not obstacles:
-                    self.get_logger().warn("world obstacle loader returned 0 obstacles")
-                return obstacles
-            except Exception as exc:
-                self.get_logger().error(f"failed to load world obstacles: {exc}")
-                self.get_logger().warn("falling back to obs_x/obs_y/obs_r parameters")
-
-        xs = self._as_float_list(self.get_parameter("obs_x").value)
-        ys = self._as_float_list(self.get_parameter("obs_y").value)
-        rs = self._as_float_list(self.get_parameter("obs_r").value)
-        n = min(len(xs), len(ys), len(rs))
-        return [Obstacle2D(xs[i], ys[i], rs[i]) for i in range(n)]
+        try:
+            loader = WorldObstacleLoader(
+                world_path=str(self.get_parameter('world_path').value),
+                cylinder_model_dir=str(self.get_parameter('cylinder_model_dir').value),
+                cylinder_model_name=str(self.get_parameter('cylinder_model_name').value),
+                default_radius=float(self.get_parameter('obstacle_default_radius').value),
+                ignore_within_radius=float(self.get_parameter('ignore_obstacles_within_start_radius').value),
+                ignore_center_x=float(self.get_parameter('ignore_obstacles_center_x').value),
+                ignore_center_y=float(self.get_parameter('ignore_obstacles_center_y').value),
+            )
+            obstacles = loader.load()
+            self.get_logger().info(f"world obstacle source: {self.get_parameter('world_path').value}")
+            self.get_logger().info(f"cylinder model source: {self.get_parameter('cylinder_model_dir').value}")
+            if not obstacles:
+                self.get_logger().warn('world obstacle loader returned 0 obstacles')
+            return obstacles
+        except Exception as exc:
+            self.get_logger().error(f'failed to load world obstacles: {exc}')
+            return []
 
     def _load_mppi_config(self) -> MPPIConfig:
         return MPPIConfig(
-            dt=float(self.get_parameter("dt").value),
-            horizon=int(self.get_parameter("horizon").value),
-            num_samples=int(self.get_parameter("num_samples").value),
-            lam=float(self.get_parameter("lam").value),
-            v_max=float(self.get_parameter("v_max").value),
-            yaw_rate_max=float(self.get_parameter("yaw_rate_max").value),
-            sigma_v=float(self.get_parameter("sigma_v").value),
-            sigma_yaw_rate=float(self.get_parameter("sigma_yaw_rate").value),
-            w_goal=float(self.get_parameter("w_goal").value),
-            w_goal_final=float(self.get_parameter("w_goal_final").value),
-            w_obst=float(self.get_parameter("w_obst").value),
-            w_ctrl=float(self.get_parameter("w_ctrl").value),
-            w_smooth=float(self.get_parameter("w_smooth").value),
-            safety_margin=float(self.get_parameter("safety_margin").value),
-            near_buffer=float(self.get_parameter("near_buffer").value),
-            near_k=float(self.get_parameter("near_k").value),
-            penetrate_k=float(self.get_parameter("penetrate_k").value),
-            penetrate_bias=float(self.get_parameter("penetrate_bias").value),
-            v_nom=float(self.get_parameter("v_nom").value),
+            dt=float(self.get_parameter('dt').value),
+            horizon=int(self.get_parameter('horizon').value),
+            num_samples=int(self.get_parameter('num_samples').value),
+            lam=float(self.get_parameter('lam').value),
+            v_max=float(self.get_parameter('v_max').value),
+            yaw_rate_max=float(self.get_parameter('yaw_rate_max').value),
+            sigma_v=float(self.get_parameter('sigma_v').value),
+            sigma_yaw_rate=float(self.get_parameter('sigma_yaw_rate').value),
+            w_goal=float(self.get_parameter('w_goal').value),
+            w_goal_final=float(self.get_parameter('w_goal_final').value),
+            w_obst=float(self.get_parameter('w_obst').value),
+            w_ctrl=float(self.get_parameter('w_ctrl').value),
+            w_smooth=float(self.get_parameter('w_smooth').value),
+            safety_margin=float(self.get_parameter('safety_margin').value),
+            near_buffer=float(self.get_parameter('near_buffer').value),
+            near_k=float(self.get_parameter('near_k').value),
+            penetrate_k=float(self.get_parameter('penetrate_k').value),
+            penetrate_bias=float(self.get_parameter('penetrate_bias').value),
+            v_nom=float(self.get_parameter('v_nom').value),
         )
 
-    def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig):
-        self.get_logger().info(f"obstacles loaded: {len(obstacles)}")
+    def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig) -> None:
+        self.get_logger().info(f'obstacles loaded: {len(obstacles)}')
         preview = obstacles[:10]
         for i, obs in enumerate(preview):
-            self.get_logger().info(
-                f"obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, "
-                f"r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}"
-            )
+            self.get_logger().info(f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}')
         if len(obstacles) > len(preview):
-            self.get_logger().info(f"... {len(obstacles) - len(preview)} more obstacles")
+            self.get_logger().info(f'... {len(obstacles) - len(preview)} more obstacles')
 
-    def _request_set_mode(self, mode: str):
-        if not self.mode_cli.service_is_ready():
-            return
-        if self.mode_future is not None and not self.mode_future.done():
-            return
-        req = SetMode.Request()
-        req.custom_mode = mode
-        self.mode_future = self.mode_cli.call_async(req)
-
-    def _request_arm(self, arm: bool):
-        if not self.arm_cli.service_is_ready():
-            return
-        if self.arm_future is not None and not self.arm_future.done():
-            return
-        req = CommandBool.Request()
-        req.value = bool(arm)
-        self.arm_future = self.arm_cli.call_async(req)
-
-    def _tick(self):
-        self._publish_cmd(0.0, 0.0, 0.0, 0.0)
-
-        if not self.current_state.connected:
-            return
-        if self.pose is None or self._pose_age() > 0.5:
+    def _tick(self) -> None:
+        self._publish_goal_reached(self.goal_reached)
+        pose_timeout = float(self.get_parameter('pose_timeout_sec').value)
+        if self.pose is None or self._pose_age() > pose_timeout:
+            self._publish_cmd(0.0, 0.0, 0.0)
             return
 
-        takeoff_z = float(self.get_parameter("takeoff_z").value)
-        gx = float(self.get_parameter("goal_x").value)
-        gy = float(self.get_parameter("goal_y").value)
-        gz = float(self.get_parameter("goal_z").value)
-        gyaw = float(self.get_parameter("goal_yaw").value)
+        gx = float(self.get_parameter('goal_x').value)
+        gy = float(self.get_parameter('goal_y').value)
+        gyaw = float(self.get_parameter('goal_yaw').value)
+        goal_tol = float(self.get_parameter('goal_tol_xy').value)
+        x, y, _z, yaw = self._get_xyz_yaw()
+        d_goal = math.hypot(gx - x, gy - y)
 
-        hover_after_takeoff = float(self.get_parameter("hover_sec_after_takeoff").value)
-        hover_at_goal = float(self.get_parameter("hover_sec_at_goal").value)
-        goal_tol = float(self.get_parameter("goal_tol_xy").value)
+        if d_goal <= goal_tol:
+            self.goal_reached = True
+            self._publish_goal_reached(True)
+            self._publish_cmd(0.0, 0.0, 0.0)
+            return
 
-        kp_z = float(self.get_parameter("kp_z").value)
-        vz_max = float(self.get_parameter("vz_max").value)
-
-        x, y, z, yaw = self._get_xyz_yaw()
-
-        if self.phase == "WAIT_STREAM":
-            self.pre_stream_count += 1
-            if self.pre_stream_count >= 40:
-                self._enter_phase("OFFBOARD_ARM")
-
-        elif self.phase == "OFFBOARD_ARM":
-            now = time.time()
-
-            if self.current_state.mode != "OFFBOARD":
-                if (now - self.last_mode_req_t) > 1.0:
-                    self._request_set_mode("OFFBOARD")
-                    self.last_mode_req_t = now
-                return
-
-            if not self.current_state.armed:
-                if (now - self.last_arm_req_t) > 1.0:
-                    self._request_arm(True)
-                    self.last_arm_req_t = now
-                return
-
+        if not self.nominal_initialized:
             self.mppi.reset()
-            self._enter_phase("TAKEOFF")
+            self.mppi.set_nominal_towards_goal(x, y, gx, gy)
+            self.nominal_initialized = True
 
-        elif self.phase == "TAKEOFF":
-            err_z = takeoff_z - z
-            vz_cmd = clamp(kp_z * err_z, -vz_max, vz_max)
-            vz_cmd = clamp(vz_cmd, 0.2, vz_max) if err_z > 0.2 else vz_cmd
-            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
+        vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
+        slowdown_dist = float(self.get_parameter('slowdown_dist').value)
+        min_goal_scale = float(self.get_parameter('min_goal_scale').value)
+        if d_goal < slowdown_dist:
+            scale = clamp(d_goal / max(slowdown_dist, 1e-6), min_goal_scale, 1.0)
+            vx *= scale
+            vy *= scale
 
-            if z >= takeoff_z - 0.15:
-                self._enter_phase("HOVER_AFTER_TAKEOFF")
-
-        elif self.phase == "HOVER_AFTER_TAKEOFF":
-            err_z = takeoff_z - z
-            vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)
-            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
-
-            if self._phase_elapsed() >= hover_after_takeoff:
-                self.mppi.set_nominal_towards_goal(x, y, gx, gy)
-                self._enter_phase("MPPI_GO")
-
-        elif self.phase == "MPPI_GO":
-            err_z = gz - z
-            vz_hold = clamp(kp_z * err_z, -vz_max, vz_max)
-
-            vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
-
-            d_goal = math.hypot(gx - x, gy - y)
-            if d_goal < 2.0:
-                scale = clamp(d_goal / 2.0, 0.25, 1.0)
-                vx *= scale
-                vy *= scale
-
-            self._publish_cmd(vx, vy, vz_hold, yr)
-
-            if d_goal <= goal_tol:
-                self._enter_phase("HOVER_AT_GOAL")
-
-        elif self.phase == "HOVER_AT_GOAL":
-            err_z = gz - z
-            vz_cmd = clamp(kp_z * err_z, -0.6, 0.6)
-            self._publish_cmd(0.0, 0.0, vz_cmd, 0.0)
-
-            if self._phase_elapsed() >= hover_at_goal:
-                self._enter_phase("LAND")
-
-        elif self.phase == "LAND":
-            now = time.time()
-            if (now - self.last_mode_req_t) > 1.0:
-                self._request_set_mode("AUTO.LAND")
-                self.last_mode_req_t = now
-
-            if self.mode_future is not None and self.mode_future.done():
-                res = self.mode_future.result()
-                if res is not None and bool(res.mode_sent):
-                    self._enter_phase("WAIT_LANDED")
-
-        elif self.phase == "WAIT_LANDED":
-            if z < 0.2:
-                now = time.time()
-                if (now - self.last_arm_req_t) > 1.0:
-                    self._request_arm(False)
-                    self.last_arm_req_t = now
-
-                if self.arm_future is not None and self.arm_future.done():
-                    res = self.arm_future.result()
-                    if res is not None and bool(res.success):
-                        self._enter_phase("DONE")
-
-        elif self.phase == "DONE":
-            pass
+        self._publish_goal_reached(False)
+        self._publish_cmd(vx, vy, yr)
+        now = time.time()
+        log_period = float(self.get_parameter('log_cmd_period_sec').value)
+        if log_period > 0.0 and now - self.last_cmd_log_t >= log_period:
+            self.last_cmd_log_t = now
+            self.get_logger().info(f'cmd: x={x:.2f}, y={y:.2f}, goal=({gx:.2f},{gy:.2f}), d={d_goal:.2f}, vx={vx:.2f}, vy={vy:.2f}, yr={yr:.2f}')
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = MPPIOffboardNode()
+    node = MPPIPlannerNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
