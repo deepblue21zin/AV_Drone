@@ -41,6 +41,9 @@ class AutonomyManagerNode(Node):
         self.declare_parameter("prestream_setpoints", 40)
         self.declare_parameter("takeoff_skip_margin", 0.25)
 
+        # NEW: keep FOLLOW_PLAN running even if goal_reached arrives
+        self.declare_parameter("continuous_mode", False)
+
         pose_topic = str(self.get_parameter("pose_topic").value)
         self.vehicle = VehicleInterface(
             self,
@@ -140,6 +143,7 @@ class AutonomyManagerNode(Node):
         vz_max = float(self.get_parameter("vz_max").value)
         prestream_setpoints = int(self.get_parameter("prestream_setpoints").value)
         takeoff_skip_margin = float(self.get_parameter("takeoff_skip_margin").value)
+        continuous_mode = bool(self.get_parameter("continuous_mode").value)
 
         if not self.vehicle.state.connected:
             return
@@ -159,7 +163,6 @@ class AutonomyManagerNode(Node):
         goal_target_z = reference_z + goal_z
 
         if self._phase == "WAIT_STREAM":
-            # Pre-stream zero setpoints only until OFFBOARD can be requested.
             self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             self._prestream_count += 1
             if self._prestream_count >= prestream_setpoints:
@@ -233,7 +236,7 @@ class AutonomyManagerNode(Node):
             return
 
         if self._phase == "FOLLOW_PLAN":
-            if self._goal_reached:
+            if self._goal_reached and not continuous_mode:
                 self._enter_phase("HOVER_AT_GOAL")
                 return
 

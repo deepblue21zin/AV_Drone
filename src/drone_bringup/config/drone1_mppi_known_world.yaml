@@ -1,0 +1,116 @@
+mppi:
+  ros__parameters:
+    pose_topic: /local_position/pose
+    autonomy_cmd_topic: /drone1/autonomy/cmd_vel
+    goal_reached_topic: /drone1/mission/goal_reached
+    cmd_rate_hz: 20.0
+    pose_timeout_sec: 0.5
+
+    goal_x: 24.0
+    goal_y: 0.0
+    goal_yaw: 0.0
+    goal_tol_xy: 0.6
+    goal_latch_enabled: true
+    slowdown_radius: 2.0
+    min_goal_speed_scale: 0.25
+
+    world_path: /workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world
+    cylinder_model_dir: /workspace/AV_Drone/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/cylinder_r05_h5
+    cylinder_model_name: cylinder_r05_h5
+    obstacle_default_radius: 0.5
+    ignore_obstacles_within_start_radius: 0.0
+    ignore_obstacles_center_x: 0.0
+    ignore_obstacles_center_y: 0.0
+
+    dt: 0.05
+    horizon: 100
+    num_samples: 400
+    lam: 1.0
+
+    v_max: 2.0
+    yaw_rate_max: 1.2
+    sigma_v: 0.6
+    sigma_yaw_rate: 0.6
+    v_nom: 1.2
+
+    w_goal: 8.0
+    w_goal_final: 30.0
+    w_obst: 120.0
+    w_ctrl: 0.2
+    w_smooth: 0.4
+    w_yaw: 0.5
+
+    safety_margin: 0.9
+    near_buffer: 0.6
+    near_k: 18.0
+    penetrate_k: 80.0
+    penetrate_bias: 200.0
+
+safety_monitor:
+  ros__parameters:
+    pose_topic: /local_position/pose
+    scan_topic: /drone1/scan
+    planner_cmd_topic: /drone1/autonomy/cmd_vel
+    safe_cmd_topic: /drone1/safety/cmd_vel
+    safety_event_topic: /drone1/safety/event
+
+    pose_timeout_sec: 1.0
+    scan_timeout_sec: 1.0
+    planner_cmd_timeout_sec: 1.0
+
+    require_scan: false
+    enable_obstacle_emergency_stop: false
+    emergency_stop_distance: 0.9
+    startup_grace_sec: 3.0
+
+autonomy_manager:
+  ros__parameters:
+    mavros_namespace: /
+    pose_topic: /local_position/pose
+    safe_cmd_topic: /drone1/safety/cmd_vel
+    goal_reached_topic: /drone1/mission/goal_reached
+    mission_phase_topic: /drone1/mission/phase
+
+    takeoff_z: 3.0
+    goal_z: 3.0
+    hover_sec_after_takeoff: 2.0
+    kp_z: 1.2
+    vz_max: 1.0
+    cmd_rate_hz: 20.0
+    pose_timeout_sec: 0.5
+    prestream_setpoints: 40
+    takeoff_skip_margin: 0.25
+
+    continuous_mode: false
+
+lidar_obstacle:
+  ros__parameters:
+    scan_topic: /drone1/scan
+    output_topic: /drone1/perception/nearest_obstacle_distance
+    valid_range_min: 0.05
+    valid_range_max: 30.0
+
+metrics_logger:
+  ros__parameters:
+    drone_name: drone1
+    scenario_name: known_world_mppi
+    baseline_name: existing_mavros_safety_control_stack
+    planner_name: known_world_mppi
+    planner_version: mppi_world_loader_v1
+    controller_version: autonomy_manager_v1
+    experiment_seed: 0
+
+    state_topic: /state
+    pose_topic: /local_position/pose
+    scan_topic: /drone1/scan
+    planner_cmd_topic: /drone1/autonomy/cmd_vel
+    safe_cmd_topic: /drone1/safety/cmd_vel
+    safety_event_topic: /drone1/safety/event
+    goal_reached_topic: /drone1/mission/goal_reached
+    mission_phase_topic: /drone1/mission/phase
+    nearest_obstacle_topic: /drone1/perception/nearest_obstacle_distance
+
+    artifacts_root: /workspace/AV_Drone/artifacts
+    run_name: known_world_mppi
+    autonomy_config_path: /workspace/AV_Drone/git_ws/src/drone_bringup/config/drone1_mppi_known_world.yaml
+    launch_file_path: /workspace/AV_Drone/git_ws/src/drone_bringup/launch/single_drone_mppi_known_world.launch.py
