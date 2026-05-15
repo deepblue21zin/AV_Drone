@@ -41,8 +41,8 @@ def generate_launch_description():
 
     slam = Node(
         package="drone_slam",
-        executable="slam_scaffold_node",
-        name="slam_scaffold",
+        executable="simple_2d_mapping_node",
+        name="simple_2d_mapping",
         output="screen",
         parameters=[slam_yaml],
     )
