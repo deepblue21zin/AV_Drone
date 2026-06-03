@@ -52,6 +52,15 @@ class MetricsLoggerNode(Node):
         self.declare_parameter("planner_version", "reactive_v1")
         self.declare_parameter("controller_version", "autonomy_manager_v1")
         self.declare_parameter("experiment_condition", "baseline_single_goal")
+        self.declare_parameter("condition_id", "")
+        self.declare_parameter("scenario_id", "")
+        self.declare_parameter("world_name", "")
+        self.declare_parameter("planner_family", "")
+        self.declare_parameter("map_source", "")
+        self.declare_parameter("planned_path_length_m", 0.0)
+        self.declare_parameter("planning_time_ms_p50", -1.0)
+        self.declare_parameter("planning_time_ms_p95", -1.0)
+        self.declare_parameter("replan_count", 0)
         self.declare_parameter("paper_metrics_success_requires_return", False)
         self.declare_parameter("experiment_seed", 0)
         self.declare_parameter("scenario_manifest_path", "")
@@ -67,6 +76,17 @@ class MetricsLoggerNode(Node):
         self.planner_version = str(self.get_parameter("planner_version").value)
         self.controller_version = str(self.get_parameter("controller_version").value)
         self.experiment_condition = str(self.get_parameter("experiment_condition").value)
+        self.condition_id = (
+            str(self.get_parameter("condition_id").value).strip()
+            or self.experiment_condition
+        )
+        self.scenario_id = (
+            str(self.get_parameter("scenario_id").value).strip()
+            or self.scenario_name
+        )
+        self.world_name = str(self.get_parameter("world_name").value).strip()
+        self.planner_family = str(self.get_parameter("planner_family").value).strip()
+        self.map_source = str(self.get_parameter("map_source").value).strip()
         self.success_requires_return = bool(
             self.get_parameter("paper_metrics_success_requires_return").value
         )
@@ -98,6 +118,8 @@ class MetricsLoggerNode(Node):
         self.px4_gz_world = os.environ.get(
             "PX4_SITL_WORLD", os.environ.get("PX4_GZ_WORLD", "unknown")
         )
+        if not self.world_name:
+            self.world_name = self.px4_gz_world
         self.px4_gz_model_name = os.environ.get("PX4_GZ_MODEL_NAME", "unknown")
         self.px4_sim_target = os.environ.get("PX4_SIM_TARGET", "unknown")
         self.px4_sim_model = os.environ.get("PX4_SIM_MODEL", "unknown")
@@ -268,6 +290,24 @@ class MetricsLoggerNode(Node):
         ]
         return {key: os.environ.get(key, "") for key in keys if key in os.environ}
 
+    def _metric_param(self, name: str):
+        value = float(self.get_parameter(name).value)
+        return value if value >= 0.0 else None
+
+    def _straight_line_distance_m(self):
+        if self.home_pose is None or self.active_goal is None:
+            return None
+
+        dx = float(self.active_goal["x"]) - float(self.home_pose["x"])
+        dy = float(self.active_goal["y"]) - float(self.home_pose["y"])
+        return math.hypot(dx, dy)
+
+    def _period_p99(self, values):
+        if not values:
+            return None
+        ordered = sorted(values)
+        return ordered[min(len(ordered) - 1, int(len(ordered) * 0.99))]
+
     def _write_parameter_snapshot(self):
         names = sorted(self._parameters.keys())
         snapshot = {
@@ -313,16 +353,25 @@ class MetricsLoggerNode(Node):
             "git_dirty": self.git_dirty,
             "drone_name": str(self.get_parameter("drone_name").value),
             "scenario_name": self.scenario_name,
+            "scenario_id": self.scenario_id,
             "baseline_name": self.baseline_name,
             "planner_name": self.planner_name,
+            "planner_family": self.planner_family,
             "planner_version": self.planner_version,
             "controller_version": self.controller_version,
             "experiment_condition": self.experiment_condition,
+            "condition_id": self.condition_id,
+            "world_name": self.world_name,
+            "map_source": self.map_source,
             "experiment_seed": self.experiment_seed,
             "px4_gz_world": self.px4_gz_world,
             "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
             "px4_sim_model": self.px4_sim_model,
+            "planned_path_length_m": self._metric_param("planned_path_length_m"),
+            "planning_time_ms_p50": self._metric_param("planning_time_ms_p50"),
+            "planning_time_ms_p95": self._metric_param("planning_time_ms_p95"),
+            "replan_count": int(self.get_parameter("replan_count").value),
             "state_topic": str(self.get_parameter("state_topic").value),
             "pose_topic": str(self.get_parameter("pose_topic").value),
             "scan_topic": str(self.get_parameter("scan_topic").value),
@@ -675,14 +724,33 @@ class MetricsLoggerNode(Node):
             success_code = "in_progress"
 
         runtime_s = max(time.time() - self.start_time, 1e-6)
+        mission_time_s = self.outbound_time_s if outbound_success else None
+        actual_path_length_m = self.outbound_path_length_m if self.outbound_path_length_m > 0.0 else self.total_path_length_m
+        straight_line_distance_m = self._straight_line_distance_m()
+        path_efficiency = None
+        if straight_line_distance_m is not None and actual_path_length_m > 1e-6:
+            path_efficiency = straight_line_distance_m / actual_path_length_m
+        planned_path_length_m = self._metric_param("planned_path_length_m")
+        planning_time_ms_p50 = self._metric_param("planning_time_ms_p50")
+        planning_time_ms_p95 = self._metric_param("planning_time_ms_p95")
         return {
             "run_id": self.run_id,
+            "condition_id": self.condition_id,
             "condition": self.experiment_condition,
+            "scenario_id": self.scenario_id,
             "scenario": self.scenario_name,
+            "world_name": self.world_name,
+            "planner_family": self.planner_family,
+            "map_source": self.map_source,
             "success": bool(success),
             "success_code": success_code,
             "outbound_success": bool(outbound_success),
             "return_success": bool(return_success),
+            "mission_time_s": mission_time_s,
+            "actual_path_length_m": actual_path_length_m,
+            "straight_line_distance_m": straight_line_distance_m,
+            "planned_path_length_m": planned_path_length_m,
+            "path_efficiency": path_efficiency,
             "outbound_time_s": self.outbound_time_s,
             "return_time_s": self.return_time_s,
             "runtime_s": round(runtime_s, 3),
@@ -695,6 +763,11 @@ class MetricsLoggerNode(Node):
             "escape_count": self.escape_count,
             "mean_speed_mps": self.total_path_length_m / runtime_s,
             "control_effort": self.control_effort,
+            "planning_time_ms_p50": planning_time_ms_p50,
+            "planning_time_ms_p95": planning_time_ms_p95,
+            "replan_count": int(self.get_parameter("replan_count").value),
+            "pose_period_p99_s": self._period_p99(self.pose_periods),
+            "scan_period_p99_s": self._period_p99(self.scan_periods),
             "planner_name": self.planner_name,
             "planner_version": self.planner_version,
             "controller_version": self.controller_version,
@@ -762,11 +835,16 @@ class MetricsLoggerNode(Node):
             "git_branch": self.git_branch,
             "git_dirty": self.git_dirty,
             "scenario_name": self.scenario_name,
+            "scenario_id": self.scenario_id,
             "baseline_name": self.baseline_name,
             "planner_name": self.planner_name,
+            "planner_family": self.planner_family,
             "planner_version": self.planner_version,
             "controller_version": self.controller_version,
             "experiment_condition": self.experiment_condition,
+            "condition_id": self.condition_id,
+            "world_name": self.world_name,
+            "map_source": self.map_source,
             "experiment_seed": self.experiment_seed,
             "scenario_manifest_path": str(self.get_parameter("scenario_manifest_path").value),
             "parameter_snapshot_path": str(self.parameter_snapshot_path),

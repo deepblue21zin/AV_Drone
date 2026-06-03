@@ -15,6 +15,11 @@
 - `scenario_table.md`: 시나리오별 집계표의 Markdown 뷰
 - `ledger.csv`: `문제 -> 수정 -> 재실행 -> 결과`를 한 줄로 남기는 실험 ledger. failure_code와 baseline도 함께 남긴다.
 - `ledger.md`: ledger의 Markdown 뷰
+- `paper_outputs/`: 논문용 집계표와 비교 figure를 생성하는 위치
+
+조회 도구:
+
+- `scripts/quant_dashboard.py`: Streamlit 기반 read-only 대시보드. `artifacts/`와 `experiments/`를 읽어 condition/scenario/run 단위로 비교한다.
 
 권장 사용 흐름:
 
@@ -23,9 +28,29 @@
 3. 최신 artifact 아래 `plots/` 자동 생성 확인
 4. `experiments/index.csv`, `experiments/scenario_table.csv`, `experiments/ledger.csv` 확인
 
+대시보드로 확인:
+
+```bash
+python3 -m pip install -r requirements-dashboard.txt
+./scripts/run_quant_dashboard.sh
+```
+
+직접 실행하고 싶으면:
+
+```bash
+streamlit run scripts/quant_dashboard.py -- --repo-root .
+```
+
+Streamlit 설치 없이 데이터 스캔만 검증:
+
+```bash
+python3 scripts/quant_dashboard.py --check-data --repo-root .
+```
+
 추가 메모:
 
 - smoke test에서 `--issue`, `--fix`, `--notes`, `--scenario`를 주면 ledger에 함께 저장된다.
 - artifact에는 `parameter_snapshot.json`과 `config_snapshots/`가 함께 남아 재현성 근거를 보강한다.
 - registry update는 `--failure-code` override를 받을 수 있지만, 기본은 artifact summary의 `failure_code`를 사용한다.
 - 기존 artifact를 다시 스캔해서 장부를 재생성하려면 `python3 scripts/update_experiment_registry.py --scan-artifacts artifacts`를 사용한다.
+- Streamlit은 read-only 조회 도구다. 논문 숫자의 원본은 `paper_metrics.json`, `summary_table.csv`, `figure_manifest.csv`로 둔다.

@@ -215,6 +215,10 @@ class MPPIConfig:
     penetrate_k: float = 80.0
     penetrate_bias: float = 200.0
     v_nom: float = 1.2
+    nominal_update_alpha: float = 0.35
+    repulsion_range: float = 5.0
+    repulsion_gain: float = 1.0
+    repulsion_max: float = 0.8
 
 
 class MPPIController:
@@ -227,13 +231,64 @@ class MPPIController:
     def reset(self) -> None:
         self.u_nom[:] = 0.0
 
-    def set_nominal_towards_goal(self, x: float, y: float, goal_x: float, goal_y: float) -> None:
+    def _repulsion_velocity(self, x: float, y: float) -> Tuple[float, float]:
+        if not self.obstacles or self.cfg.repulsion_range <= 0.0:
+            return 0.0, 0.0
+
+        rx = 0.0
+        ry = 0.0
+        for obs in self.obstacles:
+            dx = x - obs.cx
+            dy = y - obs.cy
+            center_dist = math.hypot(dx, dy)
+            if center_dist < 1e-6:
+                continue
+
+            surface_dist = center_dist - obs.r
+            if surface_dist >= self.cfg.repulsion_range:
+                continue
+
+            clearance = max(surface_dist, 0.05)
+            activation = (self.cfg.repulsion_range - clearance) / self.cfg.repulsion_range
+            strength = self.cfg.repulsion_gain * activation * activation
+            rx += strength * dx / center_dist
+            ry += strength * dy / center_dist
+
+        mag = math.hypot(rx, ry)
+        if mag > self.cfg.repulsion_max > 0.0:
+            scale = self.cfg.repulsion_max / mag
+            rx *= scale
+            ry *= scale
+        return rx, ry
+
+    def set_nominal_towards_goal(
+        self,
+        x: float,
+        y: float,
+        goal_x: float,
+        goal_y: float,
+        alpha: float = 1.0,
+    ) -> None:
         dx = goal_x - x
         dy = goal_y - y
         dist = math.hypot(dx, dy) + 1e-6
-        self.u_nom[:, 0] = clamp(self.cfg.v_nom * dx / dist, -self.cfg.v_max, self.cfg.v_max)
-        self.u_nom[:, 1] = clamp(self.cfg.v_nom * dy / dist, -self.cfg.v_max, self.cfg.v_max)
-        self.u_nom[:, 2] = 0.0
+        vx = self.cfg.v_nom * dx / dist
+        vy = self.cfg.v_nom * dy / dist
+        rx, ry = self._repulsion_velocity(x, y)
+        vx += rx
+        vy += ry
+
+        speed = math.hypot(vx, vy)
+        if speed > self.cfg.v_max:
+            scale = self.cfg.v_max / speed
+            vx *= scale
+            vy *= scale
+
+        desired = np.zeros_like(self.u_nom)
+        desired[:, 0] = float(vx)
+        desired[:, 1] = float(vy)
+        alpha = clamp(float(alpha), 0.0, 1.0)
+        self.u_nom = ((1.0 - alpha) * self.u_nom + alpha * desired).astype(np.float32)
 
     def step(self, state: Tuple[float, float, float], goal: Tuple[float, float, float]) -> Tuple[float, float, float]:
         cfg = self.cfg
@@ -340,6 +395,10 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('near_k', 18.0)
         self.declare_parameter('penetrate_k', 80.0)
         self.declare_parameter('penetrate_bias', 200.0)
+        self.declare_parameter('nominal_update_alpha', 0.35)
+        self.declare_parameter('repulsion_range', 5.0)
+        self.declare_parameter('repulsion_gain', 1.0)
+        self.declare_parameter('repulsion_max', 0.8)
         self.declare_parameter('cmd_rate_hz', 20.0)
         self.declare_parameter('pose_timeout_sec', 1.0)
         self.declare_parameter('slowdown_dist', 3.0)
@@ -367,7 +426,13 @@ class MPPIPlannerNode(Node):
 
         self._log_obstacles(obstacles, cfg)
         self.get_logger().info(f'Known-map MPPI planner ready: pose={pose_topic}, cmd={cmd_topic}, goal_reached={goal_reached_topic}')
-        self.get_logger().info(f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, v_max={cfg.v_max}, w_obst={cfg.w_obst}, safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}')
+        self.get_logger().info(
+            f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, '
+            f'T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, '
+            f'v_max={cfg.v_max}, w_obst={cfg.w_obst}, '
+            f'safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}, '
+            f'repulsion_range={cfg.repulsion_range}, repulsion_gain={cfg.repulsion_gain}'
+        )
 
     def _on_pose(self, msg: PoseStamped) -> None:
         self.pose = msg
@@ -441,6 +506,10 @@ class MPPIPlannerNode(Node):
             penetrate_k=float(self.get_parameter('penetrate_k').value),
             penetrate_bias=float(self.get_parameter('penetrate_bias').value),
             v_nom=float(self.get_parameter('v_nom').value),
+            nominal_update_alpha=float(self.get_parameter('nominal_update_alpha').value),
+            repulsion_range=float(self.get_parameter('repulsion_range').value),
+            repulsion_gain=float(self.get_parameter('repulsion_gain').value),
+            repulsion_max=float(self.get_parameter('repulsion_max').value),
         )
 
     def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig) -> None:
@@ -475,6 +544,14 @@ class MPPIPlannerNode(Node):
             self.mppi.reset()
             self.mppi.set_nominal_towards_goal(x, y, gx, gy)
             self.nominal_initialized = True
+        else:
+            self.mppi.set_nominal_towards_goal(
+                x,
+                y,
+                gx,
+                gy,
+                alpha=float(self.get_parameter('nominal_update_alpha').value),
+            )
 
         vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
         slowdown_dist = float(self.get_parameter('slowdown_dist').value)

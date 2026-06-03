@@ -165,6 +165,14 @@ colcon build --packages-select drone_bringup drone_control drone_perception dron
 source install/setup.bash
 ros2 launch drone_bringup single_drone_autonomy.launch.py
 ```
+docker compose exec ros bash
+source /opt/ros/humble/setup.bash
+cd /workspace/AV_Drone
+
+colcon build --packages-up-to drone_bringup --symlink-install
+source install/setup.bash
+
+ros2 launch drone_bringup single_drone_mppi_known_world.launch.py
 
 ### 3-3. `ros_states` 실행
 
@@ -187,6 +195,27 @@ ros2 launch ros_states ros_states.launch.py \
 ```text
 http://localhost:5050
 ```
+
+rosbag 녹화
+source /opt/ros/humble/setup.bash
+cd /workspace/AV_Drone
+source install/setup.bash
+ros2 bag record \
+  -o rosbags/gap_vs_mppi_$(date +%Y%m%d_%H%M%S) \
+  /mavros/local_position/pose \
+  /mavros/state \
+  /drone1/scan \
+  /drone1/mission/phase \
+  /drone1/mission/goal_reached \
+  /drone1/mission/active_goal \
+  /drone1/mission/home_pose \
+  /drone1/planner/avoid/cmd_vel \
+  /drone1/planner/mppi/cmd_vel \
+  /drone1/safety/cmd_vel \
+  /drone1/safety/state \
+  /drone1/slam/map_ready \
+  /drone1/slam/localization_ok \
+  /drone1/slam/coverage
 
 같은 네트워크 다른 장치에서 볼 때는 호스트 IP 기준 `http://<host-ip>:5050`를 사용하면 됩니다.
 
@@ -378,12 +407,48 @@ docker compose logs -f sim
 - 컨테이너 이미지 자체를 다시 만드는 단계입니다.
 - Dockerfile이나 apt 의존성이 바뀌었을 때 주로 다시 합니다.
 
-## 9. 문서
+## 9. 정량 실험 대시보드
+
+Gap return baseline과 SLAM-MPPI return 비교 실험은 `artifacts/`와 `experiments/`에 누적됩니다.
+Streamlit 대시보드는 이 파일들을 읽어서 condition, scenario, run 단위로 비교하는 read-only 조회 도구입니다.
+
+처음 한 번만 의존성을 설치합니다.
+
+```bash
+python3 -m pip install -r requirements-dashboard.txt
+```
+
+대시보드 실행:
+
+```bash
+./scripts/run_quant_dashboard.sh
+```
+
+브라우저에서 아래 주소를 엽니다.
+
+```text
+http://localhost:8501
+```
+
+Streamlit 없이 데이터 스캔만 검증할 때:
+
+```bash
+python3 scripts/quant_dashboard.py --check-data --repo-root .
+```
+
+주의:
+
+- 대시보드는 실험 데이터를 수정하지 않습니다.
+- 논문에 들어갈 최종 숫자는 `paper_metrics.json`, `experiments/paper_outputs/summary_table.csv`, `experiments/paper_outputs/figure_manifest.csv`를 기준으로 관리합니다.
+- 자세한 실험 설계는 [gap_vs_mppi_quantification_plan.md](/home/deepblue/AV_Drone/docs/gap_vs_mppi_quantification_plan.md)를 봅니다.
+
+## 10. 문서
 
 - 구조 설명: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
 - 명령어 치트시트: [command-reference.md](/home/deepblue/AV_Drone/docs/command-reference.md)
 - Docker 명세: [docker-environment-spec.md](/home/deepblue/AV_Drone/docs/docker-environment-spec.md)
 - HTML 대시보드: [project_command_center.html](/home/deepblue/AV_Drone/docs/project_command_center.html)
+- Gap vs MPPI 정량화 계획: [gap_vs_mppi_quantification_plan.md](/home/deepblue/AV_Drone/docs/gap_vs_mppi_quantification_plan.md)
 - 실험 기록 규칙: [experiment_recording_policy.md](/home/deepblue/AV_Drone/docs/experiment_recording_policy.md)
 - 변경 로그: [docs/change/README.md](/home/deepblue/AV_Drone/docs/change/README.md)
 - 장애 보고서: [docs/error/index.html](/home/deepblue/AV_Drone/docs/error/index.html)
