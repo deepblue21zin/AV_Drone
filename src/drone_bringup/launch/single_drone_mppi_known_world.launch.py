@@ -10,14 +10,18 @@ from launch_ros.actions import Node
 def generate_launch_description():
     bringup_share = get_package_share_directory("drone_bringup")
     config_file = os.path.join(bringup_share, "config", "drone1_mppi_known_world.yaml")
+    mavros_config_yaml = os.path.join(bringup_share, "config", "mavros_config.yaml")
+    mavros_pluginlists_yaml = os.path.join(bringup_share, "config", "mavros_pluginlists.yaml")
 
     return LaunchDescription([
         Node(
             package="mavros",
             executable="mavros_node",
-            namespace="",
+            namespace="mavros",
             output="screen",
             parameters=[
+                mavros_pluginlists_yaml,
+                mavros_config_yaml,
                 {"fcu_url": "udp://:14540@127.0.0.1:14580"},
                 {"gcs_url": ""},
                 {"target_system_id": 1},

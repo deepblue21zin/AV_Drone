@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import math
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
@@ -23,6 +24,11 @@ class SafetyMonitorNode(Node):
         self.declare_parameter("scan_timeout_sec", 0.5)
         self.declare_parameter("planner_cmd_timeout_sec", 0.5)
         self.declare_parameter("emergency_stop_distance", 1.0)
+        self.declare_parameter("emergency_hard_stop_distance", 0.0)
+        self.declare_parameter("emergency_release_distance", 0.0)
+        self.declare_parameter("emergency_slowdown_scale", 0.0)
+        self.declare_parameter("obstacle_valid_min_distance", 0.0)
+        self.declare_parameter("obstacle_sector_half_angle_deg", 180.0)
         self.declare_parameter("enable_obstacle_emergency_stop", False)
         self.declare_parameter("startup_grace_sec", 3.0)
         self.declare_parameter("require_scan", False)
@@ -33,6 +39,7 @@ class SafetyMonitorNode(Node):
         self.last_scan_min = float("inf")
         self.latest_cmd = TwistStamped()
         self.last_reason = "startup_hold"
+        self._obstacle_stop_active = False
         self._node_start_time = time.time()
 
         pose_topic = str(self.get_parameter("pose_topic").value)
@@ -62,7 +69,26 @@ class SafetyMonitorNode(Node):
 
     def _on_scan(self, msg: LaserScan):
         self.last_scan_t = time.time()
-        valid = [r for r in msg.ranges if r >= msg.range_min and r <= msg.range_max]
+        valid_min = max(
+            float(msg.range_min),
+            float(self.get_parameter("obstacle_valid_min_distance").value),
+        )
+        sector_half = math.radians(
+            max(
+                0.0,
+                min(180.0, float(self.get_parameter("obstacle_sector_half_angle_deg").value)),
+            )
+        )
+
+        valid = []
+        angle = float(msg.angle_min)
+        for r in msg.ranges:
+            if r >= valid_min and r <= msg.range_max:
+                wrapped = math.atan2(math.sin(angle), math.cos(angle))
+                if abs(wrapped) <= sector_half:
+                    valid.append(r)
+            angle += float(msg.angle_increment)
+
         self.last_scan_min = min(valid) if valid else float("inf")
 
     def _on_cmd(self, msg: TwistStamped):
@@ -82,12 +108,60 @@ class SafetyMonitorNode(Node):
         msg.header.frame_id = "map"
         return msg
 
+    def _scaled_cmd(self, scale: float):
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.latest_cmd.header.frame_id or "map"
+        msg.twist.linear.x = self.latest_cmd.twist.linear.x * scale
+        msg.twist.linear.y = self.latest_cmd.twist.linear.y * scale
+        msg.twist.linear.z = self.latest_cmd.twist.linear.z * scale
+        msg.twist.angular.x = self.latest_cmd.twist.angular.x * scale
+        msg.twist.angular.y = self.latest_cmd.twist.angular.y * scale
+        msg.twist.angular.z = self.latest_cmd.twist.angular.z * scale
+        return msg
+
+    def _publish_obstacle_limited_cmd(
+        self,
+        emergency_hard_stop_distance: float,
+        emergency_slowdown_scale: float,
+    ):
+        if self.last_scan_min <= emergency_hard_stop_distance:
+            self._emit_event("emergency_stop_obstacle")
+            self.safe_cmd_pub.publish(self._zero_cmd())
+            return
+
+        if emergency_slowdown_scale <= 0.0:
+            self._emit_event("emergency_stop_obstacle")
+            self.safe_cmd_pub.publish(self._zero_cmd())
+            return
+
+        self._emit_event("emergency_slow_obstacle")
+        self.safe_cmd_pub.publish(self._scaled_cmd(emergency_slowdown_scale))
+
     def _tick(self):
         now = time.time()
         pose_timeout = float(self.get_parameter("pose_timeout_sec").value)
         scan_timeout = float(self.get_parameter("scan_timeout_sec").value)
         cmd_timeout = float(self.get_parameter("planner_cmd_timeout_sec").value)
         emergency_stop_distance = float(self.get_parameter("emergency_stop_distance").value)
+        emergency_hard_stop_distance = float(
+            self.get_parameter("emergency_hard_stop_distance").value
+        )
+        emergency_release_distance = float(
+            self.get_parameter("emergency_release_distance").value
+        )
+        emergency_slowdown_scale = max(
+            0.0,
+            min(1.0, float(self.get_parameter("emergency_slowdown_scale").value)),
+        )
+        if emergency_hard_stop_distance <= 0.0:
+            emergency_hard_stop_distance = emergency_stop_distance
+        emergency_hard_stop_distance = min(
+            emergency_hard_stop_distance,
+            emergency_stop_distance,
+        )
+        if emergency_release_distance <= emergency_stop_distance:
+            emergency_release_distance = emergency_stop_distance
         enable_obstacle_emergency_stop = bool(
             self.get_parameter("enable_obstacle_emergency_stop").value
         )
@@ -116,10 +190,23 @@ class SafetyMonitorNode(Node):
             self.safe_cmd_pub.publish(self._zero_cmd())
             return
 
-        if enable_obstacle_emergency_stop and self.last_scan_min <= emergency_stop_distance:
-            self._emit_event("emergency_stop_obstacle")
-            self.safe_cmd_pub.publish(self._zero_cmd())
-            return
+        if enable_obstacle_emergency_stop:
+            if self._obstacle_stop_active:
+                if self.last_scan_min >= emergency_release_distance:
+                    self._obstacle_stop_active = False
+                else:
+                    self._publish_obstacle_limited_cmd(
+                        emergency_hard_stop_distance,
+                        emergency_slowdown_scale,
+                    )
+                    return
+            elif self.last_scan_min <= emergency_stop_distance:
+                self._obstacle_stop_active = True
+                self._publish_obstacle_limited_cmd(
+                    emergency_hard_stop_distance,
+                    emergency_slowdown_scale,
+                )
+                return
 
         self._emit_event("normal")
         safe_cmd = self.latest_cmd
