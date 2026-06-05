@@ -37,6 +37,19 @@ def generate_launch_description():
             parameters=[config_file],
         ),
 
+        # A* global planner
+        # world 파일을 읽고 전역 경로를 만든 뒤
+        # /drone1/planner/astar/waypoint 로 waypoint를 publish함
+        Node(
+            package="drone_planning",
+            executable="astar_global_planner",
+            name="astar_global_planner",
+            output="screen",
+            parameters=[config_file],
+        ),
+
+        # MPPI local planner
+        # A*가 publish한 waypoint를 받아서 cmd_vel 생성
         Node(
             package="mppi",
             executable="mppi_node",

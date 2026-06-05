@@ -18,8 +18,9 @@ setup(
     license="MIT",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [
-            "local_planner_node = drone_planning.local_planner_node:main",
-        ],
-    },
+    "console_scripts": [
+        "local_planner_node = drone_planning.local_planner_node:main",
+        "astar_global_planner = drone_planning.astar_global_planner_node:main",
+    ],
+},
 )
