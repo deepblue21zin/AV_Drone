@@ -25,13 +25,6 @@ if [ -d "${CUSTOM_WORLD_DIR}" ]; then
 fi
 
 export PX4_SITL_WORLD="${PX4_SITL_WORLD:-obstacle_demo}"
-
-PX4_CLASSIC_TARGETS_CMAKE="/opt/PX4-Autopilot/src/modules/simulation/simulator_mavlink/sitl_targets_gazebo-classic.cmake"
-if [ -f "${PX4_CLASSIC_TARGETS_CMAKE}" ] && ! grep -q "^[[:space:]]*${PX4_SITL_WORLD}[[:space:]]*$" "${PX4_CLASSIC_TARGETS_CMAKE}"; then
-  sed -i "/^[[:space:]]*empty[[:space:]]*$/a\	${PX4_SITL_WORLD}" "${PX4_CLASSIC_TARGETS_CMAKE}"
-  echo "[sim entrypoint] added world target: ${PX4_SITL_WORLD}"
-fi
-
 export GAZEBO_IP="${GAZEBO_IP:-127.0.0.1}"
 export GAZEBO_MASTER_URI="${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}"
 export PX4_GAZEBO_DISPLAY="${PX4_GAZEBO_DISPLAY:-${DISPLAY:-}}"
@@ -64,14 +57,4 @@ EOF
 chmod +x /usr/local/bin/gzserver
 
 SIM_TARGET="${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}"
-
-if [[ "${SIM_TARGET}" == *"__"* ]]; then
-  MAKE_TARGET="${SIM_TARGET}"
-else
-  MAKE_TARGET="${SIM_TARGET}__${PX4_SITL_WORLD}"
-fi
-
-echo "[sim entrypoint] PX4_SITL_WORLD=${PX4_SITL_WORLD}"
-echo "[sim entrypoint] PX4 make target=${MAKE_TARGET}"
-
-exec make px4_sitl "${MAKE_TARGET}"
+exec make px4_sitl "${SIM_TARGET}"
