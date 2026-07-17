@@ -215,6 +215,10 @@ class MPPIConfig:
     penetrate_k: float = 80.0
     penetrate_bias: float = 200.0
     v_nom: float = 1.2
+    nominal_update_alpha: float = 0.35
+    repulsion_range: float = 5.0
+    repulsion_gain: float = 1.0
+    repulsion_max: float = 0.8
 
 
 class MPPIController:
@@ -227,13 +231,64 @@ class MPPIController:
     def reset(self) -> None:
         self.u_nom[:] = 0.0
 
-    def set_nominal_towards_goal(self, x: float, y: float, goal_x: float, goal_y: float) -> None:
+    def _repulsion_velocity(self, x: float, y: float) -> Tuple[float, float]:
+        if not self.obstacles or self.cfg.repulsion_range <= 0.0:
+            return 0.0, 0.0
+
+        rx = 0.0
+        ry = 0.0
+        for obs in self.obstacles:
+            dx = x - obs.cx
+            dy = y - obs.cy
+            center_dist = math.hypot(dx, dy)
+            if center_dist < 1e-6:
+                continue
+
+            surface_dist = center_dist - obs.r
+            if surface_dist >= self.cfg.repulsion_range:
+                continue
+
+            clearance = max(surface_dist, 0.05)
+            activation = (self.cfg.repulsion_range - clearance) / self.cfg.repulsion_range
+            strength = self.cfg.repulsion_gain * activation * activation
+            rx += strength * dx / center_dist
+            ry += strength * dy / center_dist
+
+        mag = math.hypot(rx, ry)
+        if mag > self.cfg.repulsion_max > 0.0:
+            scale = self.cfg.repulsion_max / mag
+            rx *= scale
+            ry *= scale
+        return rx, ry
+
+    def set_nominal_towards_goal(
+        self,
+        x: float,
+        y: float,
+        goal_x: float,
+        goal_y: float,
+        alpha: float = 1.0,
+    ) -> None:
         dx = goal_x - x
         dy = goal_y - y
         dist = math.hypot(dx, dy) + 1e-6
-        self.u_nom[:, 0] = clamp(self.cfg.v_nom * dx / dist, -self.cfg.v_max, self.cfg.v_max)
-        self.u_nom[:, 1] = clamp(self.cfg.v_nom * dy / dist, -self.cfg.v_max, self.cfg.v_max)
-        self.u_nom[:, 2] = 0.0
+        vx = self.cfg.v_nom * dx / dist
+        vy = self.cfg.v_nom * dy / dist
+        rx, ry = self._repulsion_velocity(x, y)
+        vx += rx
+        vy += ry
+
+        speed = math.hypot(vx, vy)
+        if speed > self.cfg.v_max:
+            scale = self.cfg.v_max / speed
+            vx *= scale
+            vy *= scale
+
+        desired = np.zeros_like(self.u_nom)
+        desired[:, 0] = float(vx)
+        desired[:, 1] = float(vy)
+        alpha = clamp(float(alpha), 0.0, 1.0)
+        self.u_nom = ((1.0 - alpha) * self.u_nom + alpha * desired).astype(np.float32)
 
     def step(self, state: Tuple[float, float, float], goal: Tuple[float, float, float]) -> Tuple[float, float, float]:
         cfg = self.cfg
@@ -309,11 +364,17 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('pose_topic', '/local_position/pose')
         self.declare_parameter('cmd_topic', '/drone1/autonomy/cmd_vel')
         self.declare_parameter('goal_reached_topic', '/drone1/mission/goal_reached')
+
         self.declare_parameter('goal_x', 50.0)
         self.declare_parameter('goal_y', 0.0)
         self.declare_parameter('goal_z', 3.0)
         self.declare_parameter('goal_yaw', 0.0)
         self.declare_parameter('goal_tol_xy', 0.8)
+
+        # A* waypoint 사용 설정
+        self.declare_parameter('use_astar_waypoint', True)
+        self.declare_parameter('astar_waypoint_topic', '/drone1/planner/astar/waypoint')
+
         self.declare_parameter('world_path', '/workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world')
         self.declare_parameter('cylinder_model_dir', '/workspace/AV_Drone/sim_assets/models/cylinder_r05_h5')
         self.declare_parameter('cylinder_model_name', 'cylinder_r05_h5')
@@ -340,6 +401,10 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('near_k', 18.0)
         self.declare_parameter('penetrate_k', 80.0)
         self.declare_parameter('penetrate_bias', 200.0)
+        self.declare_parameter('nominal_update_alpha', 0.35)
+        self.declare_parameter('repulsion_range', 5.0)
+        self.declare_parameter('repulsion_gain', 1.0)
+        self.declare_parameter('repulsion_max', 0.8)
         self.declare_parameter('cmd_rate_hz', 20.0)
         self.declare_parameter('pose_timeout_sec', 1.0)
         self.declare_parameter('slowdown_dist', 3.0)
@@ -347,6 +412,7 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('log_cmd_period_sec', 1.0)
 
         self.pose: Optional[PoseStamped] = None
+        self.astar_waypoint = None
         self.last_pose_t = 0.0
         self.goal_reached = False
         self.nominal_initialized = False
@@ -355,7 +421,17 @@ class MPPIPlannerNode(Node):
         pose_topic = str(self.get_parameter('pose_topic').value)
         cmd_topic = str(self.get_parameter('cmd_topic').value)
         goal_reached_topic = str(self.get_parameter('goal_reached_topic').value)
+        astar_waypoint_topic = str(self.get_parameter('astar_waypoint_topic').value)
+
         self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)
+
+        self.astar_wp_sub = self.create_subscription(
+            PoseStamped,
+            astar_waypoint_topic,
+            self._on_astar_waypoint,
+            10,
+        )
+
         self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
         self.goal_pub = self.create_publisher(Bool, goal_reached_topic, 10)
 
@@ -367,11 +443,21 @@ class MPPIPlannerNode(Node):
 
         self._log_obstacles(obstacles, cfg)
         self.get_logger().info(f'Known-map MPPI planner ready: pose={pose_topic}, cmd={cmd_topic}, goal_reached={goal_reached_topic}')
-        self.get_logger().info(f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, v_max={cfg.v_max}, w_obst={cfg.w_obst}, safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}')
+        self.get_logger().info(f'A* waypoint topic: {astar_waypoint_topic}')
+        self.get_logger().info(
+            f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, '
+            f'T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, '
+            f'v_max={cfg.v_max}, w_obst={cfg.w_obst}, '
+            f'safety_margin={cfg.safety_margin}, near_buffer={cfg.near_buffer}, '
+            f'repulsion_range={cfg.repulsion_range}, repulsion_gain={cfg.repulsion_gain}'
+        )
 
     def _on_pose(self, msg: PoseStamped) -> None:
         self.pose = msg
         self.last_pose_t = time.time()
+
+    def _on_astar_waypoint(self, msg: PoseStamped) -> None:
+        self.astar_waypoint = msg.pose.position
 
     def _pose_age(self) -> float:
         if self.pose is None:
@@ -441,31 +527,55 @@ class MPPIPlannerNode(Node):
             penetrate_k=float(self.get_parameter('penetrate_k').value),
             penetrate_bias=float(self.get_parameter('penetrate_bias').value),
             v_nom=float(self.get_parameter('v_nom').value),
+            nominal_update_alpha=float(self.get_parameter('nominal_update_alpha').value),
+            repulsion_range=float(self.get_parameter('repulsion_range').value),
+            repulsion_gain=float(self.get_parameter('repulsion_gain').value),
+            repulsion_max=float(self.get_parameter('repulsion_max').value),
         )
 
     def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig) -> None:
         self.get_logger().info(f'obstacles loaded: {len(obstacles)}')
         preview = obstacles[:10]
         for i, obs in enumerate(preview):
-            self.get_logger().info(f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}')
+            self.get_logger().info(
+                f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, '
+                f'r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}'
+            )
         if len(obstacles) > len(preview):
             self.get_logger().info(f'... {len(obstacles) - len(preview)} more obstacles')
 
     def _tick(self) -> None:
         self._publish_goal_reached(self.goal_reached)
+
         pose_timeout = float(self.get_parameter('pose_timeout_sec').value)
         if self.pose is None or self._pose_age() > pose_timeout:
             self._publish_cmd(0.0, 0.0, 0.0)
             return
 
-        gx = float(self.get_parameter('goal_x').value)
-        gy = float(self.get_parameter('goal_y').value)
+        # 최종 목표점: mission 완료 판단용
+        final_gx = float(self.get_parameter('goal_x').value)
+        final_gy = float(self.get_parameter('goal_y').value)
         gyaw = float(self.get_parameter('goal_yaw').value)
+
+        # 제어 목표점: A* waypoint가 있으면 그걸 MPPI 목표로 사용
+        use_astar_waypoint = bool(self.get_parameter('use_astar_waypoint').value)
+        if use_astar_waypoint and self.astar_waypoint is not None:
+            gx = float(self.astar_waypoint.x)
+            gy = float(self.astar_waypoint.y)
+            goal_source = 'astar'
+        else:
+            gx = final_gx
+            gy = final_gy
+            goal_source = 'param'
+
         goal_tol = float(self.get_parameter('goal_tol_xy').value)
         x, y, _z, yaw = self._get_xyz_yaw()
-        d_goal = math.hypot(gx - x, gy - y)
 
-        if d_goal <= goal_tol:
+        d_control_goal = math.hypot(gx - x, gy - y)
+        d_final_goal = math.hypot(final_gx - x, final_gy - y)
+
+        # mission 완료는 중간 waypoint가 아니라 최종 goal_x, goal_y 기준으로 판단
+        if d_final_goal <= goal_tol:
             self.goal_reached = True
             self._publish_goal_reached(True)
             self._publish_cmd(0.0, 0.0, 0.0)
@@ -475,22 +585,38 @@ class MPPIPlannerNode(Node):
             self.mppi.reset()
             self.mppi.set_nominal_towards_goal(x, y, gx, gy)
             self.nominal_initialized = True
+        else:
+            self.mppi.set_nominal_towards_goal(
+                x,
+                y,
+                gx,
+                gy,
+                alpha=float(self.get_parameter('nominal_update_alpha').value),
+            )
 
         vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
+
         slowdown_dist = float(self.get_parameter('slowdown_dist').value)
         min_goal_scale = float(self.get_parameter('min_goal_scale').value)
-        if d_goal < slowdown_dist:
-            scale = clamp(d_goal / max(slowdown_dist, 1e-6), min_goal_scale, 1.0)
+        if d_control_goal < slowdown_dist:
+            scale = clamp(d_control_goal / max(slowdown_dist, 1e-6), min_goal_scale, 1.0)
             vx *= scale
             vy *= scale
 
         self._publish_goal_reached(False)
         self._publish_cmd(vx, vy, yr)
+
         now = time.time()
         log_period = float(self.get_parameter('log_cmd_period_sec').value)
         if log_period > 0.0 and now - self.last_cmd_log_t >= log_period:
             self.last_cmd_log_t = now
-            self.get_logger().info(f'cmd: x={x:.2f}, y={y:.2f}, goal=({gx:.2f},{gy:.2f}), d={d_goal:.2f}, vx={vx:.2f}, vy={vy:.2f}, yr={yr:.2f}')
+            self.get_logger().info(
+                f'cmd: x={x:.2f}, y={y:.2f}, '
+                f'goal=({gx:.2f},{gy:.2f}, src={goal_source}), '
+                f'final_goal=({final_gx:.2f},{final_gy:.2f}), '
+                f'd_wp={d_control_goal:.2f}, d_final={d_final_goal:.2f}, '
+                f'vx={vx:.2f}, vy={vy:.2f}, yr={yr:.2f}'
+            )
 
 
 def main(args=None):

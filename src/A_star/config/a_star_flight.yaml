@@ -1,54 +1,21 @@
-mppi:
+a_star:
   ros__parameters:
     pose_topic: /mavros/local_position/pose
     cmd_topic: /drone1/autonomy/cmd_vel
     goal_reached_topic: /drone1/mission/goal_reached
-    cmd_rate_hz: 20.0
-    pose_timeout_sec: 0.5
-
+    world_path: /workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world
     goal_x: 140.0
     goal_y: 0.0
-    goal_yaw: 0.0
-    goal_tol_xy: 0.6
-    use_astar_waypoint: false
-    slowdown_dist: 2.0
-    min_goal_scale: 0.25
-
-    world_path: /workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world
-    cylinder_model_dir: /workspace/AV_Drone/sim_assets/models/cylinder_r05_h5
-    cylinder_model_name: cylinder_r05_h5
-    obstacle_default_radius: 0.5
-    ignore_obstacles_within_start_radius: 0.0
-    ignore_obstacles_center_x: 0.0
-    ignore_obstacles_center_y: 0.0
-
-    dt: 0.05
-    horizon: 120
-    num_samples: 350
-    lam: 1.0
-
-    v_max: 1.8
-    yaw_rate_max: 1.2
-    sigma_v: 0.8
-    sigma_yaw_rate: 0.8
-    v_nom: 1.2
-
-    w_goal: 8.0
-    w_goal_final: 30.0
-    w_obst: 250.0
-    w_ctrl: 0.2
-    w_smooth: 0.4
-    w_yaw: 0.5
-
-    safety_margin: 1.2
-    near_buffer: 1.0
-    near_k: 30.0
-    penetrate_k: 80.0
-    penetrate_bias: 200.0
-    # Pure MPPI: deterministic potential-field repulsion is disabled.
-    repulsion_range: 0.0
-    repulsion_gain: 0.0
-    repulsion_max: 0.0
+    map_min_x: -2.0
+    map_max_x: 150.0
+    map_min_y: -14.0
+    map_max_y: 14.0
+    resolution: 0.5
+    robot_radius: 1.4
+    lookahead_distance: 1.0
+    cruise_speed: 1.2
+    max_speed: 1.8
+    goal_tolerance: 0.7
 
 safety_monitor:
   ros__parameters:
@@ -57,16 +24,11 @@ safety_monitor:
     planner_cmd_topic: /drone1/autonomy/cmd_vel
     safe_cmd_topic: /drone1/safety/cmd_vel
     safety_event_topic: /drone1/safety/event
-
     pose_timeout_sec: 1.0
     scan_timeout_sec: 1.0
     planner_cmd_timeout_sec: 1.0
-
     require_scan: true
-    # MPPI already models the slit walls. A nearest-range hard stop prevents
-    # lateral escape when the vehicle is close to a wall and causes deadlock.
     enable_obstacle_emergency_stop: false
-    emergency_stop_distance: 0.9
     startup_grace_sec: 3.0
 
 autonomy_manager:
@@ -78,7 +40,6 @@ autonomy_manager:
     mission_phase_topic: /drone1/mission/phase
     home_pose_topic: /drone1/mission/home_pose
     active_goal_topic: /drone1/mission/active_goal
-
     takeoff_z: 3.0
     goal_x: 140.0
     goal_y: 0.0
@@ -89,8 +50,6 @@ autonomy_manager:
     cmd_rate_hz: 20.0
     pose_timeout_sec: 0.5
     prestream_setpoints: 40
-    takeoff_skip_margin: 0.25
-
     continuous_mode: false
     return_home_enabled: false
 
@@ -104,13 +63,11 @@ lidar_obstacle:
 metrics_logger:
   ros__parameters:
     drone_name: drone1
-    scenario_name: known_world_mppi
-    baseline_name: existing_mavros_safety_control_stack
-    planner_name: known_world_mppi
-    planner_version: mppi_world_loader_v1
+    scenario_name: a_star_slit_world
+    baseline_name: pure_a_star
+    planner_name: a_star_grid_pure_pursuit
+    planner_version: a_star_v1
     controller_version: autonomy_manager_v1
-    experiment_seed: 0
-
     state_topic: /mavros/state
     pose_topic: /mavros/local_position/pose
     scan_topic: /drone1/scan
@@ -120,8 +77,5 @@ metrics_logger:
     goal_reached_topic: /drone1/mission/goal_reached
     mission_phase_topic: /drone1/mission/phase
     nearest_obstacle_topic: /drone1/perception/nearest_obstacle_distance
-
     artifacts_root: /workspace/AV_Drone/artifacts
-    run_name: known_world_mppi
-    autonomy_config_path: /workspace/AV_Drone/src/drone_bringup/config/drone1_mppi_known_world.yaml
-    launch_file_path: /workspace/AV_Drone/src/drone_bringup/launch/single_drone_mppi_known_world.launch.py
+    run_name: a_star_flight
