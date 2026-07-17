@@ -2,7 +2,7 @@
 <package format="3">
   <name>mppi</name>
   <version>0.0.0</version>
-  <description>Single-node MPPI offboard mission (takeoff->mppi->land) for PX4 via MAVROS2</description>
+  <description>Known-world MPPI planner for the AV_Drone safety and offboard control pipeline.</description>
   <maintainer email="quddnr@todo.todo">quddnr</maintainer>
   <license>MIT</license>
 

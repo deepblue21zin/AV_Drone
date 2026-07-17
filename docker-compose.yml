@@ -13,6 +13,10 @@ services:
       XAUTHORITY: ${XAUTHORITY:-}
       XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-}
       QT_X11_NO_MITSHM: "1"
+
+      NVIDIA_VISIBLE_DEVICES: "3"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility,graphics,display"
+
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
@@ -28,13 +32,30 @@ services:
       GAZEBO_RESOURCE_PATH: "/usr/share/gazebo-11:/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
       PX4_GAZEBO_DISPLAY: ${DISPLAY:-}
       PX4_NO_FOLLOW_MODE: "1"
+
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:ro
+      - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro
+      - /usr/lib/x86_64-linux-gnu/libcuda.so.530.41.03:/usr/lib/x86_64-linux-gnu/libcuda.so.530.41.03:ro
+      - /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.0:/usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.0:ro
+      - /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.530.41.03:/usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.530.41.03:ro
+      - /usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.0:/usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.0:ro
+      - /usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.530.41.03:/usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.530.41.03:ro
+      - /usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.530.41.03:/usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.530.41.03:ro
+      - /usr/lib/x86_64-linux-gnu/libnvidia-eglcore.so.530.41.03:/usr/lib/x86_64-linux-gnu/libnvidia-eglcore.so.530.41.03:ro
+      - /usr/share/glvnd/egl_vendor.d/10_nvidia.json:/usr/share/glvnd/egl_vendor.d/10_nvidia.json:ro
       - sim-home:/root
+
     devices:
       - /dev/dri:/dev/dri
+      - /dev/nvidia3:/dev/nvidia3
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-modeset:/dev/nvidia-modeset
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+
     working_dir: /opt/PX4-Autopilot
     init: true
     stdin_open: true

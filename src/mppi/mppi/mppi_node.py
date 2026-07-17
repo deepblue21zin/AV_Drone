@@ -364,11 +364,17 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('pose_topic', '/local_position/pose')
         self.declare_parameter('cmd_topic', '/drone1/autonomy/cmd_vel')
         self.declare_parameter('goal_reached_topic', '/drone1/mission/goal_reached')
+
         self.declare_parameter('goal_x', 50.0)
         self.declare_parameter('goal_y', 0.0)
         self.declare_parameter('goal_z', 3.0)
         self.declare_parameter('goal_yaw', 0.0)
         self.declare_parameter('goal_tol_xy', 0.8)
+
+        # A* waypoint 사용 설정
+        self.declare_parameter('use_astar_waypoint', True)
+        self.declare_parameter('astar_waypoint_topic', '/drone1/planner/astar/waypoint')
+
         self.declare_parameter('world_path', '/workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world')
         self.declare_parameter('cylinder_model_dir', '/workspace/AV_Drone/sim_assets/models/cylinder_r05_h5')
         self.declare_parameter('cylinder_model_name', 'cylinder_r05_h5')
@@ -406,6 +412,7 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('log_cmd_period_sec', 1.0)
 
         self.pose: Optional[PoseStamped] = None
+        self.astar_waypoint = None
         self.last_pose_t = 0.0
         self.goal_reached = False
         self.nominal_initialized = False
@@ -414,7 +421,17 @@ class MPPIPlannerNode(Node):
         pose_topic = str(self.get_parameter('pose_topic').value)
         cmd_topic = str(self.get_parameter('cmd_topic').value)
         goal_reached_topic = str(self.get_parameter('goal_reached_topic').value)
+        astar_waypoint_topic = str(self.get_parameter('astar_waypoint_topic').value)
+
         self.create_subscription(PoseStamped, pose_topic, self._on_pose, qos_profile_sensor_data)
+
+        self.astar_wp_sub = self.create_subscription(
+            PoseStamped,
+            astar_waypoint_topic,
+            self._on_astar_waypoint,
+            10,
+        )
+
         self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
         self.goal_pub = self.create_publisher(Bool, goal_reached_topic, 10)
 
@@ -426,6 +443,7 @@ class MPPIPlannerNode(Node):
 
         self._log_obstacles(obstacles, cfg)
         self.get_logger().info(f'Known-map MPPI planner ready: pose={pose_topic}, cmd={cmd_topic}, goal_reached={goal_reached_topic}')
+        self.get_logger().info(f'A* waypoint topic: {astar_waypoint_topic}')
         self.get_logger().info(
             f'mppi cfg: dt={cfg.dt}, horizon={cfg.horizon}, '
             f'T={cfg.dt * cfg.horizon:.2f}s, samples={cfg.num_samples}, '
@@ -437,6 +455,9 @@ class MPPIPlannerNode(Node):
     def _on_pose(self, msg: PoseStamped) -> None:
         self.pose = msg
         self.last_pose_t = time.time()
+
+    def _on_astar_waypoint(self, msg: PoseStamped) -> None:
+        self.astar_waypoint = msg.pose.position
 
     def _pose_age(self) -> float:
         if self.pose is None:
@@ -516,25 +537,45 @@ class MPPIPlannerNode(Node):
         self.get_logger().info(f'obstacles loaded: {len(obstacles)}')
         preview = obstacles[:10]
         for i, obs in enumerate(preview):
-            self.get_logger().info(f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}')
+            self.get_logger().info(
+                f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, '
+                f'r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}'
+            )
         if len(obstacles) > len(preview):
             self.get_logger().info(f'... {len(obstacles) - len(preview)} more obstacles')
 
     def _tick(self) -> None:
         self._publish_goal_reached(self.goal_reached)
+
         pose_timeout = float(self.get_parameter('pose_timeout_sec').value)
         if self.pose is None or self._pose_age() > pose_timeout:
             self._publish_cmd(0.0, 0.0, 0.0)
             return
 
-        gx = float(self.get_parameter('goal_x').value)
-        gy = float(self.get_parameter('goal_y').value)
+        # 최종 목표점: mission 완료 판단용
+        final_gx = float(self.get_parameter('goal_x').value)
+        final_gy = float(self.get_parameter('goal_y').value)
         gyaw = float(self.get_parameter('goal_yaw').value)
+
+        # 제어 목표점: A* waypoint가 있으면 그걸 MPPI 목표로 사용
+        use_astar_waypoint = bool(self.get_parameter('use_astar_waypoint').value)
+        if use_astar_waypoint and self.astar_waypoint is not None:
+            gx = float(self.astar_waypoint.x)
+            gy = float(self.astar_waypoint.y)
+            goal_source = 'astar'
+        else:
+            gx = final_gx
+            gy = final_gy
+            goal_source = 'param'
+
         goal_tol = float(self.get_parameter('goal_tol_xy').value)
         x, y, _z, yaw = self._get_xyz_yaw()
-        d_goal = math.hypot(gx - x, gy - y)
 
-        if d_goal <= goal_tol:
+        d_control_goal = math.hypot(gx - x, gy - y)
+        d_final_goal = math.hypot(final_gx - x, final_gy - y)
+
+        # mission 완료는 중간 waypoint가 아니라 최종 goal_x, goal_y 기준으로 판단
+        if d_final_goal <= goal_tol:
             self.goal_reached = True
             self._publish_goal_reached(True)
             self._publish_cmd(0.0, 0.0, 0.0)
@@ -554,20 +595,28 @@ class MPPIPlannerNode(Node):
             )
 
         vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
+
         slowdown_dist = float(self.get_parameter('slowdown_dist').value)
         min_goal_scale = float(self.get_parameter('min_goal_scale').value)
-        if d_goal < slowdown_dist:
-            scale = clamp(d_goal / max(slowdown_dist, 1e-6), min_goal_scale, 1.0)
+        if d_control_goal < slowdown_dist:
+            scale = clamp(d_control_goal / max(slowdown_dist, 1e-6), min_goal_scale, 1.0)
             vx *= scale
             vy *= scale
 
         self._publish_goal_reached(False)
         self._publish_cmd(vx, vy, yr)
+
         now = time.time()
         log_period = float(self.get_parameter('log_cmd_period_sec').value)
         if log_period > 0.0 and now - self.last_cmd_log_t >= log_period:
             self.last_cmd_log_t = now
-            self.get_logger().info(f'cmd: x={x:.2f}, y={y:.2f}, goal=({gx:.2f},{gy:.2f}), d={d_goal:.2f}, vx={vx:.2f}, vy={vy:.2f}, yr={yr:.2f}')
+            self.get_logger().info(
+                f'cmd: x={x:.2f}, y={y:.2f}, '
+                f'goal=({gx:.2f},{gy:.2f}, src={goal_source}), '
+                f'final_goal=({final_gx:.2f},{final_gy:.2f}), '
+                f'd_wp={d_control_goal:.2f}, d_final={d_final_goal:.2f}, '
+                f'vx={vx:.2f}, vy={vy:.2f}, yr={yr:.2f}'
+            )
 
 
 def main(args=None):

@@ -18,12 +18,12 @@ setup(
     zip_safe=True,
     maintainer="quddnr",
     maintainer_email="quddnr@todo.todo",
-    description="Single-node MPPI offboard mission (takeoff->mppi->land) for PX4 via MAVROS2",
+    description="Known-world MPPI planner for the AV_Drone safety and offboard control pipeline.",
     license="MIT",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "mppi_node = mppi.mppi_node:main",
+            "mppi_node = mppi.mppi_flight_node:main",
         ],
     },
 )

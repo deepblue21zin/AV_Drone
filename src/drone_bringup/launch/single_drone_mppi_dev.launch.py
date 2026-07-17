@@ -7,13 +7,15 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
-    mppi_share = get_package_share_directory("mppi")
-    mppi_launch = os.path.join(mppi_share, "launch", "mppi.launch.py")
+    bringup_share = get_package_share_directory("drone_bringup")
+    flight_launch = os.path.join(
+        bringup_share, "launch", "single_drone_mppi_known_world.launch.py"
+    )
 
     return LaunchDescription(
         [
             IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(mppi_launch),
-            )
+                PythonLaunchDescriptionSource(flight_launch),
+            ),
         ]
     )

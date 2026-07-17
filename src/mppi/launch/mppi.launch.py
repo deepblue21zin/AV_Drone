@@ -38,6 +38,7 @@ def generate_launch_description():
         name="mppi",
         output="screen",
         parameters=[{
+            "pose_topic": "/mavros/local_position/pose",
             "takeoff_z": 3.0,
 
             "goal_x": 24.0,
