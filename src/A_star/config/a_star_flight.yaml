@@ -3,7 +3,7 @@ a_star:
     pose_topic: /mavros/local_position/pose
     cmd_topic: /drone1/autonomy/cmd_vel
     goal_reached_topic: /drone1/mission/goal_reached
-    world_path: /workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world
+    world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
     goal_x: 140.0
     goal_y: 0.0
     map_min_x: -2.0
@@ -11,10 +11,16 @@ a_star:
     map_min_y: -14.0
     map_max_y: 14.0
     resolution: 0.5
-    robot_radius: 1.4
-    lookahead_distance: 1.0
-    cruise_speed: 1.2
-    max_speed: 1.8
+    # 원기둥 모서리를 pure-pursuit가 잘라 들어가는 추종 오차까지 포함한다.
+    robot_radius: 1.8
+    lookahead_distance: 3.0
+    # Match MPPI's effective command cap for the 1.5x speed experiment.
+    cruise_speed: 2.7
+    max_speed: 2.7
+    turn_preview_distance: 4.0
+    turn_speed: 2.4
+    turn_angle_threshold: 0.5
+    max_planar_accel: 1.5
     goal_tolerance: 0.7
 
 safety_monitor:
@@ -63,7 +69,7 @@ lidar_obstacle:
 metrics_logger:
   ros__parameters:
     drone_name: drone1
-    scenario_name: a_star_slit_world
+    scenario_name: a_star_random_cylinders_double
     baseline_name: pure_a_star
     planner_name: a_star_grid_pure_pursuit
     planner_version: a_star_v1

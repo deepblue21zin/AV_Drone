@@ -2,6 +2,7 @@
 
 import heapq
 import math
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -44,6 +45,9 @@ class AStarNode(Node):
             "resolution": 0.5, "robot_radius": 1.2,
             "lookahead_distance": 3.0, "cruise_speed": 1.2,
             "max_speed": 1.8, "goal_tolerance": 0.7,
+            "turn_preview_distance": 6.0, "turn_speed": 1.5,
+            "turn_angle_threshold": 0.2,
+            "max_planar_accel": 1.5,
             "publish_hz": 20.0, "pose_timeout_sec": 0.5,
         }
         for name, value in parameters.items():
@@ -53,6 +57,8 @@ class AStarNode(Node):
         self.path = []
         self.progress_index = 0
         self.goal_reached = False
+        self.last_vx = 0.0
+        self.last_vy = 0.0
         self.pose_topic = str(self.get_parameter("pose_topic").value)
         self.cmd_pub = self.create_publisher(
             TwistStamped, str(self.get_parameter("cmd_topic").value), 10
@@ -92,6 +98,18 @@ class AStarNode(Node):
         ny = int(round((max_y - min_y) / resolution)) + 1
         occupied = set()
         rectangles = []
+        circles = []
+        for include in root.iter():
+            if tag(include) != "include":
+                continue
+            name = text(include, "name", "")
+            uri = text(include, "uri", "")
+            if not name.startswith("cylinder_"):
+                continue
+            ix, iy, _iz, _ir, _ip, _iyaw = pose_values(include)
+            match = re.search(r"_r(\d+)", uri)
+            obstacle_radius = float(match.group(1)) / 10.0 if match else 0.5
+            circles.append((ix, iy, obstacle_radius + radius))
         for model in root.iter():
             if tag(model) != "model" or text(model, "static", "false").lower() not in {"1", "true"}:
                 continue
@@ -121,6 +139,12 @@ class AStarNode(Node):
                     dx, dy = wx - cx, wy - cy
                     lx, ly = cosine * dx + sine * dy, -sine * dx + cosine * dy
                     if abs(lx) <= hx and abs(ly) <= hy:
+                        occupied.add((ix, iy))
+                        break
+                if (ix, iy) in occupied:
+                    continue
+                for cx, cy, inflated_radius in circles:
+                    if math.hypot(wx - cx, wy - cy) <= inflated_radius:
                         occupied.add((ix, iy))
                         break
         self.nx, self.ny = nx, ny
@@ -153,6 +177,52 @@ class AStarNode(Node):
                     heapq.heappush(queue, (candidate + heuristic, nxt))
         return []
 
+    def line_is_free(self, start, goal):
+        """팽창된 점유격자에서 두 셀 사이 직선의 충돌 여부를 검사한다."""
+        dx, dy = goal[0] - start[0], goal[1] - start[1]
+        steps = max(abs(dx), abs(dy)) * 2
+        if steps == 0:
+            return start not in self.occupied
+        for index in range(steps + 1):
+            ratio = index / steps
+            cell = (
+                int(round(start[0] + ratio * dx)),
+                int(round(start[1] + ratio * dy)),
+            )
+            if cell in self.occupied:
+                return False
+        return True
+
+    def shortcut_path(self, path):
+        """시야가 트인 중간 격자점을 제거해 비행거리와 불필요한 회전을 줄인다."""
+        if len(path) <= 2:
+            return path
+        cells = [self.world_to_grid(x, y) for x, y in path]
+        result = [path[0]]
+        anchor = 0
+        while anchor < len(path) - 1:
+            candidate = len(path) - 1
+            while candidate > anchor + 1 and not self.line_is_free(cells[anchor], cells[candidate]):
+                candidate -= 1
+            result.append(path[candidate])
+            anchor = candidate
+        return result
+
+    @staticmethod
+    def densify_path(path, spacing=0.5):
+        """단순화된 선분을 추종기가 안정적으로 전진할 수 있게 재표본화한다."""
+        if len(path) <= 1:
+            return path
+        result = [path[0]]
+        for start, goal in zip(path, path[1:]):
+            dx, dy = goal[0] - start[0], goal[1] - start[1]
+            distance = math.hypot(dx, dy)
+            steps = max(1, int(math.ceil(distance / spacing)))
+            for index in range(1, steps + 1):
+                ratio = index / steps
+                result.append((start[0] + ratio * dx, start[1] + ratio * dy))
+        return result
+
     def on_pose(self, message):
         self.pose = message
         self.pose_time = self.get_clock().now().nanoseconds * 1e-9
@@ -163,10 +233,26 @@ class AStarNode(Node):
                 float(self.get_parameter("goal_x").value),
                 float(self.get_parameter("goal_y").value),
             )
-            self.path = self.plan(start, goal)
-            self.get_logger().info("A* path planned: points={}".format(len(self.path)))
+            raw_path = self.plan(start, goal)
+            shortcut = self.shortcut_path(raw_path)
+            self.path = self.densify_path(shortcut)
+            self.get_logger().info(
+                "A* path planned: raw_points={}, shortcut_vertices={}, tracking_points={}".format(
+                    len(raw_path), len(shortcut), len(self.path)
+                )
+            )
 
     def publish_command(self, vx, vy):
+        max_accel = float(self.get_parameter("max_planar_accel").value)
+        dt = 1.0 / float(self.get_parameter("publish_hz").value)
+        dvx, dvy = vx - self.last_vx, vy - self.last_vy
+        delta = math.hypot(dvx, dvy)
+        max_delta = max_accel * dt
+        if delta > max_delta:
+            scale = max_delta / delta
+            vx = self.last_vx + dvx * scale
+            vy = self.last_vy + dvy * scale
+        self.last_vx, self.last_vy = vx, vy
         message = TwistStamped()
         message.header.stamp = self.get_clock().now().to_msg()
         message.header.frame_id = "map"
@@ -196,9 +282,30 @@ class AStarNode(Node):
         tx, ty = self.path[target_index]
         dx, dy = tx - p.x, ty - p.y
         distance = math.hypot(dx, dy) + 1e-6
-        speed = min(float(self.get_parameter("max_speed").value), float(self.get_parameter("cruise_speed").value), distance)
-        if math.hypot(goal_x - p.x, goal_y - p.y) < 4.0:
-            speed = min(speed, 0.8)
+        # `distance` is the distance to the short lookahead waypoint, not a
+        # stopping distance. Capping by it unintentionally limited a 2.7 m/s
+        # cruise command to roughly the 1 m lookahead distance.
+        speed = min(float(self.get_parameter("max_speed").value), float(self.get_parameter("cruise_speed").value))
+        preview_distance = float(self.get_parameter("turn_preview_distance").value)
+        preview_index = target_index
+        accumulated = 0.0
+        while preview_index < len(self.path) - 1 and accumulated < preview_distance:
+            ax, ay = self.path[preview_index]
+            bx, by = self.path[preview_index + 1]
+            accumulated += math.hypot(bx - ax, by - ay)
+            preview_index += 1
+        if preview_index > target_index:
+            px, py = self.path[preview_index]
+            approach_heading = math.atan2(dy, dx)
+            preview_heading = math.atan2(py - ty, px - tx)
+            turn_angle = abs(math.atan2(
+                math.sin(preview_heading - approach_heading),
+                math.cos(preview_heading - approach_heading),
+            ))
+            if turn_angle >= float(self.get_parameter("turn_angle_threshold").value):
+                speed = min(speed, float(self.get_parameter("turn_speed").value))
+        if math.hypot(goal_x - p.x, goal_y - p.y) < 2.0:
+            speed = min(speed, 1.2)
         self.publish_command(speed * dx / distance, speed * dy / distance)
 
 

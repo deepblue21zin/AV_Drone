@@ -37,6 +37,47 @@ export GAZEBO_MASTER_URI="${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}"
 export PX4_GAZEBO_DISPLAY="${PX4_GAZEBO_DISPLAY:-${DISPLAY:-}}"
 export PX4_GZ_WORLD="${PX4_GZ_WORLD:-${PX4_SITL_WORLD}}"
 
+# In an isolated shared network namespace there is no external GCS packet to
+# teach PX4 the offboard peer address, so make the loopback target explicit.
+PX4_MAVLINK_RC="/opt/PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink"
+if [ -f "${PX4_MAVLINK_RC}" ]; then
+  sed -i -E '/udp_offboard_port_local.*-m onboard/ { /-t 127\.0\.0\.1/! s/$/ -t 127.0.0.1/; }' "${PX4_MAVLINK_RC}"
+fi
+
+# Optional isolated SITL instance. Instance 1 uses simulator/MAVLink ports
+# 4561, 14561, 14581 and 14541 instead of the instance-0 defaults.
+PX4_INSTANCE="${PX4_INSTANCE:-0}"
+if [ "${PX4_INSTANCE}" -ne 0 ]; then
+  IRIS_SDF="${PX4_MODEL_DIR}/iris/iris.sdf"
+  IRIS_JINJA="${PX4_MODEL_DIR}/iris/iris.sdf.jinja"
+  JINJA_GEN="${PX4_CLASSIC_ROOT}/scripts/jinja_gen.py"
+  if [ -f "${JINJA_GEN}" ]; then
+    sed -i -E "s/(--mavlink_tcp_port', default=)[0-9]+/\1$((4560 + PX4_INSTANCE))/" "${JINJA_GEN}"
+    sed -i -E "s/(--mavlink_udp_port', default=)[0-9]+/\1$((14560 + PX4_INSTANCE))/" "${JINJA_GEN}"
+  fi
+  if [ -f "${IRIS_JINJA}" ]; then
+    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>$((14540 + PX4_INSTANCE))</sdk_udp_port>#" "${IRIS_JINJA}"
+  fi
+  if [ -f "${IRIS_SDF}" ]; then
+    sed -i -E "s#<mavlink_tcp_port>[0-9]+</mavlink_tcp_port>#<mavlink_tcp_port>$((4560 + PX4_INSTANCE))</mavlink_tcp_port>#" "${IRIS_SDF}"
+    sed -i -E "s#<mavlink_udp_port>[0-9]+</mavlink_udp_port>#<mavlink_udp_port>$((14560 + PX4_INSTANCE))</mavlink_udp_port>#" "${IRIS_SDF}"
+    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>$((14540 + PX4_INSTANCE))</sdk_udp_port>#" "${IRIS_SDF}"
+  fi
+  SITL_RUN="/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_run.sh"
+  if [ -f "${SITL_RUN}" ]; then
+    sed -i -E "s#^sitl_command=.*#sitl_command=\"\\\"\$sitl_bin\\\" -i ${PX4_INSTANCE} \$no_pxh \\\"\$build_path\\\"/etc\"#" "${SITL_RUN}"
+  fi
+else
+  IRIS_SDF="${PX4_MODEL_DIR}/iris/iris.sdf"
+  IRIS_JINJA="${PX4_MODEL_DIR}/iris/iris.sdf.jinja"
+  JINJA_GEN="${PX4_CLASSIC_ROOT}/scripts/jinja_gen.py"
+  SITL_RUN="/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_run.sh"
+  [ ! -f "${JINJA_GEN}" ] || sed -i -E "s/(--mavlink_tcp_port', default=)[0-9]+/\14560/; s/(--mavlink_udp_port', default=)[0-9]+/\114560/" "${JINJA_GEN}"
+  [ ! -f "${IRIS_JINJA}" ] || sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>14540</sdk_udp_port>#" "${IRIS_JINJA}"
+  [ ! -f "${IRIS_SDF}" ] || sed -i -E "s#<mavlink_tcp_port>[0-9]+</mavlink_tcp_port>#<mavlink_tcp_port>4560</mavlink_tcp_port>#; s#<mavlink_udp_port>[0-9]+</mavlink_udp_port>#<mavlink_udp_port>14560</mavlink_udp_port>#; s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>14540</sdk_udp_port>#" "${IRIS_SDF}"
+  [ ! -f "${SITL_RUN}" ] || sed -i -E 's#^sitl_command=.*#sitl_command="\\"$sitl_bin\\" $no_pxh \\"$build_path\\"/etc"#' "${SITL_RUN}"
+fi
+
 case "${HEADLESS:-}" in
   1|true|TRUE|yes|YES)
     export HEADLESS=1
@@ -73,5 +114,6 @@ fi
 
 echo "[sim entrypoint] PX4_SITL_WORLD=${PX4_SITL_WORLD}"
 echo "[sim entrypoint] PX4 make target=${MAKE_TARGET}"
+echo "[sim entrypoint] PX4 instance=${PX4_INSTANCE}"
 
 exec make px4_sitl "${MAKE_TARGET}"

@@ -23,7 +23,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "mppi_node = mppi.mppi_flight_node:main",
+            "mppi_node = mppi.mppi_node:main",
         ],
     },
 )
