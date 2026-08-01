@@ -13,54 +13,85 @@
     planner_cmd_topic: "/drone1/planner/avoid/cmd_vel"
     safe_cmd_topic: "/drone1/safety/cmd_vel"
     mission_phase_topic: "/drone1/mission/phase"
+    home_pose_topic: "/drone1/mission/home_pose"
+    active_goal_topic: "/drone1/mission/active_goal"
     nearest_obstacle_topic: "/drone1/perception/nearest_obstacle_distance"
     safety_event_topic: "/drone1/safety/event"
     goal_reached_topic: "/drone1/mission/goal_reached"
+    planner_debug_selected_gap_topic: "/drone1/planner/avoid/debug/selected_gap"
+    planner_debug_score_terms_topic: "/drone1/planner/avoid/debug/score_terms"
+    planner_debug_mode_topic: "/drone1/planner/avoid/debug/mode"
+    planner_debug_escape_active_topic: "/drone1/planner/avoid/debug/escape_active"
     planner_active_topic: "/drone1/planner/active"
     planner_switch_reason_topic: "/drone1/planner/switch_reason"
     slam_status_topic: "/drone1/slam/status"
     slam_input_ready_topic: "/drone1/slam/input_ready"
     slam_map_ready_topic: "/drone1/slam/map_ready"
     slam_localization_ok_topic: "/drone1/slam/localization_ok"
+    slam_coverage_topic: "/drone1/slam/coverage"
+    map_topic: "/map"
+    map_frame_id: "map"
+    map_resolution: 0.12
+    map_min_x: -2.0
+    map_max_x: 152.0
+    map_min_y: -16.0
+    map_max_y: 16.0
+    map_file_basename: "obstacle_demo_v3"
+    experiment_condition: "baseline_a_avoid_return"
+    paper_metrics_success_requires_return: true
     fcu_url: "udp://:14540@127.0.0.1:14580"
     takeoff_z: 3.0
-    goal_x: 31.0
-    goal_y: -1.5
+    goal_x: 140.0
+    goal_y: 0.0
     goal_z: 3.0
+    home_goal_z: 3.0
     goal_tol_xy: 0.60
     goal_latch_enabled: true
+    return_home_enabled: false
+    return_mode: "avoid"
     allow_motion_without_scan: false
-    cruise_speed: 0.75
-    max_speed: 0.90
-    max_reverse_speed: 0.35
-    preferred_clearance_margin: 0.15
-    obstacle_stop_distance: 1.25
-    obstacle_slow_distance: 2.20
+    cruise_speed: 0.95
+    max_speed: 1.15
+    max_reverse_speed: 0.25
+    preferred_clearance_margin: 0.05
+    obstacle_stop_distance: 1.05
+    obstacle_slow_distance: 1.80
     obstacle_influence_distance: 4.6
     forward_gain: 1.0
     avoidance_gain: 1.45
-    lateral_bias_gain: 0.9
-    backoff_gain: 0.6
+    lateral_bias_gain: 1.05
+    backoff_gain: 0.35
     front_sector_half_angle_deg: 32.0
     side_sector_width_deg: 85.0
-    gap_search_half_angle_deg: 100.0
-    gap_bubble_radius: 1.15
+    gap_search_half_angle_deg: 170.0
+    gap_bubble_radius: 0.95
     gap_max_bubbles: 8
-    gap_min_clearance: 1.60
+    gap_min_clearance: 1.35
     gap_min_points: 8
     gap_edge_margin_deg: 6.0
     gap_goal_weight: 2.2
     gap_clearance_weight: 0.85
     gap_width_weight: 0.45
-    gap_clearance_relax_ratio: 0.95
-    gap_center_bias: 1.00
-    gap_target_commitment: 0.50
+    gap_clearance_relax_ratio: 0.85
+    gap_center_bias: 0.55
+    gap_target_commitment: 0.35
     gap_clearance_percentile: 0.20
-    gap_escape_distance: 1.30
+    gap_escape_distance: 0.95
     target_sector_half_angle_deg: 8.0
-    gap_turn_min_scale: 0.35
+    gap_turn_min_scale: 0.55
     side_clearance_sector_deg: 75.0
+    slam_mapping_mode_enabled: false
+    slam_cruise_speed: 0.45
+    slam_max_speed: 0.65
+    slam_max_lateral_speed: 0.45
+    slam_target_commitment: 0.70
+    slam_min_scan_overlap_ratio: 0.55
+    mapping_gain_weight: 0.60
+    slam_stability_weight: 0.40
+    motion_penalty_weight: 0.30
     hover_sec_after_takeoff: 2.0
+    hover_sec_at_goal: 2.0
+    hover_sec_at_home: 3.0
     kp_z: 1.2
     vz_max: 1.0
     cmd_rate_hz: 20.0

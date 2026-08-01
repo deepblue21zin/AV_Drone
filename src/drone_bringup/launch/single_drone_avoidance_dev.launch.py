@@ -74,10 +74,12 @@ def generate_launch_description():
         parameters=[
             avoidance_yaml,
             {
-                "baseline_name": "avoidance_dev_profile",
+                "baseline_name": "baseline_a_avoid_return",
                 "planner_name": "local_planner_follow_the_gap",
-                "planner_version": "2026-03-29_gap_v1",
-                "controller_version": "autonomy_manager_v1",
+                "planner_version": "baseline_a_v1",
+                "controller_version": "autonomy_manager_return_v1",
+                "experiment_condition": "baseline_a_avoid_return",
+                "paper_metrics_success_requires_return": True,
                 "experiment_seed": 0,
                 "scenario_manifest_path": scenario_manifest_yaml,
                 "autonomy_config_path": avoidance_yaml,
@@ -88,4 +90,30 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([mavros, perception, planner, safety, controller, metrics])
+    mapping = Node(
+        package="drone_slam",
+        executable="simple_2d_mapping_node",
+        name="simple_2d_mapping",
+        output="screen",
+        parameters=[avoidance_yaml],
+    )
+
+    map_saver = Node(
+        package="drone_slam",
+        executable="map_saver_node",
+        name="map_saver",
+        output="screen",
+        parameters=[avoidance_yaml],
+    )
+
+    foxglove_bridge = Node(
+        package="foxglove_bridge",
+        executable="foxglove_bridge",
+        name="foxglove_bridge",
+        output="screen",
+        parameters=[{"port": 8765}],
+    )
+
+    return LaunchDescription(
+        [mavros, perception, planner, safety, controller, metrics, mapping, map_saver, foxglove_bridge]
+    )

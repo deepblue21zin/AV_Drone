@@ -43,6 +43,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN /opt/ros/humble/lib/mavros/install_geographiclib_datasets.sh
 
+RUN apt-get update && apt-get install -y \
+    ros-humble-foxglove-bridge \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN rosdep init || true
 
 WORKDIR /workspace/AV_Drone

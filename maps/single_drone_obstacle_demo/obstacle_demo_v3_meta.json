@@ -1,0 +1,11 @@
+{
+  "resolution": 0.11999999731779099,
+  "width": 1284,
+  "height": 267,
+  "origin_x": -2.0,
+  "origin_y": -16.0,
+  "origin_z": 0.0,
+  "frame_id": "map",
+  "scenario_name": "single_drone_obstacle_demo",
+  "saved_at": "2026-07-17T18:49:20"
+}

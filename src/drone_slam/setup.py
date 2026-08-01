@@ -20,6 +20,8 @@ setup(
     entry_points={
         "console_scripts": [
             "slam_scaffold_node = drone_slam.slam_scaffold_node:main",
+            "simple_2d_mapping_node = drone_slam.simple_2d_mapping_node:main",
+            "map_saver_node = drone_slam.map_saver_node:main",
         ],
     },
 )

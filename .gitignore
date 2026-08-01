@@ -36,6 +36,7 @@ experiments/ledger.md
 experiments/scenario_table.csv
 experiments/scenario_table.md
 experiments/plots/
+experiments/paper_outputs/
 
 # ===== OS =====
 .DS_Store
@@ -43,3 +44,7 @@ Thumbs.db
 
 # ===== Local startup logs =====
 .logs/
+bags/
+
+# ===== sjee Local-only docker overrides =====
+docker-compose.override.yml
