@@ -15,6 +15,7 @@ from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Bool, String
 
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode
@@ -35,10 +36,14 @@ def quat_to_yaw(qx: float, qy: float, qz: float, qw: float) -> float:
 
 
 @dataclass
-class Obstacle2D:
-    cx: float
-    cy: float
-    r: float
+class RectangleObstacle2D:
+    """LiDAR points fitted to the rectangle contract used by pure MPPI."""
+
+    x: float
+    y: float
+    half_x: float
+    half_y: float
+    yaw: float
 
 
 @dataclass
@@ -51,37 +56,42 @@ class MPPIConfig:
     v_max: float = 2.0
     yaw_rate_max: float = 1.2
 
-    sigma_v: float = 0.6
+    sigma_v: float = 0.7
     sigma_yaw_rate: float = 0.6
 
     w_goal: float = 8.0
     w_goal_final: float = 30.0
 
-    w_obst: float = 120.0
+    w_obst: float = 200.0
     w_ctrl: float = 0.2
     w_smooth: float = 0.4
 
     safety_margin: float = 0.9
-    near_buffer: float = 0.6
+    near_buffer: float = 1.0
 
     near_k: float = 18.0
     penetrate_k: float = 80.0
     penetrate_bias: float = 200.0
 
     v_nom: float = 1.2
-
-
 class MPPIController:
-    def __init__(self, cfg: MPPIConfig, obstacles: List[Obstacle2D]):
+    def __init__(self, cfg: MPPIConfig, obstacles: List[RectangleObstacle2D]):
         self.cfg = cfg
         self.obstacles = obstacles
         self.u_nom = np.zeros((cfg.horizon, 3), dtype=np.float32)
         self.rng = np.random.default_rng()
+        self.initialized = False
+        self.last_ess = 0.0
+        self.last_temperature = cfg.lam
 
     def reset(self):
         self.u_nom[:] = 0.0
+        self.initialized = False
 
     def set_nominal_towards_goal(self, x: float, y: float, goal_x: float, goal_y: float):
+        # 이후에는 직전 최적해를 한 스텝 이동한 값이 warm start가 된다.
+        if self.initialized:
+            return
         dx = goal_x - x
         dy = goal_y - y
         dist = math.hypot(dx, dy) + 1e-6
@@ -94,6 +104,19 @@ class MPPIController:
         self.u_nom[:, 0] = vx
         self.u_nom[:, 1] = vy
         self.u_nom[:, 2] = 0.0
+        self.initialized = True
+
+    @staticmethod
+    def _rectangle_signed_distance(xs, ys, obstacle):
+        cos_yaw, sin_yaw = math.cos(obstacle.yaw), math.sin(obstacle.yaw)
+        dx, dy = xs - obstacle.x, ys - obstacle.y
+        local_x = cos_yaw * dx + sin_yaw * dy
+        local_y = -sin_yaw * dx + cos_yaw * dy
+        qx = np.abs(local_x) - obstacle.half_x
+        qy = np.abs(local_y) - obstacle.half_y
+        outside = np.sqrt(np.maximum(qx, 0.0) ** 2 + np.maximum(qy, 0.0) ** 2)
+        inside = np.minimum(np.maximum(qx, qy), 0.0)
+        return outside + inside
 
     def step(
         self,
@@ -107,16 +130,33 @@ class MPPIController:
         H = cfg.horizon
         N = cfg.num_samples
         dt = cfg.dt
+        previous_nominal = self.u_nom.copy()
 
         noise = np.zeros((N, H, 3), dtype=np.float32)
         noise[:, :, 0] = self.rng.normal(0.0, cfg.sigma_v, size=(N, H))
         noise[:, :, 1] = self.rng.normal(0.0, cfg.sigma_v, size=(N, H))
         noise[:, :, 2] = self.rng.normal(0.0, cfg.sigma_yaw_rate, size=(N, H))
 
-        u = self.u_nom[None, :, :] + noise
+        # 시간축 상관 노이즈로 회피 방향이 유지되는 궤적을 생성한다.
+        correlation = 0.98
+        innovation_scale = math.sqrt(1.0 - correlation ** 2)
+        for k in range(1, H):
+            noise[:, k, :] = (
+                correlation * noise[:, k - 1, :]
+                + innovation_scale * noise[:, k, :]
+            )
 
-        u[:, :, 0] = np.clip(u[:, :, 0], -cfg.v_max, cfg.v_max)
-        u[:, :, 1] = np.clip(u[:, :, 1], -cfg.v_max, cfg.v_max)
+        # 좌/우 샘플 불균형을 줄인다.
+        half = N // 2
+        noise[half:2 * half] = -noise[:half]
+
+        u = previous_nominal[None, :, :] + noise
+
+        u[:, :, 0:2] = np.clip(u[:, :, 0:2], -cfg.v_max, cfg.v_max)
+        planar_speed = np.linalg.norm(u[:, :, 0:2], axis=2)
+        speed_scale = np.minimum(1.0, cfg.v_max / np.maximum(planar_speed, 1e-6))
+        u[:, :, 0] *= speed_scale
+        u[:, :, 1] *= speed_scale
         u[:, :, 2] = np.clip(u[:, :, 2], -cfg.yaw_rate_max, cfg.yaw_rate_max)
 
         xs = np.zeros((N, H + 1), dtype=np.float32)
@@ -142,32 +182,38 @@ class MPPIController:
         dyf = ys[:, -1] - gy
         costs += cfg.w_goal_final * (dxf * dxf + dyf * dyf)
 
+        goal_dx = gx - x0
+        goal_dy = gy - y0
+        goal_norm = math.hypot(goal_dx, goal_dy) + 1e-6
+        direction_x = goal_dx / goal_norm
+        direction_y = goal_dy / goal_norm
+        progress = direction_x * (xs[:, -1] - x0) + direction_y * (ys[:, -1] - y0)
+        costs -= 80.0 * progress
+
         dyaw = wrap_pi(yaws[:, -1] - gyaw)
         costs += 0.5 * (dyaw * dyaw)
 
         if self.obstacles:
             obst_cost = np.zeros((N,), dtype=np.float32)
 
-            for obs in self.obstacles:
-                ox = xs[:, 1:] - obs.cx
-                oy = ys[:, 1:] - obs.cy
-                d = np.sqrt(ox * ox + oy * oy)
-
-                dmin = np.min(d, axis=1)
-                sdmin = dmin - (obs.r + cfg.safety_margin)
-
-                pen_depth = np.clip(-sdmin, 0.0, None)
-                pen_cost = (
-                    cfg.penetrate_bias * (pen_depth > 0.0).astype(np.float32)
-                    + cfg.penetrate_k * (pen_depth ** 2)
+            for obstacle in self.obstacles:
+                signed = self._rectangle_signed_distance(xs[:, 1:], ys[:, 1:], obstacle)
+                clearance = np.min(signed, axis=1) - cfg.safety_margin
+                penetration = np.clip(-clearance, 0.0, None)
+                near = np.clip(cfg.near_buffer - clearance, 0.0, cfg.near_buffer)
+                obst_cost += (
+                    cfg.penetrate_bias * (penetration > 0.0)
+                    + cfg.penetrate_k * penetration ** 2
+                    + cfg.near_k * near ** 2
                 )
 
-                near_depth = np.clip(cfg.near_buffer - sdmin, 0.0, cfg.near_buffer)
-                near_cost = cfg.near_k * (near_depth ** 2)
-
-                obst_cost += (pen_cost + near_cost)
-
             costs += cfg.w_obst * obst_cost
+
+        deviation = u - previous_nominal[None, :, :]
+        costs += 1.0 * np.mean(
+            deviation[:, :, 0] ** 2 + deviation[:, :, 1] ** 2,
+            axis=1,
+        )
 
         costs += cfg.w_ctrl * np.mean(
             u[:, :, 0] ** 2 + u[:, :, 1] ** 2 + 0.4 * u[:, :, 2] ** 2,
@@ -180,10 +226,28 @@ class MPPIController:
             axis=1,
         )
 
+        # 비용 스케일이 LiDAR 군집 수에 따라 바뀌어도 weight collapse가
+        # 발생하지 않도록 목표 ESS에 맞춰 temperature를 조정한다.
         cmin = float(np.min(costs))
-        weights = np.exp(-(costs - cmin) / max(cfg.lam, 1e-6))
-        wsum = float(np.sum(weights)) + 1e-9
-        weights = (weights / wsum).astype(np.float32)
+        shifted = costs - cmin
+        target_ess = max(8.0, 0.10 * N)
+        low = max(cfg.lam, 1e-3)
+        high = max(low, float(np.max(shifted)), 1.0)
+        for _ in range(18):
+            temperature = 0.5 * (low + high)
+            trial = np.exp(-shifted / temperature)
+            trial /= float(np.sum(trial)) + 1e-12
+            ess = float(1.0 / (np.sum(trial * trial) + 1e-12))
+            if ess < target_ess:
+                low = temperature
+            else:
+                high = temperature
+
+        self.last_temperature = high
+        weights = np.exp(-shifted / high)
+        weights /= float(np.sum(weights)) + 1e-12
+        self.last_ess = float(1.0 / (np.sum(weights * weights) + 1e-12))
+        weights = weights.astype(np.float32)
 
         self.u_nom = np.tensordot(weights, u, axes=(0, 0)).astype(np.float32)
 
@@ -199,7 +263,7 @@ class MPPIOffboardNode(Node):
         super().__init__("mppi_lidar")
 
         self.declare_parameter("takeoff_z", 3.0)
-        self.declare_parameter("goal_x", 24.0)
+        self.declare_parameter("goal_x", 140.0)
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_z", 3.0)
         self.declare_parameter("goal_yaw", 0.0)
@@ -211,22 +275,37 @@ class MPPIOffboardNode(Node):
         self.declare_parameter("dt", 0.05)
         self.declare_parameter("horizon", 100)
         self.declare_parameter("num_samples", 400)
+        self.declare_parameter("lam", 1.0)
 
         self.declare_parameter("v_max", 2.0)
         self.declare_parameter("yaw_rate_max", 1.2)
+        self.declare_parameter("sigma_v", 0.7)
+        self.declare_parameter("sigma_yaw_rate", 0.6)
+        self.declare_parameter("v_nom", 1.2)
 
         self.declare_parameter("safety_margin", 0.9)
-        self.declare_parameter("near_buffer", 0.6)
-        self.declare_parameter("w_obst", 120.0)
+        self.declare_parameter("near_buffer", 1.0)
+        self.declare_parameter("w_obst", 200.0)
+        self.declare_parameter("w_goal", 8.0)
+        self.declare_parameter("w_goal_final", 30.0)
+        self.declare_parameter("w_ctrl", 0.2)
+        self.declare_parameter("w_smooth", 0.4)
+        self.declare_parameter("near_k", 18.0)
+        self.declare_parameter("penetrate_k", 80.0)
+        self.declare_parameter("penetrate_bias", 200.0)
 
         self.declare_parameter("kp_z", 1.2)
         self.declare_parameter("vz_max", 1.2)
+        self.declare_parameter("land_descent_speed", 0.45)
+        self.declare_parameter("land_final_speed", 0.15)
+        self.declare_parameter("disarm_height", 0.18)
 
         self.declare_parameter("cmd_rate_hz", 20.0)
         self.declare_parameter("startup_wait_sec", 3.0)
 
         self.declare_parameter("use_lidar_obstacles", True)
         self.declare_parameter("scan_topic", "/drone1/scan")
+        self.declare_parameter("scan_valid_min_range", 0.5)
         self.declare_parameter("scan_valid_max_range", 8.0)
         self.declare_parameter("scan_downsample", 2)
         self.declare_parameter("cluster_dist_thresh", 0.8)
@@ -242,7 +321,9 @@ class MPPIOffboardNode(Node):
         self.declare_parameter("lidar_offset_y", 0.0)
         self.declare_parameter("lidar_yaw_offset", 0.0)
 
-        self.declare_parameter("emergency_stop_dist", 1.0)
+        self.declare_parameter("emergency_stop_dist", 0.6)
+        self.declare_parameter("obstacle_slowdown_dist", 2.5)
+        self.declare_parameter("max_planar_accel", 1.5)
 
         self.current_state = State()
         self.pose: Optional[PoseStamped] = None
@@ -253,9 +334,10 @@ class MPPIOffboardNode(Node):
         self.pre_stream_count = 0
         self.boot_t0 = time.time()
 
-        self.static_obstacles: List[Obstacle2D] = []
-        self.dynamic_obstacles: List[Obstacle2D] = []
+        self.dynamic_obstacles: List[RectangleObstacle2D] = []
         self.last_scan_t = 0.0
+        self.last_scan_min = math.inf
+        self.last_planar_cmd = np.zeros(2, dtype=np.float64)
 
         self.create_subscription(State, "/mavros/state", self._on_state, 10)
         self.create_subscription(
@@ -278,6 +360,8 @@ class MPPIOffboardNode(Node):
             "/mavros/setpoint_velocity/cmd_vel",
             10,
         )
+        self.phase_pub = self.create_publisher(String, "/drone1/mission/phase", 10)
+        self.goal_pub = self.create_publisher(Bool, "/drone1/mission/goal_reached", 10)
 
         self.arm_cli = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.mode_cli = self.create_client(SetMode, "/mavros/set_mode")
@@ -290,11 +374,22 @@ class MPPIOffboardNode(Node):
             dt=float(self.get_parameter("dt").value),
             horizon=int(self.get_parameter("horizon").value),
             num_samples=int(self.get_parameter("num_samples").value),
+            lam=float(self.get_parameter("lam").value),
             v_max=float(self.get_parameter("v_max").value),
             yaw_rate_max=float(self.get_parameter("yaw_rate_max").value),
+            sigma_v=float(self.get_parameter("sigma_v").value),
+            sigma_yaw_rate=float(self.get_parameter("sigma_yaw_rate").value),
+            v_nom=float(self.get_parameter("v_nom").value),
             safety_margin=float(self.get_parameter("safety_margin").value),
             near_buffer=float(self.get_parameter("near_buffer").value),
             w_obst=float(self.get_parameter("w_obst").value),
+            w_goal=float(self.get_parameter("w_goal").value),
+            w_goal_final=float(self.get_parameter("w_goal_final").value),
+            w_ctrl=float(self.get_parameter("w_ctrl").value),
+            w_smooth=float(self.get_parameter("w_smooth").value),
+            near_k=float(self.get_parameter("near_k").value),
+            penetrate_k=float(self.get_parameter("penetrate_k").value),
+            penetrate_bias=float(self.get_parameter("penetrate_bias").value),
         )
         self.mppi = MPPIController(cfg, [])
 
@@ -349,6 +444,14 @@ class MPPIOffboardNode(Node):
             self.phase = name
             self.phase_t0 = time.time()
             self.get_logger().info(f"PHASE => {name}")
+
+    def _publish_mission_state(self):
+        phase = String()
+        phase.data = self.phase
+        self.phase_pub.publish(phase)
+        reached = Bool()
+        reached.data = self.phase in {"HOVER_AT_GOAL", "LAND", "DONE"}
+        self.goal_pub.publish(reached)
 
     def _phase_elapsed(self) -> float:
         return time.time() - self.phase_t0
@@ -418,26 +521,40 @@ class MPPIOffboardNode(Node):
         clusters: List[List[Tuple[float, float]]],
         drone_x: float,
         drone_y: float,
-    ) -> List[Obstacle2D]:
-        obs_list: List[Obstacle2D] = []
-        radius_pad = float(self.get_parameter("dynamic_obs_radius_pad").value)
+    ) -> List[RectangleObstacle2D]:
+        obs_list: List[RectangleObstacle2D] = []
+        geometry_pad = float(self.get_parameter("dynamic_obs_radius_pad").value)
 
         for cl in clusters:
-            xs = [p[0] for p in cl]
-            ys = [p[1] for p in cl]
+            points = np.asarray(cl, dtype=np.float64)
+            mean = np.mean(points, axis=0)
+            centered = points - mean
 
-            cx = float(sum(xs) / len(xs))
-            cy = float(sum(ys) / len(ys))
+            # PCA의 주축으로 LiDAR wall segment의 방향을 추정한다.
+            covariance = centered.T @ centered / max(len(cl), 1)
+            eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+            major = eigenvectors[:, int(np.argmax(eigenvalues))]
+            minor = np.array([-major[1], major[0]], dtype=np.float64)
 
-            r = 0.0
-            for px, py in cl:
-                r = max(r, math.hypot(px - cx, py - cy))
-            r += radius_pad
+            major_projection = centered @ major
+            minor_projection = centered @ minor
+            major_min, major_max = np.min(major_projection), np.max(major_projection)
+            minor_min, minor_max = np.min(minor_projection), np.max(minor_projection)
 
-            obs_list.append(Obstacle2D(cx, cy, r))
+            local_center_major = 0.5 * (major_min + major_max)
+            local_center_minor = 0.5 * (minor_min + minor_max)
+            center = mean + local_center_major * major + local_center_minor * minor
+
+            obs_list.append(RectangleObstacle2D(
+                x=float(center[0]),
+                y=float(center[1]),
+                half_x=float(0.5 * (major_max - major_min) + geometry_pad),
+                half_y=float(0.5 * (minor_max - minor_min) + geometry_pad),
+                yaw=float(math.atan2(major[1], major[0])),
+            ))
 
         max_obs = int(self.get_parameter("dynamic_obs_max").value)
-        obs_list.sort(key=lambda o: math.hypot(o.cx - drone_x, o.cy - drone_y))
+        obs_list.sort(key=lambda o: math.hypot(o.x - drone_x, o.y - drone_y))
         return obs_list[:max_obs]
 
     def _update_mppi_obstacles(self):
@@ -456,6 +573,7 @@ class MPPIOffboardNode(Node):
 
         x, y, z, yaw = self._get_xyz_yaw()
 
+        valid_min = float(self.get_parameter("scan_valid_min_range").value)
         valid_max = float(self.get_parameter("scan_valid_max_range").value)
         downsample = max(1, int(self.get_parameter("scan_downsample").value))
         lidar_forward_only = bool(self.get_parameter("lidar_forward_only").value)
@@ -468,19 +586,22 @@ class MPPIOffboardNode(Node):
         half_fov = math.radians(lidar_fov_deg * 0.5)
 
         pts_world: List[Tuple[float, float]] = []
+        valid_ranges: List[float] = []
 
         for i in range(0, len(msg.ranges), downsample):
             r = float(msg.ranges[i])
 
             if not math.isfinite(r):
                 continue
-            if r < msg.range_min or r > min(msg.range_max, valid_max):
+            if r < max(msg.range_min, valid_min) or r > min(msg.range_max, valid_max):
                 continue
 
             ang = msg.angle_min + i * msg.angle_increment
 
             if lidar_forward_only and abs(ang) > half_fov:
                 continue
+
+            valid_ranges.append(r)
 
             ang_b = ang + off_yaw
             xb = off_x + r * math.cos(ang_b)
@@ -491,25 +612,30 @@ class MPPIOffboardNode(Node):
 
         if not pts_world:
             self.dynamic_obstacles = []
+            self.last_scan_min = math.inf
             self.last_scan_t = time.time()
             return
 
         clusters = self._cluster_points(pts_world)
         self.dynamic_obstacles = self._clusters_to_obstacles(clusters, x, y)
+        self.last_scan_min = min(valid_ranges) if valid_ranges else math.inf
         self.last_scan_t = time.time()
 
     def _tick(self):
-        self._publish_cmd(0.0, 0.0, 0.0, 0.0)
-
+        self._publish_mission_state()
         if not self.current_state.connected:
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             return
         if self.pose is None or self._pose_age() > 0.5:
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             return
 
         startup_wait_sec = float(self.get_parameter("startup_wait_sec").value)
         if (time.time() - self.boot_t0) < startup_wait_sec:
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             return
         if not self._services_ready():
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             return
 
         takeoff_z = float(self.get_parameter("takeoff_z").value)
@@ -528,11 +654,13 @@ class MPPIOffboardNode(Node):
         x, y, z, yaw = self._get_xyz_yaw()
 
         if self.phase == "WAIT_STREAM":
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             self.pre_stream_count += 1
             if self.pre_stream_count >= 40:
                 self._enter_phase("OFFBOARD_ARM")
 
         elif self.phase == "OFFBOARD_ARM":
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
             now = time.time()
 
             if self.current_state.mode != "OFFBOARD":
@@ -578,6 +706,7 @@ class MPPIOffboardNode(Node):
                     return
 
                 self.mppi.set_nominal_towards_goal(x, y, gx, gy)
+                self.last_planar_cmd[:] = 0.0
                 self._enter_phase("MPPI_GO")
 
         elif self.phase == "MPPI_GO":
@@ -597,18 +726,23 @@ class MPPIOffboardNode(Node):
                 return
 
             emergency_stop_dist = float(self.get_parameter("emergency_stop_dist").value)
-            too_close = False
-            for obs in self.dynamic_obstacles:
-                d = math.hypot(obs.cx - x, obs.cy - y) - obs.r
-                if d < emergency_stop_dist:
-                    too_close = True
-                    break
-
-            if too_close:
-                self._publish_cmd(0.0, 0.0, vz_hold, 0.0)
-                return
+            slowdown_dist = float(self.get_parameter("obstacle_slowdown_dist").value)
 
             vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
+
+            # 가까운 벽에서 모든 수평 자유도를 제거하면 gap 쪽으로 미세 조정할
+            # 수 없다. 실제 scan 거리에 따라 연속 감속하되 MPPI의 측방 회피는
+            # 유지하고 최소 이동 비율을 남겨 gap 중심으로 수렴하게 한다.
+            if self.last_scan_min < slowdown_dist:
+                obstacle_scale = clamp(
+                    (self.last_scan_min - emergency_stop_dist)
+                    / max(slowdown_dist - emergency_stop_dist, 1e-6),
+                    0.15,
+                    1.0,
+                )
+                vx *= obstacle_scale
+                vy *= obstacle_scale
+            yr = 0.0
 
             d_goal = math.hypot(gx - x, gy - y)
             if d_goal < 2.0:
@@ -616,9 +750,20 @@ class MPPIOffboardNode(Node):
                 vx *= scale
                 vy *= scale
 
+            max_accel = float(self.get_parameter("max_planar_accel").value)
+            cmd = np.array([vx, vy], dtype=np.float64)
+            delta = cmd - self.last_planar_cmd
+            max_delta = max_accel / max(float(self.get_parameter("cmd_rate_hz").value), 1.0)
+            delta_norm = float(np.linalg.norm(delta))
+            if delta_norm > max_delta > 0.0:
+                delta *= max_delta / delta_norm
+            self.last_planar_cmd += delta
+            vx, vy = float(self.last_planar_cmd[0]), float(self.last_planar_cmd[1])
+
             self._publish_cmd(vx, vy, vz_hold, yr)
 
             if d_goal <= goal_tol:
+                self.last_planar_cmd[:] = 0.0
                 self._enter_phase("HOVER_AT_GOAL")
 
         elif self.phase == "HOVER_AT_GOAL":
@@ -630,19 +775,34 @@ class MPPIOffboardNode(Node):
                 self._enter_phase("LAND")
 
         elif self.phase == "LAND":
-            now = time.time()
-            if (now - self.last_mode_req_t) > 1.0:
-                self._request_set_mode("AUTO.LAND")
-                self.last_mode_req_t = now
-
-            if self.mode_future is not None and self.mode_future.done():
-                res = self.mode_future.result()
-                if res is not None and bool(res.mode_sent):
-                    self._enter_phase("WAIT_LANDED")
+            descent_speed = abs(float(self.get_parameter("land_descent_speed").value))
+            disarm_height = float(self.get_parameter("disarm_height").value)
+            self._publish_cmd(0.0, 0.0, -descent_speed, 0.0)
+            if z <= max(0.5, disarm_height + 0.2):
+                self._enter_phase("WAIT_LANDED")
 
         elif self.phase == "WAIT_LANDED":
-            if z < 0.2:
+            final_speed = abs(float(self.get_parameter("land_final_speed").value))
+            disarm_height = float(self.get_parameter("disarm_height").value)
+            if z >= disarm_height:
+                self._publish_cmd(0.0, 0.0, -final_speed, 0.0)
+            else:
+                self._publish_cmd(0.0, 0.0, 0.0, 0.0)
                 now = time.time()
+
+                # AUTO.LAND는 고도에서 전환하면 수평 드리프트가 발생할 수 있다.
+                # 지면 접촉 후에만 전환해 PX4 land detector의 자동 disarm을
+                # 활성화한다.
+                if self.current_state.mode != "AUTO.LAND":
+                    if (now - self.last_mode_req_t) > 1.0:
+                        self._request_set_mode("AUTO.LAND")
+                        self.last_mode_req_t = now
+                    return
+
+                if not self.current_state.armed:
+                    self._enter_phase("DONE")
+                    return
+
                 if (now - self.last_arm_req_t) > 1.0:
                     self._request_arm(False)
                     self.last_arm_req_t = now
@@ -653,7 +813,7 @@ class MPPIOffboardNode(Node):
                         self._enter_phase("DONE")
 
         elif self.phase == "DONE":
-            pass
+            self._publish_cmd(0.0, 0.0, 0.0, 0.0)
 
 
 def main(args=None):

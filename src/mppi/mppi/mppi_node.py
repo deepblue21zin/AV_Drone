@@ -58,6 +58,8 @@ class Obstacle2D:
     cx: float
     cy: float
     r: float
+    x2: Optional[float] = None
+    y2: Optional[float] = None
 
 
 class WorldObstacleLoader:
@@ -121,6 +123,20 @@ class WorldObstacleLoader:
 
             pose_text = child_text(model, 'pose', '0 0 0 0 0 0')
             cx, cy = parse_pose_xy(pose_text)
+            pose_values = [float(v) for v in pose_text.split()]
+            yaw = pose_values[5] if len(pose_values) >= 6 else 0.0
+
+            box_obstacles = self._box_obstacles_from_inline_model(model, cx, cy, yaw)
+            for obstacle in box_obstacles:
+                key = (round(obstacle.cx, 6), round(obstacle.cy, 6), round(obstacle.r, 6), name, 'inline_box')
+                if key in seen:
+                    continue
+                seen.add(key)
+                if not self._is_ignored_near_start(obstacle.cx, obstacle.cy):
+                    obstacles.append(obstacle)
+            if box_obstacles:
+                continue
+
             radius = self._radius_from_inline_model(model)
             if radius is None:
                 continue
@@ -136,6 +152,34 @@ class WorldObstacleLoader:
             if not self._is_ignored_near_start(cx, cy):
                 obstacles.append(Obstacle2D(cx=cx, cy=cy, r=radius))
 
+        return obstacles
+
+    def _box_obstacles_from_inline_model(
+        self, model: ET.Element, cx: float, cy: float, yaw: float
+    ) -> List[Obstacle2D]:
+        obstacles: List[Obstacle2D] = []
+        cosine, sine = math.cos(yaw), math.sin(yaw)
+        for collision in model.iter():
+            if xml_tag_name(collision) != 'collision':
+                continue
+            geometry = first_child(collision, 'geometry')
+            box = first_child(geometry, 'box') if geometry is not None else None
+            if box is None:
+                continue
+            vals = [float(v) for v in child_text(box, 'size').split()]
+            if len(vals) < 3:
+                continue
+            sx, sy, sz = vals[:3]
+            # Match the A* occupancy builder: ignore the floor and the
+            # corridor-wide boundary walls, but retain every slit segment.
+            if (sz <= 0.1 and sx >= 5.0 and sy >= 5.0) or max(sx, sy) >= 28.0:
+                continue
+            radius = max(0.05, min(sx, sy) * 0.5)
+            half = 0.5 * max(sx, sy)
+            local_x, local_y = (half, 0.0) if sx >= sy else (0.0, half)
+            dx = cosine * local_x - sine * local_y
+            dy = sine * local_x + cosine * local_y
+            obstacles.append(Obstacle2D(cx=cx - dx, cy=cy - dy, r=radius, x2=cx + dx, y2=cy + dy))
         return obstacles
 
     def _load_cylinder_radius_from_model_sdf(self) -> float:
@@ -219,6 +263,9 @@ class MPPIConfig:
     repulsion_range: float = 5.0
     repulsion_gain: float = 1.0
     repulsion_max: float = 0.8
+    progress_reward: float = 80.0
+    obstacle_consideration_range: float = 45.0
+    obstacle_passed_margin: float = 5.0
 
 
 class MPPIController:
@@ -227,6 +274,8 @@ class MPPIController:
         self.obstacles = obstacles
         self.u_nom = np.zeros((cfg.horizon, 3), dtype=np.float32)
         self.rng = np.random.default_rng()
+        self.last_ess = 0.0
+        self.last_temperature = cfg.lam
 
     def reset(self) -> None:
         self.u_nom[:] = 0.0
@@ -302,11 +351,23 @@ class MPPIController:
         noise[:, :, 0] = self.rng.normal(0.0, cfg.sigma_v, size=(N, H))
         noise[:, :, 1] = self.rng.normal(0.0, cfg.sigma_v, size=(N, H))
         noise[:, :, 2] = self.rng.normal(0.0, cfg.sigma_yaw_rate, size=(N, H))
+        # Independent step noise barely changes a rollout's lateral position
+        # over a long horizon. Add one correlated bias per rollout so MPPI can
+        # actually sample trajectories through gaps several metres off-axis.
+        noise[:, :, 0] += self.rng.normal(0.0, cfg.sigma_v, size=(N, 1))
+        noise[:, :, 1] += self.rng.normal(0.0, cfg.sigma_v, size=(N, 1))
 
         u = self.u_nom[None, :, :] + noise
         u[:, :, 0] = np.clip(u[:, :, 0], -cfg.v_max, cfg.v_max)
         u[:, :, 1] = np.clip(u[:, :, 1], -cfg.v_max, cfg.v_max)
         u[:, :, 2] = np.clip(u[:, :, 2], -cfg.yaw_rate_max, cfg.yaw_rate_max)
+        # v_max is a planar speed limit, not an independent per-axis limit.
+        # Normalizing each sampled command also makes the comparison with the
+        # A* controller's Euclidean speed cap physically equivalent.
+        planar_speed = np.sqrt(u[:, :, 0] ** 2 + u[:, :, 1] ** 2)
+        planar_scale = np.minimum(1.0, cfg.v_max / np.maximum(planar_speed, 1e-6))
+        u[:, :, 0] *= planar_scale
+        u[:, :, 1] *= planar_scale
 
         xs = np.zeros((N, H + 1), dtype=np.float32)
         ys = np.zeros((N, H + 1), dtype=np.float32)
@@ -325,14 +386,40 @@ class MPPIController:
         dy = ys[:, 1:] - gy
         costs += cfg.w_goal * np.mean(dx * dx + dy * dy, axis=1)
         costs += cfg.w_goal_final * ((xs[:, -1] - gx) ** 2 + (ys[:, -1] - gy) ** 2)
+        goal_dx = gx - x0
+        goal_dy = gy - y0
+        goal_norm = math.hypot(goal_dx, goal_dy) + 1e-6
+        direction_x = goal_dx / goal_norm
+        direction_y = goal_dy / goal_norm
+        progress = direction_x * (xs[:, -1] - x0) + direction_y * (ys[:, -1] - y0)
+        costs -= cfg.progress_reward * progress
         dyaw = (yaws[:, -1] - gyaw + np.pi) % (2.0 * np.pi) - np.pi
         costs += 0.5 * (dyaw * dyaw)
 
         if self.obstacles:
             obst_cost = np.zeros((N,), dtype=np.float32)
+            active_obstacles = []
             for obs in self.obstacles:
-                ox = xs[:, 1:] - obs.cx
-                oy = ys[:, 1:] - obs.cy
+                center_x = obs.cx if obs.x2 is None else 0.5 * (obs.cx + obs.x2)
+                center_y = obs.cy if obs.y2 is None else 0.5 * (obs.cy + obs.y2)
+                along = direction_x * (center_x - x0) + direction_y * (center_y - y0)
+                if -cfg.obstacle_passed_margin <= along <= cfg.obstacle_consideration_range:
+                    active_obstacles.append(obs)
+            for obs in active_obstacles:
+                if obs.x2 is None or obs.y2 is None:
+                    nearest_x, nearest_y = obs.cx, obs.cy
+                else:
+                    seg_x, seg_y = obs.x2 - obs.cx, obs.y2 - obs.cy
+                    seg_len2 = max(seg_x * seg_x + seg_y * seg_y, 1e-9)
+                    projection = np.clip(
+                        ((xs[:, 1:] - obs.cx) * seg_x + (ys[:, 1:] - obs.cy) * seg_y) / seg_len2,
+                        0.0,
+                        1.0,
+                    )
+                    nearest_x = obs.cx + projection * seg_x
+                    nearest_y = obs.cy + projection * seg_y
+                ox = xs[:, 1:] - nearest_x
+                oy = ys[:, 1:] - nearest_y
                 d = np.sqrt(ox * ox + oy * oy)
                 dmin = np.min(d, axis=1)
                 sdmin = dmin - (obs.r + cfg.safety_margin)
@@ -348,8 +435,24 @@ class MPPIController:
         costs += cfg.w_smooth * np.mean(du[:, :, 0] ** 2 + du[:, :, 1] ** 2 + 0.4 * du[:, :, 2] ** 2, axis=1)
 
         cmin = float(np.min(costs))
-        weights = np.exp(-(costs - cmin) / max(cfg.lam, 1e-6))
-        weights = (weights / (float(np.sum(weights)) + 1e-9)).astype(np.float32)
+        shifted = costs - cmin
+        target_ess = max(8.0, 0.10 * N)
+        low = max(cfg.lam, 1e-3)
+        high = max(low, float(np.max(shifted)), 1.0)
+        for _ in range(18):
+            temperature = 0.5 * (low + high)
+            trial = np.exp(-shifted / temperature)
+            trial /= float(np.sum(trial)) + 1e-12
+            ess = float(1.0 / (np.sum(trial * trial) + 1e-12))
+            if ess < target_ess:
+                low = temperature
+            else:
+                high = temperature
+        self.last_temperature = high
+        weights = np.exp(-shifted / high)
+        weights /= float(np.sum(weights)) + 1e-12
+        self.last_ess = float(1.0 / (np.sum(weights * weights) + 1e-12))
+        weights = weights.astype(np.float32)
         self.u_nom = np.tensordot(weights, u, axes=(0, 0)).astype(np.float32)
 
         u0 = self.u_nom[0].copy()
@@ -405,6 +508,9 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('repulsion_range', 5.0)
         self.declare_parameter('repulsion_gain', 1.0)
         self.declare_parameter('repulsion_max', 0.8)
+        self.declare_parameter('progress_reward', 80.0)
+        self.declare_parameter('obstacle_consideration_range', 45.0)
+        self.declare_parameter('obstacle_passed_margin', 5.0)
         self.declare_parameter('cmd_rate_hz', 20.0)
         self.declare_parameter('pose_timeout_sec', 1.0)
         self.declare_parameter('slowdown_dist', 3.0)
@@ -531,15 +637,19 @@ class MPPIPlannerNode(Node):
             repulsion_range=float(self.get_parameter('repulsion_range').value),
             repulsion_gain=float(self.get_parameter('repulsion_gain').value),
             repulsion_max=float(self.get_parameter('repulsion_max').value),
+            progress_reward=float(self.get_parameter('progress_reward').value),
+            obstacle_consideration_range=float(self.get_parameter('obstacle_consideration_range').value),
+            obstacle_passed_margin=float(self.get_parameter('obstacle_passed_margin').value),
         )
 
     def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig) -> None:
         self.get_logger().info(f'obstacles loaded: {len(obstacles)}')
         preview = obstacles[:10]
         for i, obs in enumerate(preview):
+            shape = '' if obs.x2 is None else f', end=({obs.x2:.3f},{obs.y2:.3f})'
             self.get_logger().info(
                 f'obstacle[{i:03d}]: cx={obs.cx:.3f}, cy={obs.cy:.3f}, '
-                f'r={obs.r:.3f}, effective_r={obs.r + cfg.safety_margin:.3f}'
+                f'r={obs.r:.3f}{shape}, effective_r={obs.r + cfg.safety_margin:.3f}'
             )
         if len(obstacles) > len(preview):
             self.get_logger().info(f'... {len(obstacles) - len(preview)} more obstacles')
@@ -586,12 +696,18 @@ class MPPIPlannerNode(Node):
             self.mppi.set_nominal_towards_goal(x, y, gx, gy)
             self.nominal_initialized = True
         else:
+            nominal_alpha = float(self.get_parameter('nominal_update_alpha').value)
+            # Preserve the optimized avoidance rollout through the corridor,
+            # then pull the warm start back toward the final goal near arrival
+            # so residual lateral velocity cannot prevent convergence.
+            if d_final_goal < 10.0:
+                nominal_alpha = max(nominal_alpha, 0.35)
             self.mppi.set_nominal_towards_goal(
                 x,
                 y,
                 gx,
                 gy,
-                alpha=float(self.get_parameter('nominal_update_alpha').value),
+                alpha=nominal_alpha,
             )
 
         vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))

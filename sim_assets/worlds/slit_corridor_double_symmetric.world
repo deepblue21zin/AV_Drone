@@ -1,0 +1,790 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <scene>
+      <ambient>0.45 0.45 0.45 1</ambient>
+      <background>0.82 0.88 0.95 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>75 0 90 0 1.35 0</pose>
+        <view_controller>fps</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+
+    <physics name="default_physics" default="0" type="ode">
+      <gravity>0 0 -9.8066</gravity>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>10</iters>
+          <sor>1.3</sor>
+          <use_dynamic_moi_rescaling>0</use_dynamic_moi_rescaling>
+        </solver>
+        <constraints>
+          <cfm>0</cfm>
+          <erp>0.2</erp>
+          <contact_max_correcting_vel>100</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+      <magnetic_field>6.0e-6 2.3e-5 -4.2e-5</magnetic_field>
+    </physics>
+
+    <model name="corridor_floor">
+      <static>true</static>
+      <pose>75 0 0.01 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>150 30 0.02</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>150 30 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.25 0.25 0.25 1</ambient>
+            <diffuse>0.35 0.35 0.35 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="left_wall">
+      <static>true</static>
+      <pose>75 15.15 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>150 0.3 5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>150 0.3 5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.45 0.45 0.45 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="right_wall">
+      <static>true</static>
+      <pose>75 -15.15 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>150 0.3 5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>150 0.3 5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.45 0.45 0.45 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="start_wall">
+      <static>true</static>
+      <pose>-0.3 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.3 30.3 5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.3 30.3 5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.45 0.45 0.45 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="end_wall">
+      <static>true</static>
+      <pose>150.3 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.3 30.3 5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.3 30.3 5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.45 0.45 0.45 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Row 01: mirror-paired openings y=[-12,-7], [4,10] -->
+    <model name="slit_row_01_seg_01">
+      <static>true</static>
+      <pose>9.000 -13.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 3.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 3.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_01_seg_02">
+      <static>true</static>
+      <pose>9.000 -1.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 11.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 11.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_01_seg_03">
+      <static>true</static>
+      <pose>9.000 12.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 02: mirror-paired openings y=[-6,-1], [11,14] -->
+    <model name="slit_row_02_seg_01">
+      <static>true</static>
+      <pose>21.000 -10.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 9.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 9.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_02_seg_02">
+      <static>true</static>
+      <pose>21.000 5.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 12.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 12.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_02_seg_03">
+      <static>true</static>
+      <pose>21.000 14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 03: mirror-paired openings y=[-14,-9], [1,5], [6,10] -->
+    <model name="slit_row_03_seg_01">
+      <static>true</static>
+      <pose>31.000 -14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_03_seg_02">
+      <static>true</static>
+      <pose>31.000 -4.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 10.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 10.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_03_seg_03">
+      <static>true</static>
+      <pose>31.000 5.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_03_seg_04">
+      <static>true</static>
+      <pose>31.000 12.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 04: mirror-paired openings y=[-8,-3], [11,14] -->
+    <model name="slit_row_04_seg_01">
+      <static>true</static>
+      <pose>44.000 -11.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_04_seg_02">
+      <static>true</static>
+      <pose>44.000 4.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 14.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 14.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_04_seg_03">
+      <static>true</static>
+      <pose>44.000 14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 05: mirror-paired openings y=[-14,-9], [-2,2], [4,9] -->
+    <model name="slit_row_05_seg_01">
+      <static>true</static>
+      <pose>55.000 -14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_05_seg_02">
+      <static>true</static>
+      <pose>55.000 -5.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_05_seg_03">
+      <static>true</static>
+      <pose>55.000 3.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 2.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 2.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_05_seg_04">
+      <static>true</static>
+      <pose>55.000 12.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 6.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 6.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 06: mirror-paired openings y=[-8,-3] -->
+    <model name="slit_row_06_seg_01">
+      <static>true</static>
+      <pose>68.000 -11.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_06_seg_02">
+      <static>true</static>
+      <pose>68.000 6.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 18.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 18.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 07: mirror-paired openings y=[3,8] -->
+    <model name="slit_row_07_seg_01">
+      <static>true</static>
+      <pose>79.000 -6.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 18.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 18.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_07_seg_02">
+      <static>true</static>
+      <pose>79.000 11.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 08: mirror-paired openings y=[-9,-4], [-2,2], [9,14] -->
+    <model name="slit_row_08_seg_01">
+      <static>true</static>
+      <pose>90.000 -12.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 6.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 6.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_08_seg_02">
+      <static>true</static>
+      <pose>90.000 -3.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 2.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 2.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_08_seg_03">
+      <static>true</static>
+      <pose>90.000 5.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_08_seg_04">
+      <static>true</static>
+      <pose>90.000 14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 09: mirror-paired openings y=[-14,-11], [3,8] -->
+    <model name="slit_row_09_seg_01">
+      <static>true</static>
+      <pose>102.000 -14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_09_seg_02">
+      <static>true</static>
+      <pose>102.000 -4.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 14.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 14.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_09_seg_03">
+      <static>true</static>
+      <pose>102.000 11.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 7.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 10: mirror-paired openings y=[-10,-6], [-5,-1], [9,14] -->
+    <model name="slit_row_10_seg_01">
+      <static>true</static>
+      <pose>111.000 -12.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_10_seg_02">
+      <static>true</static>
+      <pose>111.000 -5.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_10_seg_03">
+      <static>true</static>
+      <pose>111.000 4.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 10.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 10.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_10_seg_04">
+      <static>true</static>
+      <pose>111.000 14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 11: mirror-paired openings y=[-14,-11], [1,6] -->
+    <model name="slit_row_11_seg_01">
+      <static>true</static>
+      <pose>121.000 -14.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 1.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_11_seg_02">
+      <static>true</static>
+      <pose>121.000 -5.000 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 12.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 12.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_11_seg_03">
+      <static>true</static>
+      <pose>121.000 10.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 9.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 9.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Row 12: mirror-paired openings y=[-10,-4], [7,12] -->
+    <model name="slit_row_12_seg_01">
+      <static>true</static>
+      <pose>131.000 -12.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 5.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_12_seg_02">
+      <static>true</static>
+      <pose>131.000 1.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 11.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 11.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="slit_row_12_seg_03">
+      <static>true</static>
+      <pose>131.000 13.500 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 3.000 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 3.000 5</size></box></geometry>
+          <material>
+            <ambient>0.30 0.43 0.55 1</ambient>
+            <diffuse>0.36 0.56 0.72 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

@@ -22,9 +22,9 @@ def generate_launch_description():
             parameters=[
                 mavros_pluginlists_yaml,
                 mavros_config_yaml,
-                {"fcu_url": "udp://:14540@127.0.0.1:14580"},
+                {"fcu_url": os.environ.get("MAVROS_FCU_URL", "udp://:14540@127.0.0.1:14580")},
                 {"gcs_url": ""},
-                {"target_system_id": 1},
+                {"target_system_id": int(os.environ.get("MAVROS_TARGET_SYSTEM_ID", "1"))},
                 {"target_component_id": 1},
             ],
         ),

@@ -1,34 +1,50 @@
 mppi_lidar:
   ros__parameters:
     takeoff_z: 3.0
-    goal_x: 24.0
+    goal_x: 140.0
     goal_y: 0.0
     goal_z: 3.0
     goal_yaw: 0.0
 
     hover_sec_after_takeoff: 2.0
     hover_sec_at_goal: 3.0
-    goal_tol_xy: 0.6
+    goal_tol_xy: 0.9
 
     dt: 0.05
     horizon: 100
     num_samples: 400
+    lam: 1.0
 
-    v_max: 2.0
+    # Same practical speed envelope as known-map MPPI and A*.
+    v_max: 2.7
     yaw_rate_max: 1.2
+    sigma_v: 0.7
+    sigma_yaw_rate: 0.6
+    v_nom: 1.8
 
     safety_margin: 1.1
-    near_buffer: 0.8
-    w_obst: 120.0
+    near_buffer: 1.0
+    w_obst: 200.0
+    w_goal: 8.0
+    w_goal_final: 30.0
+    w_ctrl: 0.2
+    w_smooth: 0.4
+    near_k: 18.0
+    penetrate_k: 80.0
+    penetrate_bias: 200.0
 
     kp_z: 1.2
     vz_max: 1.2
+    land_descent_speed: 0.45
+    land_final_speed: 0.15
+    disarm_height: 0.18
 
     cmd_rate_hz: 20.0
     startup_wait_sec: 3.0
 
     use_lidar_obstacles: true
-    scan_topic: /scan
+    scan_topic: /drone1/scan
+    scan_valid_min_range: 0.5
     scan_valid_max_range: 8.0
     scan_downsample: 2
     cluster_dist_thresh: 0.8
@@ -44,4 +60,6 @@ mppi_lidar:
     lidar_offset_y: 0.0
     lidar_yaw_offset: 0.0
 
-    emergency_stop_dist: 1.0
+    emergency_stop_dist: 0.6
+    obstacle_slowdown_dist: 2.5
+    max_planar_accel: 1.5

@@ -17,8 +17,8 @@ def generate_launch_description():
         launch_arguments={
             "pluginlists_yaml": os.path.join(bringup, "config", "mavros_pluginlists.yaml"),
             "config_yaml": os.path.join(bringup, "config", "mavros_config.yaml"),
-            "fcu_url": "udp://:14540@127.0.0.1:14580",
-            "gcs_url": "", "tgt_system": "1", "tgt_component": "1",
+            "fcu_url": os.environ.get("MAVROS_FCU_URL", "udp://:14540@127.0.0.1:14580"),
+            "gcs_url": "", "tgt_system": os.environ.get("MAVROS_TARGET_SYSTEM_ID", "1"), "tgt_component": "1",
             "fcu_protocol": "v2.0", "namespace": "mavros",
         }.items(),
     )

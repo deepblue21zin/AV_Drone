@@ -1,0 +1,111 @@
+seed: 20260718
+num_obstacles: 100
+map_x: 0.0 ~ 150.0
+map_y: -15.0 ~ 15.0
+obstacle_radius_for_spacing: 0.5
+obstacle_height_for_log: 5.0
+model_uri: model://cylinder_r05_h5
+requested_min_surface_gap: 2.0
+actual_min_center_distance: 3.003
+actual_min_surface_gap: 2.003
+
+cylinder_00: x=145.858, y=-10.959
+cylinder_01: x=57.423, y=-3.407
+cylinder_02: x=85.660, y=6.153
+cylinder_03: x=9.752, y=10.893
+cylinder_04: x=66.498, y=3.264
+cylinder_05: x=20.324, y=3.743
+cylinder_06: x=114.328, y=5.269
+cylinder_07: x=68.183, y=9.808
+cylinder_08: x=36.504, y=-8.589
+cylinder_09: x=73.322, y=-3.105
+cylinder_10: x=37.825, y=5.009
+cylinder_11: x=53.847, y=-2.229
+cylinder_12: x=78.271, y=0.292
+cylinder_13: x=97.469, y=-10.627
+cylinder_14: x=19.838, y=-8.789
+cylinder_15: x=127.349, y=-10.492
+cylinder_16: x=93.098, y=6.717
+cylinder_17: x=100.648, y=-2.207
+cylinder_18: x=81.362, y=10.320
+cylinder_19: x=119.096, y=-2.507
+cylinder_20: x=124.680, y=-12.038
+cylinder_21: x=51.885, y=-12.296
+cylinder_22: x=32.132, y=7.493
+cylinder_23: x=13.291, y=-8.415
+cylinder_24: x=33.868, y=2.056
+cylinder_25: x=101.398, y=-12.133
+cylinder_26: x=27.127, y=1.908
+cylinder_27: x=79.308, y=-7.719
+cylinder_28: x=38.741, y=-11.790
+cylinder_29: x=64.405, y=-1.264
+cylinder_30: x=70.257, y=-9.694
+cylinder_31: x=47.448, y=8.927
+cylinder_32: x=41.350, y=9.279
+cylinder_33: x=119.673, y=-12.296
+cylinder_34: x=81.228, y=6.521
+cylinder_35: x=4.473, y=7.829
+cylinder_36: x=100.815, y=12.294
+cylinder_37: x=84.584, y=0.260
+cylinder_38: x=138.752, y=-12.155
+cylinder_39: x=25.832, y=-2.895
+cylinder_40: x=44.345, y=11.715
+cylinder_41: x=52.162, y=-7.624
+cylinder_42: x=54.909, y=7.812
+cylinder_43: x=107.097, y=4.041
+cylinder_44: x=110.856, y=5.024
+cylinder_45: x=145.141, y=9.182
+cylinder_46: x=12.245, y=4.377
+cylinder_47: x=103.793, y=-7.052
+cylinder_48: x=20.449, y=-1.900
+cylinder_49: x=86.023, y=-10.528
+cylinder_50: x=11.791, y=0.601
+cylinder_51: x=88.064, y=-0.042
+cylinder_52: x=132.965, y=11.563
+cylinder_53: x=103.519, y=9.126
+cylinder_54: x=125.596, y=-7.778
+cylinder_55: x=62.190, y=9.613
+cylinder_56: x=109.146, y=9.645
+cylinder_57: x=76.142, y=2.743
+cylinder_58: x=71.126, y=11.615
+cylinder_59: x=24.109, y=10.539
+cylinder_60: x=45.857, y=-8.656
+cylinder_61: x=36.332, y=9.743
+cylinder_62: x=41.558, y=1.029
+cylinder_63: x=136.240, y=10.810
+cylinder_64: x=30.579, y=2.122
+cylinder_65: x=79.942, y=-4.146
+cylinder_66: x=43.796, y=-2.428
+cylinder_67: x=147.206, y=5.854
+cylinder_68: x=29.202, y=-7.671
+cylinder_69: x=48.846, y=0.361
+cylinder_70: x=89.883, y=-2.754
+cylinder_71: x=100.335, y=1.718
+cylinder_72: x=8.617, y=5.866
+cylinder_73: x=17.439, y=5.087
+cylinder_74: x=115.564, y=-9.113
+cylinder_75: x=111.507, y=12.262
+cylinder_76: x=35.932, y=-3.134
+cylinder_77: x=27.175, y=10.485
+cylinder_78: x=70.191, y=1.587
+cylinder_79: x=123.971, y=-3.485
+cylinder_80: x=111.423, y=-5.474
+cylinder_81: x=44.718, y=3.955
+cylinder_82: x=126.129, y=2.762
+cylinder_83: x=58.163, y=0.736
+cylinder_84: x=43.503, y=-10.521
+cylinder_85: x=62.857, y=-9.940
+cylinder_86: x=33.382, y=12.396
+cylinder_87: x=109.140, y=-0.036
+cylinder_88: x=76.663, y=-10.125
+cylinder_89: x=99.519, y=-7.285
+cylinder_90: x=41.142, y=-5.933
+cylinder_91: x=95.969, y=3.697
+cylinder_92: x=41.969, y=5.580
+cylinder_93: x=124.680, y=7.676
+cylinder_94: x=49.952, y=10.767
+cylinder_95: x=97.349, y=10.089
+cylinder_96: x=17.341, y=9.679
+cylinder_97: x=136.876, y=7.858
+cylinder_98: x=22.697, y=-6.796
+cylinder_99: x=48.951, y=4.909
