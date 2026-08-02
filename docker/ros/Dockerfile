@@ -33,11 +33,13 @@ RUN apt-get update && apt-get install -y \
     python3-numpy \
     python3-pip \
     python3-rosdep \
+    python3-yaml \
     python3-vcstool \
     ros-humble-ament-lint \
     ros-humble-desktop \
     ros-humble-mavros \
     ros-humble-mavros-extras \
+    ros-humble-slam-toolbox \
     vim \
     && rm -rf /var/lib/apt/lists/*
 

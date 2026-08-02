@@ -1,0 +1,27 @@
+scenario_name: swarm_two_lane
+world_name: swarm_two_lane
+vehicle_model: iris_rplidar
+vehicle_count: 2
+fusion_source: known_pose
+run_id: ""
+
+vehicles:
+  - name: drone1
+    px4_instance: 0
+    system_id: 2
+    fcu_url: "udp://:14541@127.0.0.1:14581"
+    spawn: [0.0, -3.0, 0.2, 0.0]
+  - name: drone2
+    px4_instance: 1
+    system_id: 3
+    fcu_url: "udp://:14542@127.0.0.1:14582"
+    spawn: [0.0, 3.0, 0.2, 0.0]
+
+fusion:
+  frame_id: swarm_map
+  resolution: 0.10
+  bounds: [-5.0, 45.0, -12.0, 12.0]
+  publish_hz: 1.0
+  map_timeout_sec: 2.0
+  free_threshold: 25
+  occupied_threshold: 65

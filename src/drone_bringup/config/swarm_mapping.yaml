@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    map_resolution: 0.10
+    map_min_x: -5.0
+    map_max_x: 45.0
+    map_min_y: -9.0
+    map_max_y: 9.0
+    max_lidar_range: 8.0
+    ray_step_m: 0.05
+    publish_hz: 2.0
+    input_timeout_sec: 2.0
+    heartbeat_hz: 2.0

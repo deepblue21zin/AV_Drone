@@ -8,9 +8,9 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Float32, String
 
 
 def quaternion_to_yaw(x: float, y: float, z: float, w: float) -> float:
@@ -23,7 +23,8 @@ class Simple2DMappingNode(Node):
     """Build a simple 2D occupancy grid from LaserScan + MAVROS pose.
 
     This is a mapping baseline, not a full SLAM back-end. It uses the simulator
-    pose as the localization input and accumulates LiDAR observations into /map.
+    pose as the localization input and accumulates LiDAR observations into a
+    namespaced known-pose map.
     """
 
     def __init__(self) -> None:
@@ -31,7 +32,7 @@ class Simple2DMappingNode(Node):
 
         self.declare_parameter("scan_topic", "/drone1/scan")
         self.declare_parameter("pose_topic", "/mavros/local_position/pose")
-        self.declare_parameter("map_topic", "/map")
+        self.declare_parameter("map_topic", "mapping/known_pose_map")
         self.declare_parameter("map_frame_id", "map")
         self.declare_parameter("map_resolution", 0.12)
         self.declare_parameter("map_min_x", -3.0)
@@ -46,6 +47,8 @@ class Simple2DMappingNode(Node):
         self.declare_parameter("slam_input_ready_topic", "/drone1/slam/input_ready")
         self.declare_parameter("slam_map_ready_topic", "/drone1/slam/map_ready")
         self.declare_parameter("slam_localization_ok_topic", "/drone1/slam/localization_ok")
+        self.declare_parameter("slam_coverage_topic", "/drone1/slam/coverage")
+        self.declare_parameter("publish_health", True)
 
         self._resolution = float(self.get_parameter("map_resolution").value)
         self._min_x = float(self.get_parameter("map_min_x").value)
@@ -67,7 +70,10 @@ class Simple2DMappingNode(Node):
         pose_topic = str(self.get_parameter("pose_topic").value)
         map_topic = str(self.get_parameter("map_topic").value)
 
-        self._map_pub = self.create_publisher(OccupancyGrid, map_topic, 1)
+        map_qos = QoSProfile(depth=1)
+        map_qos.reliability = ReliabilityPolicy.RELIABLE
+        map_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self._map_pub = self.create_publisher(OccupancyGrid, map_topic, map_qos)
         self._status_pub = self.create_publisher(
             String, str(self.get_parameter("slam_status_topic").value), 10
         )
@@ -79,6 +85,9 @@ class Simple2DMappingNode(Node):
         )
         self._localization_ok_pub = self.create_publisher(
             Bool, str(self.get_parameter("slam_localization_ok_topic").value), 10
+        )
+        self._coverage_pub = self.create_publisher(
+            Float32, str(self.get_parameter("slam_coverage_topic").value), 10
         )
 
         self.create_subscription(LaserScan, scan_topic, self._on_scan, qos_profile_sensor_data)
@@ -192,18 +201,22 @@ class Simple2DMappingNode(Node):
     def _publish_map_and_status(self) -> None:
         input_ready = self._inputs_ready()
         map_ready = self._map_update_count > 0
+        publish_health = bool(self.get_parameter("publish_health").value)
 
-        self._input_ready_pub.publish(Bool(data=input_ready))
-        self._map_ready_pub.publish(Bool(data=map_ready))
-        self._localization_ok_pub.publish(Bool(data=self._last_pose_time is not None))
+        if publish_health:
+            self._input_ready_pub.publish(Bool(data=input_ready))
+            self._map_ready_pub.publish(Bool(data=map_ready))
+            self._localization_ok_pub.publish(Bool(data=self._last_pose_time is not None))
 
         if not input_ready:
-            self._publish_status("mapping_waiting_for_scan_or_pose")
+            if publish_health:
+                self._publish_status("mapping_waiting_for_scan_or_pose")
             return
 
-        self._publish_status(
-            f"mapping_active scans={self._scan_count} updates={self._map_update_count}"
-        )
+        if publish_health:
+            self._publish_status(
+                f"mapping_active scans={self._scan_count} updates={self._map_update_count}"
+            )
 
         msg = OccupancyGrid()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -215,8 +228,13 @@ class Simple2DMappingNode(Node):
         msg.info.origin.position.y = self._min_y
         msg.info.origin.position.z = 0.0
         msg.info.origin.orientation.w = 1.0
-        msg.data = self._to_occupancy_data()
+        occupancy_data = self._to_occupancy_data()
+        msg.data = occupancy_data
         self._map_pub.publish(msg)
+        if publish_health:
+            observed = sum(1 for value in occupancy_data if value >= 0)
+            coverage = observed / max(1, len(occupancy_data))
+            self._coverage_pub.publish(Float32(data=float(coverage)))
 
 
 def main(args=None) -> None:

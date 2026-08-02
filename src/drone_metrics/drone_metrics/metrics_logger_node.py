@@ -48,6 +48,7 @@ class MetricsLoggerNode(Node):
         self.declare_parameter("slam_localization_ok_topic", "/drone1/slam/localization_ok")
         self.declare_parameter("slam_coverage_topic", "/drone1/slam/coverage")
         self.declare_parameter("artifacts_root", "/workspace/AV_Drone/artifacts")
+        self.declare_parameter("run_id", os.environ.get("RUN_ID", ""))
         self.declare_parameter("baseline_name", "single_drone_autonomy_baseline")
         self.declare_parameter("planner_name", "local_planner_lidar_reactive")
         self.declare_parameter("planner_version", "reactive_v1")
@@ -107,8 +108,13 @@ class MetricsLoggerNode(Node):
 
         artifacts_root = Path(str(self.get_parameter("artifacts_root").value))
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
-        self.run_id = f"{ts}_{drone_name}"
-        self.run_dir = artifacts_root / self.run_id
+        configured_run_id = str(self.get_parameter("run_id").value).strip()
+        self.run_id = configured_run_id or f"{ts}_{drone_name}"
+        self.run_dir = (
+            artifacts_root / self.run_id / drone_name
+            if configured_run_id
+            else artifacts_root / self.run_id
+        )
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
         self.csv_path = self.run_dir / "metrics.csv"
