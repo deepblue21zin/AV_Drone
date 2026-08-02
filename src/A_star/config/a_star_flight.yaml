@@ -3,6 +3,7 @@ a_star:
     pose_topic: /mavros/local_position/pose
     cmd_topic: /drone1/autonomy/cmd_vel
     goal_reached_topic: /drone1/mission/goal_reached
+    compute_time_topic: /drone1/planner/astar/compute_time_ms
     world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
     goal_x: 140.0
     goal_y: 0.0
@@ -72,6 +73,18 @@ metrics_logger:
     scenario_name: a_star_random_cylinders_double
     baseline_name: pure_a_star
     planner_name: a_star_grid_pure_pursuit
+    planner_family: graph_search
+    map_source: known_world
+    scenario_id: random_cylinders_double
+    experiment_condition: astar_method
+    condition_id: astar_method
+    experiment_seed: 0
+    experiment_stage: pilot
+    trial_index: 0
+    planner_compute_time_topic: /drone1/planner/astar/compute_time_ms
+    global_planner_compute_time_topic: ""
+    world_name: random_cylinders_double
+    world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
     planner_version: a_star_v1
     controller_version: autonomy_manager_v1
     state_topic: /mavros/state
@@ -85,3 +98,5 @@ metrics_logger:
     nearest_obstacle_topic: /drone1/perception/nearest_obstacle_distance
     artifacts_root: /workspace/AV_Drone/artifacts
     run_name: a_star_flight
+    autonomy_config_path: /workspace/AV_Drone/src/A_star/config/a_star_flight.yaml
+    launch_file_path: /workspace/AV_Drone/src/A_star/launch/a_star_flight.launch.py

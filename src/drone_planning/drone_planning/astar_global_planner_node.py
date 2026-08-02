@@ -2,40 +2,16 @@
 
 import heapq
 import math
-import xml.etree.ElementTree as ET
-from dataclasses import dataclass
-from pathlib import Path
+import time
 from typing import Dict, List, Optional, Set, Tuple
 
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from rclpy.qos import qos_profile_sensor_data
+from std_msgs.msg import Float32
 
-
-@dataclass
-class Obstacle2D:
-    cx: float
-    cy: float
-    r: float
-
-
-def xml_tag_name(elem: ET.Element) -> str:
-    return elem.tag.split("}", 1)[-1] if "}" in elem.tag else elem.tag
-
-
-def child_text(elem: ET.Element, child_name: str, default: str = "") -> str:
-    for child in list(elem):
-        if xml_tag_name(child) == child_name:
-            return (child.text or "").strip()
-    return default
-
-
-def parse_pose_xy(text: str) -> Tuple[float, float]:
-    vals = [float(v) for v in text.split()]
-    if len(vals) < 2:
-        return 0.0, 0.0
-    return vals[0], vals[1]
+from mppi.world_geometry import load_world_geometry
 
 
 class AstarGlobalPlannerNode(Node):
@@ -44,6 +20,9 @@ class AstarGlobalPlannerNode(Node):
 
         self.declare_parameter("pose_topic", "/mavros/local_position/pose")
         self.declare_parameter("waypoint_topic", "/drone1/planner/astar/waypoint")
+        self.declare_parameter(
+            "compute_time_topic", "/drone1/planner/astar/compute_time_ms"
+        )
 
         self.declare_parameter("goal_x", 140.0)
         self.declare_parameter("goal_y", 0.0)
@@ -88,10 +67,6 @@ class AstarGlobalPlannerNode(Node):
         self.resolution = float(self.get_parameter("resolution").value)
 
         self.robot_radius = float(self.get_parameter("robot_radius").value)
-        self.obstacle_default_radius = float(
-            self.get_parameter("obstacle_default_radius").value
-        )
-
         self.waypoint_reach_dist = float(
             self.get_parameter("waypoint_reach_dist").value
         )
@@ -106,7 +81,7 @@ class AstarGlobalPlannerNode(Node):
 
         self.current_pose: Optional[PoseStamped] = None
 
-        self.obstacles = self.load_obstacles_from_world()
+        self.geometry = load_world_geometry(self.world_path)
         self.occupied_cells = self.build_occupancy_grid()
 
         self.path: List[Tuple[float, float]] = []
@@ -123,6 +98,11 @@ class AstarGlobalPlannerNode(Node):
         self.waypoint_pub = self.create_publisher(
             PoseStamped,
             self.waypoint_topic,
+            10,
+        )
+        self.compute_time_pub = self.create_publisher(
+            Float32,
+            str(self.get_parameter("compute_time_topic").value),
             10,
         )
 
@@ -142,7 +122,11 @@ class AstarGlobalPlannerNode(Node):
             f"y=[{self.map_min_y}, {self.map_max_y}], "
             f"resolution={self.resolution}, grid={self.nx}x{self.ny}"
         )
-        self.get_logger().info(f"obstacles loaded: {len(self.obstacles)}")
+        self.get_logger().info(
+            "collision geometry loaded: rectangles={}, circles={}".format(
+                len(self.geometry.rectangles), len(self.geometry.circles)
+            )
+        )
         self.get_logger().info(f"occupied cells: {len(self.occupied_cells)}")
 
     def pose_callback(self, msg: PoseStamped):
@@ -161,7 +145,10 @@ class AstarGlobalPlannerNode(Node):
 
         # 처음 현재 위치를 받은 순간 A* 경로 계산
         if not self.path_initialized:
+            started = time.perf_counter()
             self.path = self.plan_astar(x, y, self.goal_x, self.goal_y)
+            compute_time_ms = (time.perf_counter() - started) * 1000.0
+            self.compute_time_pub.publish(Float32(data=float(compute_time_ms)))
 
             if not self.path:
                 self.get_logger().error("A* failed. Fallback to final goal only.")
@@ -174,7 +161,7 @@ class AstarGlobalPlannerNode(Node):
                 f"A* path initialized: points={len(self.path)}, "
                 f"start=({x:.2f},{y:.2f}), "
                 f"goal=({self.goal_x:.2f},{self.goal_y:.2f}), "
-                f"nearest_index={self.path_index}"
+                f"nearest_index={self.path_index}, compute_ms={compute_time_ms:.3f}"
             )
 
         # 현재 위치 기준 가장 가까운 path index로 진행도 갱신
@@ -234,125 +221,35 @@ class AstarGlobalPlannerNode(Node):
 
         return min_idx
 
-    def load_obstacles_from_world(self) -> List[Obstacle2D]:
-        world_path = Path(self.world_path)
-
-        if not world_path.exists():
-            self.get_logger().warn(f"world file not found: {world_path}")
-            return []
-
-        obstacles: List[Obstacle2D] = []
-        seen = set()
-
-        try:
-            root = ET.parse(str(world_path)).getroot()
-        except Exception as e:
-            self.get_logger().error(f"failed to parse world file: {e}")
-            return []
-
-        # include 방식 장애물 읽기
-        for include in root.iter():
-            if xml_tag_name(include) != "include":
-                continue
-
-            uri = child_text(include, "uri")
-            name = child_text(include, "name")
-            pose_text = child_text(include, "pose", "0 0 0 0 0 0")
-
-            text = f"{uri} {name}".lower()
-            is_obstacle = (
-                "obstacle" in text
-                or "cylinder" in text
-                or "cylinder_r05_h5" in text
-            )
-
-            if not is_obstacle:
-                continue
-
-            cx, cy = parse_pose_xy(pose_text)
-            r = self.obstacle_default_radius
-
-            key = (round(cx, 3), round(cy, 3), round(r, 3))
-            if key in seen:
-                continue
-
-            seen.add(key)
-            obstacles.append(Obstacle2D(cx=cx, cy=cy, r=r))
-
-        # inline model 방식 장애물 읽기
-        for model in root.iter():
-            if xml_tag_name(model) != "model":
-                continue
-
-            name = model.attrib.get("name", "")
-            name_lower = name.lower()
-
-            if name_lower in ["ground_plane", "sun"]:
-                continue
-
-            if not (
-                "obstacle" in name_lower
-                or "cylinder" in name_lower
-                or "cylinder_r05_h5" in name_lower
-            ):
-                continue
-
-            pose_text = child_text(model, "pose", "0 0 0 0 0 0")
-            cx, cy = parse_pose_xy(pose_text)
-
-            r = self.get_radius_from_inline_model(model)
-            if r is None:
-                r = self.obstacle_default_radius
-
-            key = (round(cx, 3), round(cy, 3), round(r, 3))
-            if key in seen:
-                continue
-
-            seen.add(key)
-            obstacles.append(Obstacle2D(cx=cx, cy=cy, r=r))
-
-        return obstacles
-
-    def get_radius_from_inline_model(self, model: ET.Element) -> Optional[float]:
-        max_radius = None
-
-        for elem in model.iter():
-            tag = xml_tag_name(elem)
-
-            if tag == "radius" and elem.text is not None:
-                try:
-                    r = float(elem.text.strip())
-                    max_radius = r if max_radius is None else max(max_radius, r)
-                except Exception:
-                    pass
-
-            if tag == "size" and elem.text is not None:
-                try:
-                    vals = [float(v) for v in elem.text.split()]
-                    if len(vals) >= 2:
-                        r = math.hypot(vals[0] * 0.5, vals[1] * 0.5)
-                        max_radius = r if max_radius is None else max(max_radius, r)
-                except Exception:
-                    pass
-
-        return max_radius
-
     def build_occupancy_grid(self) -> Set[Tuple[int, int]]:
         occupied = set()
-
-        inflated_obstacles = []
-        for obs in self.obstacles:
-            inflated_r = obs.r + self.robot_radius
-            inflated_obstacles.append((obs.cx, obs.cy, inflated_r))
+        rectangles = [
+            obstacle
+            for obstacle in self.geometry.rectangles
+            if max(obstacle.half_x, obstacle.half_y) * 2.0 < 28.0
+        ]
 
         for ix in range(self.nx):
             for iy in range(self.ny):
                 wx, wy = self.grid_to_world(ix, iy)
-
-                for cx, cy, r in inflated_obstacles:
-                    if math.hypot(wx - cx, wy - cy) <= r:
+                for obstacle in rectangles:
+                    cosine, sine = math.cos(obstacle.yaw), math.sin(obstacle.yaw)
+                    dx, dy = wx - obstacle.x, wy - obstacle.y
+                    local_x = cosine * dx + sine * dy
+                    local_y = -sine * dx + cosine * dy
+                    if (
+                        abs(local_x) <= obstacle.half_x + self.robot_radius
+                        and abs(local_y) <= obstacle.half_y + self.robot_radius
+                    ):
                         occupied.add((ix, iy))
                         break
+                else:
+                    for obstacle in self.geometry.circles:
+                        if math.hypot(wx - obstacle.x, wy - obstacle.y) <= (
+                            obstacle.radius + self.robot_radius
+                        ):
+                            occupied.add((ix, iy))
+                            break
 
         return occupied
 

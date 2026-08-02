@@ -15,7 +15,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 
 from geometry_msgs.msg import PoseStamped, TwistStamped
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 
 def clamp(x: float, lo: float, hi: float) -> float:
@@ -266,6 +266,7 @@ class MPPIConfig:
     progress_reward: float = 80.0
     obstacle_consideration_range: float = 45.0
     obstacle_passed_margin: float = 5.0
+    random_seed: int = 0
 
 
 class MPPIController:
@@ -273,7 +274,7 @@ class MPPIController:
         self.cfg = cfg
         self.obstacles = obstacles
         self.u_nom = np.zeros((cfg.horizon, 3), dtype=np.float32)
-        self.rng = np.random.default_rng()
+        self.rng = np.random.default_rng(cfg.random_seed)
         self.last_ess = 0.0
         self.last_temperature = cfg.lam
 
@@ -467,6 +468,7 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('pose_topic', '/local_position/pose')
         self.declare_parameter('cmd_topic', '/drone1/autonomy/cmd_vel')
         self.declare_parameter('goal_reached_topic', '/drone1/mission/goal_reached')
+        self.declare_parameter('compute_time_topic', '/drone1/planner/mppi/compute_time_ms')
 
         self.declare_parameter('goal_x', 50.0)
         self.declare_parameter('goal_y', 0.0)
@@ -516,6 +518,7 @@ class MPPIPlannerNode(Node):
         self.declare_parameter('slowdown_dist', 3.0)
         self.declare_parameter('min_goal_scale', 0.25)
         self.declare_parameter('log_cmd_period_sec', 1.0)
+        self.declare_parameter('random_seed', 0)
 
         self.pose: Optional[PoseStamped] = None
         self.astar_waypoint = None
@@ -540,6 +543,9 @@ class MPPIPlannerNode(Node):
 
         self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
         self.goal_pub = self.create_publisher(Bool, goal_reached_topic, 10)
+        self.compute_time_pub = self.create_publisher(
+            Float32, str(self.get_parameter('compute_time_topic').value), 10
+        )
 
         obstacles = self._load_obstacles()
         cfg = self._load_mppi_config()
@@ -640,6 +646,7 @@ class MPPIPlannerNode(Node):
             progress_reward=float(self.get_parameter('progress_reward').value),
             obstacle_consideration_range=float(self.get_parameter('obstacle_consideration_range').value),
             obstacle_passed_margin=float(self.get_parameter('obstacle_passed_margin').value),
+            random_seed=int(self.get_parameter('random_seed').value),
         )
 
     def _log_obstacles(self, obstacles: List[Obstacle2D], cfg: MPPIConfig) -> None:
@@ -710,7 +717,10 @@ class MPPIPlannerNode(Node):
                 alpha=nominal_alpha,
             )
 
+        started = time.perf_counter()
         vx, vy, yr = self.mppi.step(state=(x, y, yaw), goal=(gx, gy, gyaw))
+        compute_time_ms = (time.perf_counter() - started) * 1000.0
+        self.compute_time_pub.publish(Float32(data=float(compute_time_ms)))
 
         slowdown_dist = float(self.get_parameter('slowdown_dist').value)
         min_goal_scale = float(self.get_parameter('min_goal_scale').value)

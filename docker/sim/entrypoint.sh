@@ -15,6 +15,17 @@ CUSTOM_MODEL_DIR="/workspace/AV_Drone/sim_assets/models"
 CUSTOM_WORLD_DIR="/workspace/AV_Drone/sim_assets/worlds"
 PX4_MODEL_DIR="${PX4_CLASSIC_ROOT}/models"
 PX4_WORLD_DIR="${PX4_CLASSIC_ROOT}/worlds"
+PX4_INSTANCE="${PX4_INSTANCE:-0}"
+
+if ! [[ "${PX4_INSTANCE}" =~ ^[0-9]$ ]]; then
+  echo "[sim entrypoint] PX4_INSTANCE must be an integer from 0 to 9" >&2
+  exit 2
+fi
+
+export PX4_INSTANCE
+MAVLINK_TCP_PORT=$((4560 + PX4_INSTANCE))
+MAVLINK_UDP_PORT=$((14560 + PX4_INSTANCE))
+MAVLINK_SDK_PORT=$((14540 + PX4_INSTANCE))
 
 if [ -d "${CUSTOM_MODEL_DIR}" ]; then
   rsync -a "${CUSTOM_MODEL_DIR}/" "${PX4_MODEL_DIR}/"
@@ -44,24 +55,23 @@ if [ -f "${PX4_MAVLINK_RC}" ]; then
   sed -i -E '/udp_offboard_port_local.*-m onboard/ { /-t 127\.0\.0\.1/! s/$/ -t 127.0.0.1/; }' "${PX4_MAVLINK_RC}"
 fi
 
-# Optional isolated SITL instance. Instance 1 uses simulator/MAVLink ports
-# 4561, 14561, 14581 and 14541 instead of the instance-0 defaults.
-PX4_INSTANCE="${PX4_INSTANCE:-0}"
+# Optional isolated SITL instance. Each non-zero instance receives its own
+# simulator and MAVLink ports instead of the instance-0 defaults.
 if [ "${PX4_INSTANCE}" -ne 0 ]; then
   IRIS_SDF="${PX4_MODEL_DIR}/iris/iris.sdf"
   IRIS_JINJA="${PX4_MODEL_DIR}/iris/iris.sdf.jinja"
   JINJA_GEN="${PX4_CLASSIC_ROOT}/scripts/jinja_gen.py"
   if [ -f "${JINJA_GEN}" ]; then
-    sed -i -E "s/(--mavlink_tcp_port', default=)[0-9]+/\1$((4560 + PX4_INSTANCE))/" "${JINJA_GEN}"
-    sed -i -E "s/(--mavlink_udp_port', default=)[0-9]+/\1$((14560 + PX4_INSTANCE))/" "${JINJA_GEN}"
+    sed -i -E "s/(--mavlink_tcp_port', default=)[0-9]+/\1${MAVLINK_TCP_PORT}/" "${JINJA_GEN}"
+    sed -i -E "s/(--mavlink_udp_port', default=)[0-9]+/\1${MAVLINK_UDP_PORT}/" "${JINJA_GEN}"
   fi
   if [ -f "${IRIS_JINJA}" ]; then
-    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>$((14540 + PX4_INSTANCE))</sdk_udp_port>#" "${IRIS_JINJA}"
+    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>${MAVLINK_SDK_PORT}</sdk_udp_port>#" "${IRIS_JINJA}"
   fi
   if [ -f "${IRIS_SDF}" ]; then
-    sed -i -E "s#<mavlink_tcp_port>[0-9]+</mavlink_tcp_port>#<mavlink_tcp_port>$((4560 + PX4_INSTANCE))</mavlink_tcp_port>#" "${IRIS_SDF}"
-    sed -i -E "s#<mavlink_udp_port>[0-9]+</mavlink_udp_port>#<mavlink_udp_port>$((14560 + PX4_INSTANCE))</mavlink_udp_port>#" "${IRIS_SDF}"
-    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>$((14540 + PX4_INSTANCE))</sdk_udp_port>#" "${IRIS_SDF}"
+    sed -i -E "s#<mavlink_tcp_port>[0-9]+</mavlink_tcp_port>#<mavlink_tcp_port>${MAVLINK_TCP_PORT}</mavlink_tcp_port>#" "${IRIS_SDF}"
+    sed -i -E "s#<mavlink_udp_port>[0-9]+</mavlink_udp_port>#<mavlink_udp_port>${MAVLINK_UDP_PORT}</mavlink_udp_port>#" "${IRIS_SDF}"
+    sed -i -E "s#<sdk_udp_port>[0-9]+</sdk_udp_port>#<sdk_udp_port>${MAVLINK_SDK_PORT}</sdk_udp_port>#" "${IRIS_SDF}"
   fi
   SITL_RUN="/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_run.sh"
   if [ -f "${SITL_RUN}" ]; then
@@ -114,6 +124,6 @@ fi
 
 echo "[sim entrypoint] PX4_SITL_WORLD=${PX4_SITL_WORLD}"
 echo "[sim entrypoint] PX4 make target=${MAKE_TARGET}"
-echo "[sim entrypoint] PX4 instance=${PX4_INSTANCE}"
+echo "[sim entrypoint] PX4_INSTANCE=${PX4_INSTANCE} (Gazebo TCP ${MAVLINK_TCP_PORT}, UDP ${MAVLINK_UDP_PORT}, SDK ${MAVLINK_SDK_PORT})"
 
 exec make px4_sitl "${MAKE_TARGET}"

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -55,14 +56,21 @@ class MetricsLoggerNode(Node):
         self.declare_parameter("condition_id", "")
         self.declare_parameter("scenario_id", "")
         self.declare_parameter("world_name", "")
+        self.declare_parameter("world_path", "")
         self.declare_parameter("planner_family", "")
         self.declare_parameter("map_source", "")
         self.declare_parameter("planned_path_length_m", 0.0)
         self.declare_parameter("planning_time_ms_p50", -1.0)
         self.declare_parameter("planning_time_ms_p95", -1.0)
+        self.declare_parameter(
+            "planner_compute_time_topic", "/drone1/planner/compute_time_ms"
+        )
+        self.declare_parameter("global_planner_compute_time_topic", "")
         self.declare_parameter("replan_count", 0)
         self.declare_parameter("paper_metrics_success_requires_return", False)
         self.declare_parameter("experiment_seed", 0)
+        self.declare_parameter("experiment_stage", "unspecified")
+        self.declare_parameter("trial_index", 0)
         self.declare_parameter("scenario_manifest_path", "")
         self.declare_parameter("autonomy_config_path", "")
         self.declare_parameter("mavros_config_path", "")
@@ -87,10 +95,15 @@ class MetricsLoggerNode(Node):
         self.world_name = str(self.get_parameter("world_name").value).strip()
         self.planner_family = str(self.get_parameter("planner_family").value).strip()
         self.map_source = str(self.get_parameter("map_source").value).strip()
+        self.world_path = str(self.get_parameter("world_path").value).strip()
+        self.world_snapshot_path = ""
+        self.world_sha256 = ""
         self.success_requires_return = bool(
             self.get_parameter("paper_metrics_success_requires_return").value
         )
         self.experiment_seed = int(self.get_parameter("experiment_seed").value)
+        self.experiment_stage = str(self.get_parameter("experiment_stage").value)
+        self.trial_index = int(self.get_parameter("trial_index").value)
 
         artifacts_root = Path(str(self.get_parameter("artifacts_root").value))
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -169,6 +182,8 @@ class MetricsLoggerNode(Node):
         self.slam_coverage = None
         self.snapshot_files = {}
         self.snapshot_copy_errors = {}
+        self.planner_compute_times_ms = []
+        self.global_planner_compute_times_ms = []
 
         self._write_parameter_snapshot()
         self._copy_reference_files()
@@ -222,6 +237,22 @@ class MetricsLoggerNode(Node):
         self.create_subscription(Bool, str(self.get_parameter("slam_map_ready_topic").value), self._on_slam_map_ready, 10)
         self.create_subscription(Bool, str(self.get_parameter("slam_localization_ok_topic").value), self._on_slam_localization_ok, 10)
         self.create_subscription(Float32, str(self.get_parameter("slam_coverage_topic").value), self._on_slam_coverage, 10)
+        self.create_subscription(
+            Float32,
+            str(self.get_parameter("planner_compute_time_topic").value),
+            self._on_planner_compute_time,
+            10,
+        )
+        global_compute_topic = str(
+            self.get_parameter("global_planner_compute_time_topic").value
+        ).strip()
+        if global_compute_topic:
+            self.create_subscription(
+                Float32,
+                global_compute_topic,
+                self._on_global_planner_compute_time,
+                10,
+            )
 
         self.create_timer(1.0, self._write_periodic_row)
 
@@ -287,6 +318,8 @@ class MetricsLoggerNode(Node):
             "PX4_SIM_TARGET",
             "PX4_SIM_MODEL",
             "PX4_GZ_MODEL_NAME",
+            "PX4_INSTANCE",
+            "GAZEBO_MASTER_URI",
         ]
         return {key: os.environ.get(key, "") for key in keys if key in os.environ}
 
@@ -307,6 +340,24 @@ class MetricsLoggerNode(Node):
             return None
         ordered = sorted(values)
         return ordered[min(len(ordered) - 1, int(len(ordered) * 0.99))]
+
+    def _percentile(self, values, fraction):
+        if not values:
+            return None
+        ordered = sorted(values)
+        index = min(len(ordered) - 1, int(math.ceil(fraction * len(ordered))) - 1)
+        return ordered[max(index, 0)]
+
+    def _planning_time_metrics(self):
+        if self.planner_compute_times_ms:
+            return (
+                self._percentile(self.planner_compute_times_ms, 0.50),
+                self._percentile(self.planner_compute_times_ms, 0.95),
+            )
+        return (
+            self._metric_param("planning_time_ms_p50"),
+            self._metric_param("planning_time_ms_p95"),
+        )
 
     def _write_parameter_snapshot(self):
         names = sorted(self._parameters.keys())
@@ -342,6 +393,18 @@ class MetricsLoggerNode(Node):
         self._copy_reference_file("mavros_pluginlists", "mavros_pluginlists_path")
         self._copy_reference_file("launch_file", "launch_file_path")
         self._copy_reference_file("scenario_manifest", "scenario_manifest_path")
+        self._copy_reference_file("world", "world_path")
+        snapshot_path = self.snapshot_files.get("world", "")
+        if snapshot_path:
+            self.world_snapshot_path = snapshot_path
+            try:
+                digest = hashlib.sha256()
+                with Path(snapshot_path).open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                self.world_sha256 = digest.hexdigest()
+            except Exception as exc:
+                self.snapshot_copy_errors["world_sha256"] = str(exc)
 
     def _write_metadata(self):
         metadata = {
@@ -362,8 +425,13 @@ class MetricsLoggerNode(Node):
             "experiment_condition": self.experiment_condition,
             "condition_id": self.condition_id,
             "world_name": self.world_name,
+            "world_path": self.world_path,
+            "world_snapshot_path": self.world_snapshot_path,
+            "world_sha256": self.world_sha256,
             "map_source": self.map_source,
             "experiment_seed": self.experiment_seed,
+            "experiment_stage": self.experiment_stage,
+            "trial_index": self.trial_index,
             "px4_gz_world": self.px4_gz_world,
             "px4_gz_model_name": self.px4_gz_model_name,
             "px4_sim_target": self.px4_sim_target,
@@ -371,6 +439,12 @@ class MetricsLoggerNode(Node):
             "planned_path_length_m": self._metric_param("planned_path_length_m"),
             "planning_time_ms_p50": self._metric_param("planning_time_ms_p50"),
             "planning_time_ms_p95": self._metric_param("planning_time_ms_p95"),
+            "planner_compute_time_topic": str(
+                self.get_parameter("planner_compute_time_topic").value
+            ),
+            "global_planner_compute_time_topic": str(
+                self.get_parameter("global_planner_compute_time_topic").value
+            ),
             "replan_count": int(self.get_parameter("replan_count").value),
             "state_topic": str(self.get_parameter("state_topic").value),
             "pose_topic": str(self.get_parameter("pose_topic").value),
@@ -626,6 +700,16 @@ class MetricsLoggerNode(Node):
     def _on_slam_coverage(self, msg: Float32):
         self.slam_coverage = float(msg.data)
 
+    def _on_planner_compute_time(self, msg: Float32):
+        value = float(msg.data)
+        if math.isfinite(value) and value >= 0.0:
+            self.planner_compute_times_ms.append(value)
+
+    def _on_global_planner_compute_time(self, msg: Float32):
+        value = float(msg.data)
+        if math.isfinite(value) and value >= 0.0:
+            self.global_planner_compute_times_ms.append(value)
+
     def _safety_intervention_count(self) -> int:
         benign = {"normal", "startup_grace"}
         return sum(
@@ -731,8 +815,7 @@ class MetricsLoggerNode(Node):
         if straight_line_distance_m is not None and actual_path_length_m > 1e-6:
             path_efficiency = straight_line_distance_m / actual_path_length_m
         planned_path_length_m = self._metric_param("planned_path_length_m")
-        planning_time_ms_p50 = self._metric_param("planning_time_ms_p50")
-        planning_time_ms_p95 = self._metric_param("planning_time_ms_p95")
+        planning_time_ms_p50, planning_time_ms_p95 = self._planning_time_metrics()
         return {
             "run_id": self.run_id,
             "condition_id": self.condition_id,
@@ -740,6 +823,9 @@ class MetricsLoggerNode(Node):
             "scenario_id": self.scenario_id,
             "scenario": self.scenario_name,
             "world_name": self.world_name,
+            "world_path": self.world_path,
+            "world_snapshot_path": self.world_snapshot_path,
+            "world_sha256": self.world_sha256,
             "planner_family": self.planner_family,
             "map_source": self.map_source,
             "success": bool(success),
@@ -765,6 +851,16 @@ class MetricsLoggerNode(Node):
             "control_effort": self.control_effort,
             "planning_time_ms_p50": planning_time_ms_p50,
             "planning_time_ms_p95": planning_time_ms_p95,
+            "planner_compute_sample_count": len(self.planner_compute_times_ms),
+            "global_planning_time_ms_p50": self._percentile(
+                self.global_planner_compute_times_ms, 0.50
+            ),
+            "global_planning_time_ms_p95": self._percentile(
+                self.global_planner_compute_times_ms, 0.95
+            ),
+            "global_planner_compute_sample_count": len(
+                self.global_planner_compute_times_ms
+            ),
             "replan_count": int(self.get_parameter("replan_count").value),
             "pose_period_p99_s": self._period_p99(self.pose_periods),
             "scan_period_p99_s": self._period_p99(self.scan_periods),
@@ -772,6 +868,8 @@ class MetricsLoggerNode(Node):
             "planner_version": self.planner_version,
             "controller_version": self.controller_version,
             "experiment_seed": self.experiment_seed,
+            "experiment_stage": self.experiment_stage,
+            "trial_index": self.trial_index,
             "mission_phase": self.current_phase,
             "goal_reached": self.goal_reached,
             "home_pose": self.home_pose,
@@ -844,8 +942,13 @@ class MetricsLoggerNode(Node):
             "experiment_condition": self.experiment_condition,
             "condition_id": self.condition_id,
             "world_name": self.world_name,
+            "world_path": self.world_path,
+            "world_snapshot_path": self.world_snapshot_path,
+            "world_sha256": self.world_sha256,
             "map_source": self.map_source,
             "experiment_seed": self.experiment_seed,
+            "experiment_stage": self.experiment_stage,
+            "trial_index": self.trial_index,
             "scenario_manifest_path": str(self.get_parameter("scenario_manifest_path").value),
             "parameter_snapshot_path": str(self.parameter_snapshot_path),
             "config_snapshot_dir": str(self.config_snapshot_dir),
@@ -887,6 +990,18 @@ class MetricsLoggerNode(Node):
             "slam_map_ready": self.slam_map_ready,
             "slam_localization_ok": self.slam_localization_ok,
             "slam_coverage": self.slam_coverage,
+            "planning_time_ms_p50": self._planning_time_metrics()[0],
+            "planning_time_ms_p95": self._planning_time_metrics()[1],
+            "planner_compute_sample_count": len(self.planner_compute_times_ms),
+            "global_planning_time_ms_p50": self._percentile(
+                self.global_planner_compute_times_ms, 0.50
+            ),
+            "global_planning_time_ms_p95": self._percentile(
+                self.global_planner_compute_times_ms, 0.95
+            ),
+            "global_planner_compute_sample_count": len(
+                self.global_planner_compute_times_ms
+            ),
             "pose_period_mean_s": mean_period,
             "pose_period_p99_s": p99_period,
             "pose_period_worst_s": worst_period,

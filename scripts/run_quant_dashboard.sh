@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${PORT:-8501}"
+ADDRESS="${ADDRESS:-0.0.0.0}"
 
 cd "$ROOT_DIR"
 
@@ -15,9 +16,10 @@ fi
 
 echo "[INFO] starting quantification dashboard"
 echo "[INFO] repo_root=$ROOT_DIR"
-echo "[INFO] url=http://localhost:$PORT"
+echo "[INFO] url=http://${ADDRESS}:$PORT"
 
 exec streamlit run scripts/quant_dashboard.py \
+  --server.address "$ADDRESS" \
   --server.port "$PORT" \
   -- \
   --repo-root "$ROOT_DIR"

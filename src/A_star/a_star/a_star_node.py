@@ -3,6 +3,7 @@
 import heapq
 import math
 import re
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 
 def tag(element):
@@ -38,6 +39,7 @@ class AStarNode(Node):
             "pose_topic": "/mavros/local_position/pose",
             "cmd_topic": "/drone1/autonomy/cmd_vel",
             "goal_reached_topic": "/drone1/mission/goal_reached",
+            "compute_time_topic": "/drone1/planner/astar/compute_time_ms",
             "world_path": "/workspace/AV_Drone/sim_assets/worlds/obstacle_demo.world",
             "goal_x": 140.0, "goal_y": 0.0,
             "map_min_x": 0.0, "map_max_x": 150.0,
@@ -65,6 +67,9 @@ class AStarNode(Node):
         )
         self.goal_pub = self.create_publisher(
             Bool, str(self.get_parameter("goal_reached_topic").value), 10
+        )
+        self.compute_time_pub = self.create_publisher(
+            Float32, str(self.get_parameter("compute_time_topic").value), 10
         )
         self.create_subscription(PoseStamped, self.pose_topic, self.on_pose, qos_profile_sensor_data)
         self.create_timer(1.0 / float(self.get_parameter("publish_hz").value), self.tick)
@@ -233,12 +238,16 @@ class AStarNode(Node):
                 float(self.get_parameter("goal_x").value),
                 float(self.get_parameter("goal_y").value),
             )
+            started = time.perf_counter()
             raw_path = self.plan(start, goal)
             shortcut = self.shortcut_path(raw_path)
             self.path = self.densify_path(shortcut)
+            compute_time_ms = (time.perf_counter() - started) * 1000.0
+            self.compute_time_pub.publish(Float32(data=float(compute_time_ms)))
             self.get_logger().info(
-                "A* path planned: raw_points={}, shortcut_vertices={}, tracking_points={}".format(
-                    len(raw_path), len(shortcut), len(self.path)
+                "A* path planned: raw_points={}, shortcut_vertices={}, "
+                "tracking_points={}, compute_ms={:.3f}".format(
+                    len(raw_path), len(shortcut), len(self.path), compute_time_ms
                 )
             )
 

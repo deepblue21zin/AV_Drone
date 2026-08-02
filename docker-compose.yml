@@ -17,23 +17,22 @@ services:
       NVIDIA_VISIBLE_DEVICES: "3"
       NVIDIA_DRIVER_CAPABILITIES: "compute,utility,graphics,display"
 
-      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       FASTDDS_BUILTIN_TRANSPORTS: UDPv4
+      PX4_INSTANCE: ${PX4_INSTANCE:-2}
       HEADLESS: ${HEADLESS:-}
       PX4_SIM_TARGET: ${PX4_SIM_TARGET:-gazebo-classic_iris_rplidar}
       PX4_SITL_WORLD: ${PX4_SITL_WORLD:-obstacle_demo}
       PX4_GZ_WORLD: ${PX4_GZ_WORLD:-}
       GAZEBO_IP: "127.0.0.1"
-      GAZEBO_MASTER_URI: ${GAZEBO_MASTER_URI:-http://127.0.0.1:11345}
+      GAZEBO_MASTER_URI: ${GAZEBO_MASTER_URI:-http://127.0.0.1:11445}
       GAZEBO_MODEL_DATABASE_URI: ""
       GAZEBO_MODEL_PATH: "/usr/share/gazebo-11/models:/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models"
       GAZEBO_RESOURCE_PATH: "/usr/share/gazebo-11:/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
       PX4_GAZEBO_DISPLAY: ${DISPLAY:-}
       PX4_NO_FOLLOW_MODE: "1"
-      PX4_INSTANCE: ${PX4_INSTANCE:-0}
-
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -75,10 +74,13 @@ services:
       XAUTHORITY: ${XAUTHORITY:-}
       XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-}
       QT_X11_NO_MITSHM: "1"
-      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: "0"
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       FASTDDS_BUILTIN_TRANSPORTS: UDPv4
+      PX4_INSTANCE: ${PX4_INSTANCE:-2}
+      MAVROS_FCU_URL: ${MAVROS_FCU_URL:-}
+      MAVROS_TARGET_SYSTEM_ID: ${MAVROS_TARGET_SYSTEM_ID:-}
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
