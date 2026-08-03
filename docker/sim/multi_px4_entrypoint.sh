@@ -50,7 +50,7 @@ runtime = Path(sys.argv[2])
 iris_source = classic_root / "models" / "iris"
 rplidar_source = classic_root / "models" / "rplidar" / "model.sdf"
 
-for index in range(2):
+for index in range(3):
     iris_dir = runtime / f"iris_{index}"
     lidar_dir = runtime / f"rplidar_{index}"
     wrapper_dir = runtime / f"iris_rplidar_{index}"
@@ -89,7 +89,7 @@ for index in range(2):
     )
 PY
 
-for index in 0 1; do
+for index in 0 1 2; do
   python3 "${CLASSIC_ROOT}/scripts/jinja_gen.py" \
     "${CLASSIC_ROOT}/models/iris/iris.sdf.jinja" \
     "${CLASSIC_ROOT}" \
@@ -109,8 +109,8 @@ server_pid=$!
 sleep 6
 kill -0 "${server_pid}"
 
-spawn_y=(-7.5 7.5)
-for index in 0 1; do
+spawn_y=(-7.5 7.5 0.0)
+for index in 0 1 2; do
   working_dir="${BUILD_ROOT}/rootfs/${index}"
   mkdir -p "${working_dir}"
   (
@@ -123,5 +123,5 @@ for index in 0 1; do
     -x 3.0 -y "${spawn_y[$index]}" -z 0.83
 done
 
-echo "two PX4 vehicles spawned in ${WORLD_NAME}: x=3.0, y=-7.5/+7.5"
+echo "three PX4 vehicles spawned in ${WORLD_NAME}: x=3.0, y=-7.5/+7.5/0.0"
 wait "${server_pid}"

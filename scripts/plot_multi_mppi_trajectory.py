@@ -17,6 +17,7 @@ from std_msgs.msg import Bool, String
 DRONES = {
     "drone1": {"offset_y": -7.5, "color": "#1565c0"},
     "drone2": {"offset_y": 7.5, "color": "#ef6c00"},
+    "drone3": {"offset_y": 0.0, "color": "#2e7d32"},
 }
 
 
@@ -118,7 +119,7 @@ def main():
 
     world_name = Path(args.world).stem
     ax.set_title(
-        f"2-UAV LiDAR MPPI — {world_name} — {args.run_label}\n"
+        f"3-UAV LiDAR MPPI — {world_name} — {args.run_label}\n"
         + " | ".join(summary)
     )
     ax.set_xlabel("World X [m]")
@@ -127,7 +128,7 @@ def main():
     ax.set_ylim(-15, 15)
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, linewidth=0.45, alpha=0.6)
-    ax.legend(loc="upper center", ncol=2)
+    ax.legend(loc="upper center", ncol=3)
     fig.tight_layout()
     fig.savefig(args.output, bbox_inches="tight")
     print(

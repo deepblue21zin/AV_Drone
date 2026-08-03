@@ -8,7 +8,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def _launch_two_drones(context: LaunchContext):
+def _launch_fleet(context: LaunchContext):
     package_dir = get_package_share_directory("mppi_lidar")
     bringup_dir = get_package_share_directory("drone_bringup")
     mavros_dir = get_package_share_directory("mavros")
@@ -18,12 +18,16 @@ def _launch_two_drones(context: LaunchContext):
     mavros_config = os.path.join(bringup_dir, "config", "mavros_config.yaml")
     goal_x = float(LaunchConfiguration("goal_x").perform(context))
     goal_z = float(LaunchConfiguration("goal_z").perform(context))
+    vehicle_count = int(LaunchConfiguration("vehicle_count").perform(context))
+
+    if vehicle_count < 1 or vehicle_count > 3:
+        raise RuntimeError("vehicle_count must be between 1 and 3")
 
     from launch.actions import IncludeLaunchDescription
     from launch.launch_description_sources import AnyLaunchDescriptionSource
 
     actions = []
-    for index in range(2):
+    for index in range(vehicle_count):
         drone_name = f"drone{index + 1}"
         mavros_namespace = f"/{drone_name}/mavros"
         actions.append(
@@ -73,8 +77,9 @@ def generate_launch_description():
         [
             # World start x=3.0 m, world goal x=147.0 m.
             # MAVROS local position starts at zero, so the local goal is 144 m.
+            DeclareLaunchArgument("vehicle_count", default_value="3"),
             DeclareLaunchArgument("goal_x", default_value="144.0"),
             DeclareLaunchArgument("goal_z", default_value="3.0"),
-            OpaqueFunction(function=_launch_two_drones),
+            OpaqueFunction(function=_launch_fleet),
         ]
     )

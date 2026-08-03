@@ -18,6 +18,12 @@ def main():
     parser.add_argument("--world", required=True)
     parser.add_argument("--experiment-dir", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=None,
+        help="Number of run_XX directories to include (default: auto-discover)",
+    )
     args = parser.parse_args()
 
     cylinders = load_cylinders(args.world)
@@ -25,8 +31,16 @@ def main():
     world_name = Path(args.world).stem
     all_paths = {}
 
-    for run_number in range(1, 5):
-        run_name = f"run_{run_number:02d}"
+    if args.runs is not None:
+        if args.runs < 1:
+            parser.error("--runs must be positive")
+        run_names = [f"run_{number:02d}" for number in range(1, args.runs + 1)]
+    else:
+        run_names = sorted(path.name for path in experiment_dir.glob("run_[0-9]*") if path.is_dir())
+    if not run_names:
+        raise RuntimeError("No run_XX directories found")
+
+    for run_name in run_names:
         all_paths[run_name] = load_paths(str(experiment_dir / run_name / "rosbag"))
 
     fig, ax = plt.subplots(figsize=(16, 5.2), dpi=180)
@@ -42,7 +56,7 @@ def main():
     )
 
     for run_index, (run_name, run_paths) in enumerate(all_paths.items()):
-        line_style = RUN_STYLES[run_index]
+        line_style = RUN_STYLES[run_index % len(RUN_STYLES)]
         for drone_name, values in run_paths.items():
             xs, ys = zip(*values["points"])
             color = DRONES[drone_name]["color"]
@@ -67,11 +81,11 @@ def main():
             [0],
             [0],
             color="#20252a",
-            linestyle=RUN_STYLES[index],
+            linestyle=RUN_STYLES[index % len(RUN_STYLES)],
             linewidth=1.6,
             label=f"Run {index + 1:02d}",
         )
-        for index in range(4)
+        for index in range(len(all_paths))
     ]
     first_legend = ax.legend(
         handles=drone_legend,
@@ -88,7 +102,10 @@ def main():
         framealpha=0.95,
     )
 
-    ax.set_title(f"2-UAV LiDAR MPPI — Four-run trajectory overlay\n{world_name}")
+    ax.set_title(
+        f"{len(DRONES)}-UAV LiDAR MPPI — {len(all_paths)}-run trajectory overlay\n"
+        f"{world_name}"
+    )
     ax.set_xlabel("World X [m]")
     ax.set_ylabel("World Y [m]")
     ax.set_xlim(0, 150)
@@ -97,7 +114,10 @@ def main():
     ax.grid(True, linewidth=0.45, alpha=0.55)
     fig.tight_layout()
     fig.savefig(args.output, bbox_inches="tight")
-    print(f"output={args.output} runs=4 trajectories=8 obstacles={len(cylinders)}")
+    print(
+        f"output={args.output} runs={len(all_paths)} "
+        f"trajectories={len(all_paths) * len(DRONES)} obstacles={len(cylinders)}"
+    )
 
 
 if __name__ == "__main__":

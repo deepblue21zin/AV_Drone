@@ -95,6 +95,33 @@ ros2 launch drone_bringup multi_drone_autonomy.launch.py \
 Gazebo/PX4 멀티 인스턴스 spawn 설정에서 각각 `-7.5m`, `7.5m`로
 맞춰야 출발과 도착 차선이 일치한다.
 
+## 3대 MPPI LiDAR 실험
+
+`multi_mppi_lidar.launch.py`는 기본적으로 3대를 실행한다. 월드
+`random_cylinders_double_178640653`에서 drone1, drone2, drone3의 시작점은
+각각 `(3.0, -7.5)`, `(3.0, 7.5)`, `(3.0, 0.0)`이다. 각 MAVROS 로컬
+좌표계의 목표는 `(144.0, 0.0)`이므로 월드 목표점은 각각
+`(147.0, -7.5)`, `(147.0, 7.5)`, `(147.0, 0.0)`이 된다.
+
+반복 실험은 저장소 루트에서 아래처럼 실행한다.
+
+```bash
+python3 scripts/run_multi_mppi_experiments.py --runs 4
+```
+
+주요 옵션은 다음과 같다.
+
+- `--runs`: 반복 횟수
+- `--timeout`: 회차별 비행 제한 시간(초)
+- `--progress-interval`: 상태 출력 주기(초)
+- `--output-dir`: 결과 폴더를 직접 지정할 때 사용
+
+각 `run_XX` 폴더에는 `result.json`, `rosbag`, `launch.log`,
+`rosbag.log`, `trajectory.png`, `trajectory_metrics.txt`가 생성된다. 모든
+회차가 성공하면 최상위 결과 폴더에 `trajectory_overlay.png`도 생성된다.
+한 회차라도 실패하면 오류와 로그 끝부분을 출력하고 이후 회차를 실행하지
+않는다.
+
 ## 다음 구현 단계
 
 1. 단일 gzserver에서 PX4 instance 0과 1 실행
