@@ -2,7 +2,7 @@
 <package format="3">
   <name>drone_bringup</name>
   <version>0.0.0</version>
-  <description>Single-drone autonomy bringup package for MAVROS, planning, and perception.</description>
+  <description>Single- and multi-drone autonomy bringup for MAVROS, planning, and perception.</description>
   <maintainer email="quddnr@todo.todo">quddnr</maintainer>
   <license>MIT</license>
 

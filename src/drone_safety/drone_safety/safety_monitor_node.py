@@ -19,6 +19,7 @@ class SafetyMonitorNode(Node):
         self.declare_parameter("planner_cmd_topic", "/drone1/autonomy/cmd_vel")
         self.declare_parameter("safe_cmd_topic", "/drone1/safety/cmd_vel")
         self.declare_parameter("safety_event_topic", "/drone1/safety/event")
+        self.declare_parameter("frame_id", "map")
         self.declare_parameter("pose_timeout_sec", 0.5)
         self.declare_parameter("scan_timeout_sec", 0.5)
         self.declare_parameter("planner_cmd_timeout_sec", 0.5)
@@ -40,6 +41,7 @@ class SafetyMonitorNode(Node):
         planner_cmd_topic = str(self.get_parameter("planner_cmd_topic").value)
         safe_cmd_topic = str(self.get_parameter("safe_cmd_topic").value)
         safety_event_topic = str(self.get_parameter("safety_event_topic").value)
+        self.frame_id = str(self.get_parameter("frame_id").value)
 
         self.safe_cmd_pub = self.create_publisher(TwistStamped, safe_cmd_topic, 10)
         self.event_pub = self.create_publisher(String, safety_event_topic, 10)
@@ -79,7 +81,7 @@ class SafetyMonitorNode(Node):
     def _zero_cmd(self):
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = self.frame_id
         return msg
 
     def _tick(self):

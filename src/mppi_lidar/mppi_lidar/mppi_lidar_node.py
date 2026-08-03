@@ -303,6 +303,8 @@ class MPPIOffboardNode(Node):
         self.declare_parameter("cmd_rate_hz", 20.0)
         self.declare_parameter("startup_wait_sec", 3.0)
 
+        self.declare_parameter("drone_name", "drone1")
+        self.declare_parameter("mavros_namespace", "/mavros")
         self.declare_parameter("use_lidar_obstacles", True)
         self.declare_parameter("scan_topic", "/drone1/scan")
         self.declare_parameter("scan_valid_min_range", 0.5)
@@ -339,10 +341,18 @@ class MPPIOffboardNode(Node):
         self.last_scan_min = math.inf
         self.last_planar_cmd = np.zeros(2, dtype=np.float64)
 
-        self.create_subscription(State, "/mavros/state", self._on_state, 10)
+        drone_name = str(self.get_parameter("drone_name").value).strip("/")
+        mavros_namespace = (
+            str(self.get_parameter("mavros_namespace").value).rstrip("/")
+        )
+        mission_namespace = f"/{drone_name}/mission"
+
+        self.create_subscription(
+            State, f"{mavros_namespace}/state", self._on_state, 10
+        )
         self.create_subscription(
             PoseStamped,
-            "/mavros/local_position/pose",
+            f"{mavros_namespace}/local_position/pose",
             self._on_pose,
             qos_profile_sensor_data,
         )
@@ -357,14 +367,20 @@ class MPPIOffboardNode(Node):
 
         self.cmd_pub = self.create_publisher(
             TwistStamped,
-            "/mavros/setpoint_velocity/cmd_vel",
+            f"{mavros_namespace}/setpoint_velocity/cmd_vel",
             10,
         )
-        self.phase_pub = self.create_publisher(String, "/drone1/mission/phase", 10)
-        self.goal_pub = self.create_publisher(Bool, "/drone1/mission/goal_reached", 10)
+        self.phase_pub = self.create_publisher(
+            String, f"{mission_namespace}/phase", 10
+        )
+        self.goal_pub = self.create_publisher(
+            Bool, f"{mission_namespace}/goal_reached", 10
+        )
 
-        self.arm_cli = self.create_client(CommandBool, "/mavros/cmd/arming")
-        self.mode_cli = self.create_client(SetMode, "/mavros/set_mode")
+        self.arm_cli = self.create_client(
+            CommandBool, f"{mavros_namespace}/cmd/arming"
+        )
+        self.mode_cli = self.create_client(SetMode, f"{mavros_namespace}/set_mode")
         self.mode_future = None
         self.arm_future = None
         self.last_mode_req_t = 0.0
@@ -403,7 +419,8 @@ class MPPIOffboardNode(Node):
         )
         self.get_logger().info(
             f"lidar obstacle mode: {bool(self.get_parameter('use_lidar_obstacles').value)}, "
-            f"scan_topic={scan_topic}"
+            f"scan_topic={scan_topic}, mavros_namespace={mavros_namespace}, "
+            f"drone_name={drone_name}"
         )
 
     def _on_state(self, msg: State):

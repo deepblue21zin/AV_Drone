@@ -1,0 +1,6 @@
+services:
+  sim:
+    environment:
+      HEADLESS: "1"
+      PX4_SITL_WORLD: random_cylinders_double_178640653
+    command: ["/workspace/AV_Drone/docker/sim/multi_px4_entrypoint.sh"]
