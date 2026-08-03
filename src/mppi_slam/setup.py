@@ -1,13 +1,12 @@
 from glob import glob
 import os
-
 from setuptools import setup
 
-package_name = "drone_bringup"
+package_name = "mppi_slam"
 
 setup(
     name=package_name,
-    version="0.0.0",
+    version="0.1.0",
     packages=[package_name],
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
@@ -15,11 +14,14 @@ setup(
         (os.path.join("share", package_name, "launch"), glob("launch/*.launch.py")),
         (os.path.join("share", package_name, "config"), glob("config/*.yaml")),
     ],
-    install_requires=["setuptools"],
+    install_requires=["setuptools", "numpy"],
     zip_safe=True,
     maintainer="quddnr",
     maintainer_email="quddnr@todo.todo",
-    description="Single- and multi-drone autonomy bringup for MAVROS, planning, and perception.",
+    description="Saved-SLAM-map global planning with tuned MPPI control.",
     license="MIT",
-    tests_require=["pytest"],
+    entry_points={"console_scripts": [
+        "slam_path_planner = mppi_slam.slam_path_planner_node:main",
+        "mppi_slam_node = mppi_slam.slam_mppi_node:main",
+    ]},
 )

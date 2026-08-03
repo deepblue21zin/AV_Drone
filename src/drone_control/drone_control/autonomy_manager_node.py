@@ -33,6 +33,7 @@ class AutonomyManagerNode(Node):
         self.declare_parameter("mission_phase_topic", "/drone1/mission/phase")
         self.declare_parameter("home_pose_topic", "/drone1/mission/home_pose")
         self.declare_parameter("active_goal_topic", "/drone1/mission/active_goal")
+        self.declare_parameter("frame_id", "map")
 
         self.declare_parameter("takeoff_z", 3.0)
         self.declare_parameter("goal_x", 10.0)
@@ -65,6 +66,7 @@ class AutonomyManagerNode(Node):
 
         self.safe_cmd_topic = str(self.get_parameter("safe_cmd_topic").value)
         self.goal_reached_topic = str(self.get_parameter("goal_reached_topic").value)
+        self.frame_id = str(self.get_parameter("frame_id").value)
 
         self.phase_pub = self.create_publisher(
             String,
@@ -143,7 +145,7 @@ class AutonomyManagerNode(Node):
     def _publish_cmd(self, vx: float, vy: float, vz: float, yaw_rate: float):
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = self.frame_id
         msg.twist.linear.x = float(vx)
         msg.twist.linear.y = float(vy)
         msg.twist.linear.z = float(vz)
@@ -152,7 +154,7 @@ class AutonomyManagerNode(Node):
 
     def _make_goal_pose(self, x: float, y: float, z: float) -> PoseStamped:
         msg = PoseStamped()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = self.frame_id
         msg.pose.position.x = float(x)
         msg.pose.position.y = float(y)
         msg.pose.position.z = float(z)
@@ -161,7 +163,7 @@ class AutonomyManagerNode(Node):
 
     def _copy_current_pose(self) -> PoseStamped:
         msg = PoseStamped()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = self.frame_id
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose = self.vehicle.pose.pose
         return msg

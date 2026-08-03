@@ -6,22 +6,25 @@ from pathlib import Path
 
 
 # ============================================================
-# USER CONFIG
-# 여기 값만 바꾸면 기본 생성 조건이 바뀐다.
+# 반복 실험용 파라미터
+# 아래 값만 바꾼 뒤 이 파일을 실행하면 된다.
 #
-# 목적:
-# - 고정 원기둥 모델(sim_assets/models/cylinder_r05_h5)은 건드리지 않는다.
-# - 이 스크립트가 있는 worlds 폴더에 obstacle_demo.world만 새로 생성한다.
-# - obstacle_demo_positions.txt는 좌표 확인용으로 같이 갱신한다.
+# 생성 파일:
+# - random_cylinders_double_<시드>.world
+# - random_cylinders_double_<시드>_positions.txt
+# - random_cylinders_double_<시드>_map.png
 # ============================================================
 
+# None이면 실행할 때마다 새 시드를 자동 생성한다.
+# 같은 월드를 재생성하려면 정수 시드를 지정한다.
 DEFAULT_SEED = None
 
-DEFAULT_NUM_OBSTACLES = 50
+DEFAULT_NUM_OBSTACLES = 100
+# 장애물 표면 사이의 최소 여유 거리 [m]
 DEFAULT_MIN_GAP = 4.0
 
-# 이 이름으로 생성하면 PX4_SITL_WORLD=obstacle_demo 설정과 바로 매칭된다.
-DEFAULT_WORLD_NAME = "obstacle_demo"
+# 실제 파일명 뒤에는 항상 _<시드>가 자동으로 붙는다.
+DEFAULT_WORLD_NAME = "random_cylinders_double"
 
 # 이 파일을 /workspace/AV_Drone/sim_assets/worlds 안에 둘 예정이므로
 # 기본 출력 폴더는 스크립트가 위치한 worlds 폴더로 고정한다.
@@ -42,14 +45,16 @@ DEFAULT_OBSTACLE_HEIGHT = 5.0
 # 벽에서 원기둥 중심이 최소로 떨어지는 여유 거리
 DEFAULT_WALL_MARGIN = 2.5
 
-# 시작점 / 목표점 주변 장애물 금지 구역
+# 시작/목표 위치와 X축 기준 장애물 생성 금지 구역 [m]
 DEFAULT_START_X = 0.0
 DEFAULT_START_Y = 0.0
-DEFAULT_START_SAFE_RADIUS = 8.0
-
 DEFAULT_GOAL_X = 150.0
 DEFAULT_GOAL_Y = 0.0
-DEFAULT_GOAL_SAFE_RADIUS = 8.0
+
+# 장애물 표면이 아래 구간 안으로 들어가지 않도록 배치한다.
+# 시작 구역: x_min ~ 10 m, 목표 구역: 140 m ~ x_max
+DEFAULT_OBSTACLE_AREA_X_MIN = 10.0
+DEFAULT_OBSTACLE_AREA_X_MAX = 140.0
 
 DEFAULT_MAX_TRIALS = 100000
 
@@ -65,13 +70,9 @@ def distance_2d(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
-def is_valid_position(pos, placed, min_center_dist, safe_zones):
+def is_valid_position(pos, placed, min_center_dist):
     for p in placed:
         if distance_2d(pos, p) < min_center_dist:
-            return False
-
-    for center, radius in safe_zones:
-        if distance_2d(pos, center) < radius:
             return False
 
     return True
@@ -92,12 +93,12 @@ def make_cylinder_includes(points):
     return "\n".join(lines)
 
 
-def make_world(points):
+def make_world(points, world_name):
     cylinder_includes = make_cylinder_includes(points)
 
     return f'''<?xml version="1.0" ?>
 <sdf version="1.5">
-  <world name="default">
+  <world name="{world_name}">
     <include><uri>model://sun</uri></include>
     <include><uri>model://ground_plane</uri></include>
 
@@ -199,7 +200,29 @@ def make_world(points):
 '''
 
 
-def generate_points(args):
+def validate_args(args):
+    if args.num_obstacles < 0:
+        raise ValueError("num-obstacles는 0 이상이어야 합니다.")
+    if args.min_gap < 0.0 or args.obstacle_radius <= 0.0:
+        raise ValueError("min-gap은 0 이상, obstacle-radius는 0보다 커야 합니다.")
+    if args.x_min >= args.x_max or args.y_min >= args.y_max:
+        raise ValueError("맵의 최솟값은 최댓값보다 작아야 합니다.")
+    if args.wall_margin < args.obstacle_radius:
+        raise ValueError(
+            "wall-margin은 장애물 반지름 이상이어야 벽과 겹치지 않습니다."
+        )
+    if not (
+        args.x_min
+        <= args.obstacle_area_x_min
+        < args.obstacle_area_x_max
+        <= args.x_max
+    ):
+        raise ValueError(
+            "장애물 생성 X 범위는 맵 범위 안에서 min < max여야 합니다."
+        )
+
+
+def generate_points(args, rng):
     obstacle_radius = args.obstacle_radius
 
     # 표면 간 최소간격을 중심 간 최소거리로 변환
@@ -207,15 +230,14 @@ def generate_points(args):
     # 중심 간 최소거리 = 0.5 + 4.0 + 0.5 = 5.0m
     min_center_dist = args.min_gap + 2.0 * obstacle_radius
 
-    x_min = args.x_min + args.wall_margin
-    x_max = args.x_max - args.wall_margin
+    # 장애물의 표면까지 생성 허용 구역 안에 있도록 반지름만큼 안쪽에 둔다.
+    x_min = args.obstacle_area_x_min + obstacle_radius
+    x_max = args.obstacle_area_x_max - obstacle_radius
     y_min = args.y_min + args.wall_margin
     y_max = args.y_max - args.wall_margin
 
-    safe_zones = [
-        ((args.start_x, args.start_y), args.start_safe_radius),
-        ((args.goal_x, args.goal_y), args.goal_safe_radius),
-    ]
+    if x_min > x_max or y_min > y_max:
+        raise ValueError("장애물을 배치할 수 있는 유효 영역이 없습니다.")
 
     points = []
 
@@ -223,11 +245,11 @@ def generate_points(args):
         placed = False
 
         for _ in range(args.max_trials):
-            x = random.uniform(x_min, x_max)
-            y = random.uniform(y_min, y_max)
+            x = rng.uniform(x_min, x_max)
+            y = rng.uniform(y_min, y_max)
             candidate = (x, y)
 
-            if is_valid_position(candidate, points, min_center_dist, safe_zones):
+            if is_valid_position(candidate, points, min_center_dist):
                 points.append(candidate)
                 placed = True
                 break
@@ -235,7 +257,7 @@ def generate_points(args):
         if not placed:
             raise RuntimeError(
                 f"Failed to place obstacle {i}. "
-                f"Try reducing DEFAULT_NUM_OBSTACLES or DEFAULT_MIN_GAP."
+                f"배치하지 못했습니다. 장애물 수 또는 최소 간격을 줄이세요."
             )
 
     return points
@@ -264,12 +286,137 @@ def write_position_log(path, args, seed, points):
         f.write(f"obstacle_height_for_log: {args.obstacle_height}\n")
         f.write(f"model_uri: {CYLINDER_MODEL_URI}\n")
         f.write(f"requested_min_surface_gap: {args.min_gap}\n")
+        f.write(f"start: ({args.start_x}, {args.start_y})\n")
+        f.write(f"goal: ({args.goal_x}, {args.goal_y})\n")
+        f.write(
+            f"obstacle_free_start_x: "
+            f"{args.x_min} ~ {args.obstacle_area_x_min}\n"
+        )
+        f.write(
+            f"obstacle_free_goal_x: "
+            f"{args.obstacle_area_x_max} ~ {args.x_max}\n"
+        )
         f.write(f"actual_min_center_distance: {min_center_dist:.3f}\n")
         f.write(f"actual_min_surface_gap: {min_surface_gap:.3f}\n")
         f.write("\n")
 
         for i, (x, y) in enumerate(points):
             f.write(f"cylinder_{i:02d}: x={x:.3f}, y={y:.3f}\n")
+
+
+def write_map_image(path, args, seed, points):
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError as exc:
+        raise RuntimeError("2D PNG 생성에 Pillow가 필요합니다.") from exc
+
+    pixels_per_meter = 10
+    margin_left = 75
+    margin_right = 30
+    margin_top = 55
+    margin_bottom = 60
+    plot_width = round((args.x_max - args.x_min) * pixels_per_meter)
+    plot_height = round((args.y_max - args.y_min) * pixels_per_meter)
+    width = margin_left + plot_width + margin_right
+    height = margin_top + plot_height + margin_bottom
+
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+
+    def to_pixel(x, y):
+        px = margin_left + (x - args.x_min) * pixels_per_meter
+        py = margin_top + (args.y_max - y) * pixels_per_meter
+        return px, py
+
+    def circle_box(center, radius):
+        px, py = to_pixel(*center)
+        radius_px = radius * pixels_per_meter
+        return (
+            px - radius_px,
+            py - radius_px,
+            px + radius_px,
+            py + radius_px,
+        )
+
+    plot_box = (
+        margin_left,
+        margin_top,
+        margin_left + plot_width,
+        margin_top + plot_height,
+    )
+    draw.rectangle(plot_box, fill="#fafafa", outline="#263238")
+
+    # 10 m 격자와 좌표 눈금
+    first_x_tick = math.ceil(args.x_min / 10.0) * 10
+    first_y_tick = math.ceil(args.y_min / 10.0) * 10
+    for x in range(int(first_x_tick), math.floor(args.x_max) + 1, 10):
+        px, _ = to_pixel(x, args.y_min)
+        draw.line((px, margin_top, px, margin_top + plot_height), fill="#dddddd")
+        draw.text((px - 8, margin_top + plot_height + 8), str(x), fill="#263238")
+    for y in range(int(first_y_tick), math.floor(args.y_max) + 1, 10):
+        _, py = to_pixel(args.x_min, y)
+        draw.line((margin_left, py, margin_left + plot_width, py), fill="#dddddd")
+        draw.text((margin_left - 32, py - 6), str(y), fill="#263238")
+
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    forbidden_zone_specs = (
+        (
+            args.x_min,
+            args.obstacle_area_x_min,
+            "#2e7d32",
+            "Start obstacle-free zone",
+        ),
+        (
+            args.obstacle_area_x_max,
+            args.x_max,
+            "#c62828",
+            "Goal obstacle-free zone",
+        ),
+    )
+    for zone_x_min, zone_x_max, color, _ in forbidden_zone_specs:
+        left, top = to_pixel(zone_x_min, args.y_max)
+        right, bottom = to_pixel(zone_x_max, args.y_min)
+        overlay_draw.rectangle(
+            (left, top, right, bottom),
+            fill=color + "20",
+            outline=color + "cc",
+        )
+    image = Image.alpha_composite(image.convert("RGBA"), overlay)
+    draw = ImageDraw.Draw(image)
+
+    for i, (x, y) in enumerate(points):
+        draw.ellipse(
+            circle_box((x, y), args.obstacle_radius),
+            fill="#37474f",
+            outline="black",
+        )
+        px, py = to_pixel(x, y)
+        draw.text((px + 5, py - 12), str(i), fill="#263238")
+
+    marker_specs = (
+        ((args.start_x, args.start_y), "#2e7d32", "Start"),
+        ((args.goal_x, args.goal_y), "#c62828", "Goal"),
+    )
+    for center, color, label in marker_specs:
+        px, py = to_pixel(*center)
+        draw.line((px - 7, py, px + 7, py), fill=color, width=3)
+        draw.line((px, py - 7, px, py + 7), fill=color, width=3)
+        label_x = px + 9 if px < width / 2 else px - 42
+        draw.text((label_x, py - 18), label, fill=color)
+
+    title = (
+        f"Random cylinder world | seed={seed} | obstacles={len(points)} | "
+        f"min surface gap={args.min_gap:g} m"
+    )
+    draw.text((margin_left, 18), title, fill="#111111")
+    draw.text(
+        (margin_left + plot_width / 2 - 20, height - 24),
+        "X [m]",
+        fill="#111111",
+    )
+    draw.text((12, margin_top + plot_height / 2), "Y [m]", fill="#111111")
+    image.convert("RGB").save(path, format="PNG")
 
 
 def parse_args():
@@ -292,11 +439,19 @@ def parse_args():
 
     parser.add_argument("--start-x", type=float, default=DEFAULT_START_X)
     parser.add_argument("--start-y", type=float, default=DEFAULT_START_Y)
-    parser.add_argument("--start-safe-radius", type=float, default=DEFAULT_START_SAFE_RADIUS)
 
     parser.add_argument("--goal-x", type=float, default=DEFAULT_GOAL_X)
     parser.add_argument("--goal-y", type=float, default=DEFAULT_GOAL_Y)
-    parser.add_argument("--goal-safe-radius", type=float, default=DEFAULT_GOAL_SAFE_RADIUS)
+    parser.add_argument(
+        "--obstacle-area-x-min",
+        type=float,
+        default=DEFAULT_OBSTACLE_AREA_X_MIN,
+    )
+    parser.add_argument(
+        "--obstacle-area-x-max",
+        type=float,
+        default=DEFAULT_OBSTACLE_AREA_X_MAX,
+    )
 
     parser.add_argument("--output-dir", type=str, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--world-name", type=str, default=DEFAULT_WORLD_NAME)
@@ -308,26 +463,29 @@ def parse_args():
 
 def main():
     args = parse_args()
+    validate_args(args)
 
     if args.seed is None:
-        seed = random.randint(0, 999999999)
+        seed = random.SystemRandom().randint(0, 999999999)
     else:
         seed = args.seed
 
-    random.seed(seed)
+    rng = random.Random(seed)
 
-    # 이 스크립트는 worlds 폴더 안에서 obstacle_demo.world만 갱신한다.
-    # models/cylinder_r05_h5/model.sdf, model.config는 절대 수정하지 않는다.
+    # 출력 파일만 새로 만들며 cylinder 모델 원본은 수정하지 않는다.
     worlds_dir = Path(args.output_dir).resolve()
     worlds_dir.mkdir(parents=True, exist_ok=True)
 
-    points = generate_points(args)
+    points = generate_points(args, rng)
 
-    world_path = worlds_dir / f"{args.world_name}.world"
-    log_path = worlds_dir / f"{args.world_name}_positions.txt"
+    output_stem = f"{args.world_name}_{seed}"
+    world_path = worlds_dir / f"{output_stem}.world"
+    log_path = worlds_dir / f"{output_stem}_positions.txt"
+    image_path = worlds_dir / f"{output_stem}_map.png"
 
-    world_path.write_text(make_world(points))
+    world_path.write_text(make_world(points, output_stem))
     write_position_log(log_path, args, seed, points)
+    write_map_image(image_path, args, seed, points)
 
     print("[OK] random corridor world generated")
     print(f"seed: {seed}")
@@ -335,6 +493,7 @@ def main():
     print(f"min_surface_gap: {args.min_gap}")
     print(f"world: {world_path}")
     print(f"log: {log_path}")
+    print(f"2d_map: {image_path}")
     print("[INFO] cylinder model files were not modified")
     print(f"[INFO] cylinder model uri: {CYLINDER_MODEL_URI}")
 

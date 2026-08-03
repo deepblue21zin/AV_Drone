@@ -94,10 +94,12 @@ class LocalPlannerNode(Node):
             "planner_debug_escape_active_topic",
             "/drone1/planner/avoid/debug/escape_active",
         )
+        self.declare_parameter("frame_id", "map")
         self.declare_parameter("goal_x", 10.0)
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_tol_xy", 0.5)
         self.declare_parameter("goal_latch_enabled", True)
+        self.declare_parameter("guidance_mode", "direct")
 
         # circular mode
         self.declare_parameter("track_center_x", 0.0)
@@ -157,6 +159,7 @@ class LocalPlannerNode(Node):
         goal_topic = str(self.get_parameter("goal_reached_topic").value)
         active_goal_topic = str(self.get_parameter("active_goal_topic").value)
         mission_phase_topic = str(self.get_parameter("mission_phase_topic").value)
+        self.frame_id = str(self.get_parameter("frame_id").value)
 
         self.cmd_pub = self.create_publisher(TwistStamped, cmd_topic, 10)
         self.goal_pub = self.create_publisher(Bool, goal_topic, 10)
@@ -223,7 +226,7 @@ class LocalPlannerNode(Node):
     def _publish_cmd(self, vx_world: float, vy_world: float, yaw_rate: float = 0.0) -> None:
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "map"
+        msg.header.frame_id = self.frame_id
         msg.twist.linear.x = float(vx_world)
         msg.twist.linear.y = float(vy_world)
         msg.twist.linear.z = 0.0
@@ -659,7 +662,14 @@ class LocalPlannerNode(Node):
         if guidance_mode == "circular":
             vx_body, vy_body = self._circular_reference_body(x, y, yaw)
         else:
-            vx_body, vy_body = self._direct_goal_body_cmd(x, y, yaw)
+            goal_x, goal_y = self._current_goal_xy()
+            vx_body, vy_body = self._direct_goal_body_cmd(
+                x,
+                y,
+                yaw,
+                goal_x,
+                goal_y,
+            )
 
         angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else 0.0
         return vx_body, vy_body, angle
@@ -678,6 +688,7 @@ class LocalPlannerNode(Node):
         goal_x, goal_y = self._current_goal_xy()
         goal_tol_xy = float(self.get_parameter("goal_tol_xy").value)
         goal_latch_enabled = bool(self.get_parameter("goal_latch_enabled").value)
+        guidance_mode = str(self.get_parameter("guidance_mode").value).strip().lower()
 
         goal_dx_world = goal_x - float(position.x)
         goal_dy_world = goal_y - float(position.y)

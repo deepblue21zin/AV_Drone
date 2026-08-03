@@ -1,6 +1,5 @@
 import time
 
-from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode

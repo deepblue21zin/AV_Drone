@@ -1,0 +1,96 @@
+/**:
+  ros__parameters:
+    # Vehicle-specific values (drone_name, frame_id, goals, FCU URL) are
+    # supplied by vehicle_autonomy.launch.py. Topic names stay relative so
+    # the same file can run below /drone1, /drone2, ... without collisions.
+    drone_name: "drone"
+    scenario_name: "multi_drone_base"
+    mavros_namespace: "mavros"
+    scan_topic: "scan"
+    pose_topic: "mavros/local_position/pose"
+    state_topic: "mavros/state"
+    autonomy_cmd_topic: "autonomy/cmd_vel"
+    planner_cmd_topic: "autonomy/cmd_vel"
+    safe_cmd_topic: "safety/cmd_vel"
+    mission_phase_topic: "mission/phase"
+    home_pose_topic: "mission/home_pose"
+    active_goal_topic: "mission/active_goal"
+    nearest_obstacle_topic: "perception/nearest_obstacle_distance"
+    safety_event_topic: "safety/event"
+    goal_reached_topic: "mission/goal_reached"
+    planner_debug_selected_gap_topic: "planner/avoid/debug/selected_gap"
+    planner_debug_score_terms_topic: "planner/avoid/debug/score_terms"
+    planner_debug_mode_topic: "planner/avoid/debug/mode"
+    planner_debug_escape_active_topic: "planner/avoid/debug/escape_active"
+    slam_map_ready_topic: "slam/map_ready"
+    slam_localization_ok_topic: "slam/localization_ok"
+    slam_coverage_topic: "slam/coverage"
+
+    takeoff_z: 3.0
+    goal_x: 20.0
+    goal_y: 0.0
+    goal_z: 3.0
+    home_goal_z: 3.0
+    goal_tol_xy: 0.60
+    goal_latch_enabled: true
+    guidance_mode: "direct"
+    return_home_enabled: false
+    return_mode: "avoid"
+    allow_motion_without_scan: false
+
+    cruise_speed: 0.75
+    max_speed: 0.90
+    max_reverse_speed: 0.35
+    preferred_clearance_margin: 0.15
+    obstacle_stop_distance: 1.25
+    obstacle_slow_distance: 2.20
+    obstacle_influence_distance: 4.60
+    forward_gain: 1.0
+    avoidance_gain: 1.45
+    lateral_bias_gain: 0.90
+    backoff_gain: 0.60
+    front_sector_half_angle_deg: 32.0
+    side_sector_width_deg: 85.0
+    gap_search_half_angle_deg: 100.0
+    gap_bubble_radius: 1.15
+    gap_max_bubbles: 8
+    gap_min_clearance: 1.60
+    gap_min_points: 8
+    gap_edge_margin_deg: 6.0
+    gap_goal_weight: 2.20
+    gap_clearance_weight: 0.85
+    gap_width_weight: 0.45
+    gap_clearance_relax_ratio: 0.95
+    gap_center_bias: 1.00
+    gap_target_commitment: 0.50
+    gap_clearance_percentile: 0.20
+    gap_escape_distance: 1.30
+    target_sector_half_angle_deg: 8.0
+    gap_turn_min_scale: 0.35
+    side_clearance_sector_deg: 75.0
+
+    slam_mapping_mode_enabled: false
+    hover_sec_after_takeoff: 2.0
+    hover_sec_at_goal: 2.0
+    hover_sec_at_home: 3.0
+    kp_z: 1.2
+    vz_max: 1.0
+    cmd_rate_hz: 20.0
+    prestream_setpoints: 40
+    takeoff_skip_margin: 0.25
+    pose_timeout_sec: 1.0
+    scan_timeout_sec: 0.5
+    planner_cmd_timeout_sec: 0.5
+    startup_grace_sec: 5.0
+    require_scan: true
+    enable_obstacle_emergency_stop: false
+    emergency_stop_distance: 1.0
+
+    baseline_name: "multi_drone_autonomy_base"
+    planner_name: "local_planner_follow_the_gap"
+    planner_version: "2026-03-29_gap_v1"
+    controller_version: "autonomy_manager_multi_namespace_v1"
+    experiment_condition: "multi_drone_independent_goals"
+    paper_metrics_success_requires_return: false
+    experiment_seed: 0
+    artifacts_root: "/workspace/AV_Drone/artifacts"
