@@ -98,6 +98,7 @@ class LocalPlannerNode(Node):
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_tol_xy", 0.5)
         self.declare_parameter("goal_latch_enabled", True)
+        self.declare_parameter("guidance_mode", "direct")
 
         # circular mode
         self.declare_parameter("track_center_x", 0.0)
@@ -141,6 +142,8 @@ class LocalPlannerNode(Node):
         self.declare_parameter("target_sector_half_angle_deg", 8.0)
         self.declare_parameter("gap_turn_min_scale", 0.35)
         self.declare_parameter("side_clearance_sector_deg", 75.0)
+        self.declare_parameter("forward_bias_min", 0.18)
+        self.declare_parameter("escape_hold_sec", 0.35)
         self.declare_parameter("slam_mapping_mode_enabled", False)
         self.declare_parameter("slam_cruise_speed", 0.45)
         self.declare_parameter("slam_max_speed", 0.65)
@@ -423,6 +426,8 @@ class LocalPlannerNode(Node):
         min_points = int(self.get_parameter("gap_min_points").value)
         edge_margin = math.radians(float(self.get_parameter("gap_edge_margin_deg").value))
         margin_points = max(0, int(math.ceil(edge_margin / max(angle_increment, 1e-6))))
+        search_half_angle = math.radians(float(self.get_parameter("gap_search_half_angle_deg").value))
+        clearance_norm = max(float(self.get_parameter("obstacle_influence_distance").value), 0.1)
         goal_weight = float(self.get_parameter("gap_goal_weight").value)
         clearance_weight = float(self.get_parameter("gap_clearance_weight").value)
         width_weight = float(self.get_parameter("gap_width_weight").value)
@@ -435,6 +440,14 @@ class LocalPlannerNode(Node):
         while idx < len(free_mask):
             if not free_mask[idx]:
                 idx += 1
+                continue
+
+            start_idx = idx
+            while idx < len(free_mask) and free_mask[idx]:
+                idx += 1
+            end_idx = idx - 1
+
+            if end_idx - start_idx + 1 < min_points:
                 continue
 
             usable_start = min(end_idx, start_idx + margin_points)
@@ -653,13 +666,15 @@ class LocalPlannerNode(Node):
         x: float,
         y: float,
         yaw: float,
+        goal_x: float,
+        goal_y: float,
     ) -> Tuple[float, float, float]:
         guidance_mode = str(self.get_parameter("guidance_mode").value).strip().lower()
 
         if guidance_mode == "circular":
             vx_body, vy_body = self._circular_reference_body(x, y, yaw)
         else:
-            vx_body, vy_body = self._direct_goal_body_cmd(x, y, yaw)
+            vx_body, vy_body = self._direct_goal_body_cmd(x, y, yaw, goal_x, goal_y)
 
         angle = math.atan2(vy_body, vx_body) if abs(vx_body) > 1e-6 or abs(vy_body) > 1e-6 else 0.0
         return vx_body, vy_body, angle
@@ -678,6 +693,7 @@ class LocalPlannerNode(Node):
         goal_x, goal_y = self._current_goal_xy()
         goal_tol_xy = float(self.get_parameter("goal_tol_xy").value)
         goal_latch_enabled = bool(self.get_parameter("goal_latch_enabled").value)
+        guidance_mode = str(self.get_parameter("guidance_mode").value).strip().lower()
 
         goal_dx_world = goal_x - float(position.x)
         goal_dy_world = goal_y - float(position.y)
@@ -730,7 +746,7 @@ class LocalPlannerNode(Node):
         angles, ranges, valid, angle_increment = sample_bundle
 
         desired_vx_body, desired_vy_body, goal_angle = self._desired_direction_body(
-            float(position.x), float(position.y), yaw
+            float(position.x), float(position.y), yaw, goal_x, goal_y
         )
 
         desired_clearance = float(self.get_parameter("gap_min_clearance").value)

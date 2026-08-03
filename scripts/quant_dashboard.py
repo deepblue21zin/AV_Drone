@@ -435,7 +435,11 @@ def artifact_dirs(repo_root: Path) -> list[Path]:
             if path.parent.is_dir() and has_artifact_evidence(path.parent):
                 candidates.add(path.parent)
     if active_runs:
-        candidates = {path for path in candidates if path.name in active_runs}
+        candidates = {
+            path
+            for path in candidates
+            if path.name in active_runs or path.parent.name in active_runs
+        }
     return sorted(candidates, key=lambda item: str(item.relative_to(artifacts_root)))
 
 
@@ -448,13 +452,24 @@ def load_artifact_records(repo_root: Path) -> list[dict[str, Any]]:
         rosbag = read_json(artifact_dir / "rosbag_metrics.json")
         phase = read_json(artifact_dir / "phase_summary.json")
         slam = read_json(artifact_dir / "slam_summary.json")
+        swarm = read_json(artifact_dir.parent / "swarm_summary.json")
 
-        run_id = first_non_empty(
+        source_run_id = first_non_empty(
             rosbag.get("run_id"),
             paper.get("run_id"),
             metadata.get("run_id"),
             summary.get("run_id"),
             artifact_dir.name,
+        )
+        vehicle_id = first_non_empty(metadata.get("drone_name"), artifact_dir.name)
+        nested_vehicle_artifact = (
+            artifact_dir.parent.name == str(source_run_id)
+            and artifact_dir.name == str(vehicle_id)
+        )
+        run_id = (
+            f"{source_run_id}/{vehicle_id}"
+            if nested_vehicle_artifact
+            else source_run_id
         )
         condition_id = first_non_empty(
             rosbag.get("condition_id"),
@@ -488,6 +503,21 @@ def load_artifact_records(repo_root: Path) -> list[dict[str, Any]]:
         )
         if success is None:
             success = as_bool(summary.get("goal_reached"))
+        success_code = first_non_empty(
+            rosbag.get("success_code"),
+            paper.get("success_code"),
+            summary.get("failure_code"),
+        )
+        failure_code = first_non_empty(
+            rosbag.get("failure_code"),
+            paper.get("failure_code"),
+            summary.get("failure_code"),
+        )
+        result = (
+            "in_progress"
+            if str(success_code).strip().lower() in {"in_progress", "running"}
+            else ("pass" if success else "fail")
+        )
 
         mission_time = as_float(
             first_non_empty(
@@ -607,6 +637,8 @@ def load_artifact_records(repo_root: Path) -> list[dict[str, Any]]:
 
         record = {
             "run_id": run_id,
+            "source_run_id": source_run_id,
+            "vehicle_id": vehicle_id,
             "artifact_path": str(artifact_dir),
             "condition_id": condition_id,
             "scenario_id": scenario_id,
@@ -681,9 +713,9 @@ def load_artifact_records(repo_root: Path) -> list[dict[str, Any]]:
             "git_branch": first_non_empty(metadata.get("git_branch"), summary.get("git_branch")),
             "git_dirty": first_non_empty(metadata.get("git_dirty"), summary.get("git_dirty")),
             "success": success,
-            "result": "pass" if success else "fail",
-            "success_code": first_non_empty(rosbag.get("success_code"), paper.get("success_code"), summary.get("failure_code")),
-            "failure_code": first_non_empty(rosbag.get("failure_code"), paper.get("failure_code"), summary.get("failure_code")),
+            "result": result,
+            "success_code": success_code,
+            "failure_code": failure_code,
             "runtime_s": as_float(first_non_empty(rosbag.get("runtime_s"), paper.get("runtime_s"), summary.get("runtime_s"))),
             "mission_time_s": mission_time,
             "outbound_time_s": as_float(first_non_empty(rosbag.get("outbound_time_s"), paper.get("outbound_time_s"), summary.get("outbound_time_s"))),
@@ -753,6 +785,11 @@ def load_artifact_records(repo_root: Path) -> list[dict[str, Any]]:
                     slam.get("coverage"),
                 )
             ),
+            "fusion_state": swarm.get("state"),
+            "fusion_map_version": as_int(swarm.get("map_version")),
+            "fusion_source_count": as_int(swarm.get("source_count")),
+            "fusion_latency_p95_ms": as_float(swarm.get("fusion_latency_p95_ms")),
+            "fusion_conflict_ratio": as_float(swarm.get("last_conflict_ratio")),
             "localization_ok_rate": as_float(first_non_empty(rosbag.get("localization_ok_rate"), paper.get("localization_ok_rate"))),
             "mission_phase": first_non_empty(summary.get("mission_phase"), paper.get("mission_phase")),
             "rosbag_path": first_non_empty(rosbag.get("rosbag_path"), paper.get("rosbag_path"), metadata.get("rosbag_path")),
@@ -908,13 +945,14 @@ def render_dashboard(repo_root: Path) -> None:
         filtered = filtered[filtered["run_id"].astype(str).str.contains(run_query, case=False, na=False)]
 
     total_runs = len(filtered)
-    success_rate = float(filtered["success"].fillna(False).mean() * 100.0) if total_runs else 0.0
+    completed = filtered[filtered["result"] != "in_progress"]
+    success_rate = float(completed["success"].fillna(False).mean() * 100.0) if not completed.empty else math.nan
     mean_mission_time = filtered["mission_time_s"].dropna().mean() if "mission_time_s" in filtered else math.nan
     mean_path_length = filtered["actual_path_length_m"].dropna().mean() if "actual_path_length_m" in filtered else math.nan
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     kpi1.metric("Runs", total_runs)
-    kpi2.metric("Success rate", f"{success_rate:.1f}%")
+    kpi2.metric("Success rate (completed)", "-" if math.isnan(success_rate) else f"{success_rate:.1f}%")
     kpi3.metric("Mean mission time", "-" if math.isnan(mean_mission_time) else f"{mean_mission_time:.2f}s")
     kpi4.metric("Mean path length", "-" if math.isnan(mean_path_length) else f"{mean_path_length:.2f}m")
 
@@ -972,7 +1010,9 @@ def render_dashboard(repo_root: Path) -> None:
         if filtered.empty:
             st.info("No runs match the current filter.")
         else:
-            default_runs = filtered["run_id"].astype(str).tail(6).tolist()
+            # Keep the initial render bounded while still showing both vehicles
+            # from the latest multi-UAV experiment by default.
+            default_runs = filtered["run_id"].astype(str).tail(2).tolist()
             run_label_lookup = dict(
                 zip(
                     filtered["run_id"].astype(str).tolist(),
@@ -1043,8 +1083,19 @@ def render_dashboard(repo_root: Path) -> None:
                     | selected_records["world_sha256"].astype(str).eq(selected_map_sha256)
                 ].copy()
 
+            load_trajectory_data = st.checkbox(
+                "Load selected trajectory data",
+                value=False,
+                help="Enable after selecting runs. Large live CSV files are sampled before plotting.",
+            )
+            trajectory_records = (
+                selected_records
+                if load_trajectory_data
+                else selected_records.iloc[0:0]
+            )
             trajectory_frames = []
-            for _, record in selected_records.iterrows():
+            per_run_max_points = max(500, 5000 // max(1, len(trajectory_records)))
+            for _, record in trajectory_records.iterrows():
                 trajectory_path = Path(str(record.get("trajectory_path", "")))
                 if not trajectory_path.exists():
                     continue
@@ -1055,6 +1106,12 @@ def render_dashboard(repo_root: Path) -> None:
                 if frame.empty or not {"x", "y"}.issubset(frame.columns):
                     continue
                 frame = frame.copy()
+                if len(frame) > per_run_max_points:
+                    sample_indices = [
+                        round(index * (len(frame) - 1) / (per_run_max_points - 1))
+                        for index in range(per_run_max_points)
+                    ]
+                    frame = frame.iloc[sample_indices].copy()
                 frame["run_id"] = str(record["run_id"])
                 frame["condition_id"] = str(record["condition_id"])
                 frame["algorithm_label"] = str(record.get("algorithm_label", "Unknown"))
@@ -1062,7 +1119,9 @@ def render_dashboard(repo_root: Path) -> None:
                 frame["trajectory_label"] = str(record.get("trajectory_label", record["run_id"]))
                 trajectory_frames.append(frame)
 
-            if not trajectory_frames:
+            if not load_trajectory_data:
+                st.info("Enable 'Load selected trajectory data' to render the overlay.")
+            elif not trajectory_frames:
                 st.warning("Selected runs do not have readable trajectory.csv files.")
             else:
                 trajectory_df = pd.concat(trajectory_frames, ignore_index=True)
@@ -1252,6 +1311,7 @@ def render_dashboard(repo_root: Path) -> None:
         st.subheader("Runs")
         identity_cols = [
             "run_id",
+            "vehicle_id",
             "algorithm_label",
             "trajectory_label",
             "scenario_id",
@@ -1293,6 +1353,11 @@ def render_dashboard(repo_root: Path) -> None:
             "pose_count",
             "pose_period_p99_s",
             "map_coverage",
+            "fusion_state",
+            "fusion_map_version",
+            "fusion_source_count",
+            "fusion_latency_p95_ms",
+            "fusion_conflict_ratio",
             "artifact_path",
         ]
         st.write("Core KPI per run")
@@ -1321,6 +1386,10 @@ def render_dashboard(repo_root: Path) -> None:
         ]:
             with st.expander(label):
                 st.json(read_json(artifact_path / filename))
+        swarm_summary_path = artifact_path.parent / "swarm_summary.json"
+        if swarm_summary_path.exists():
+            with st.expander("swarm_summary.json"):
+                st.json(read_json(swarm_summary_path))
 
 
 def main() -> int:
@@ -1333,4 +1402,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

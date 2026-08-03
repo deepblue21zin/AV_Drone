@@ -43,14 +43,16 @@ class PoseOdomTfNode(Node):
         stamp_ns = int(pose.header.stamp.sec) * 1_000_000_000 + int(
             pose.header.stamp.nanosec
         )
-        if stamp_ns <= 0:
-            stamp = self.get_clock().now().to_msg()
-        else:
+        if stamp_ns > 0:
             if self._last_stamp_ns is not None and stamp_ns < self._last_stamp_ns:
                 self.get_logger().warn("Ignoring out-of-order pose timestamp")
                 return
             self._last_stamp_ns = stamp_ns
-            stamp = pose.header.stamp
+
+        # MAVROS stamps PX4 data in synchronized epoch time, while Gazebo laser
+        # scans use simulation time.  TF must use the same clock as the scan or
+        # slam_toolbox rejects every scan as older than its transform cache.
+        stamp = self.get_clock().now().to_msg()
 
         odom = Odometry()
         odom.header.stamp = stamp

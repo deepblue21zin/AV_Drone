@@ -54,29 +54,11 @@ export PX4_GAZEBO_DISPLAY="${PX4_GAZEBO_DISPLAY:-${DISPLAY:-}}"
 export PX4_GZ_WORLD="${PX4_GZ_WORLD:-${PX4_SITL_WORLD}}"
 
 if [ "${VEHICLE_COUNT}" -gt 1 ]; then
-  MULTI_RUN="/opt/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_multiple_run.sh"
-  if [ ! -f "${MULTI_RUN}" ]; then
-    echo "[sim entrypoint] missing PX4 multi-vehicle launcher: ${MULTI_RUN}" >&2
+  if [ "${VEHICLE_COUNT}" -ne 2 ]; then
+    echo "[sim entrypoint] Gate C runtime currently requires VEHICLE_COUNT=2" >&2
     exit 3
   fi
-  DONT_RUN=1 make px4_sitl gazebo-classic
-  python3 /workspace/AV_Drone/docker/sim/prepare_swarm_models.py \
-    --model-dir "${PX4_MODEL_DIR}" --count "${VEHICLE_COUNT}"
-  MULTI_RUN_COPY="/tmp/av_drone_sitl_multiple_run.sh"
-  cp "${MULTI_RUN}" "${MULTI_RUN_COPY}"
-  sed -i 's/spawn_model ${target_vehicle}${LABEL} $(($n + 1)) $target_x $target_y/spawn_model "${target_vehicle}${LABEL}_drone$(($n + 1))" "$(($n + 1))" "$target_x" "$target_y"/' "${MULTI_RUN_COPY}"
-  for ordinal in $(seq 1 "${VEHICLE_COUNT}"); do
-    sed -i "s/SUPPORTED_MODELS=(/SUPPORTED_MODELS=(\"iris_rplidar_drone${ordinal}\" /" "${MULTI_RUN_COPY}"
-  done
-  if ! grep -q 'vehicle_model}_drone' "${MULTI_RUN_COPY}"; then
-    if ! grep -q 'target_vehicle}${LABEL}_drone' "${MULTI_RUN_COPY}"; then
-      echo "[sim entrypoint] PX4 multi-run script layout changed; refusing unnamespaced LiDAR launch" >&2
-      exit 4
-    fi
-  fi
-  echo "[sim entrypoint] launching ${VEHICLE_COUNT} isolated iris_rplidar vehicles"
-  SWARM_SPAWN_SCRIPT="${SWARM_SPAWN_SCRIPT:-iris:1:0:-3,iris:1:0:3}"
-  exec bash "${MULTI_RUN_COPY}" -s "${SWARM_SPAWN_SCRIPT}" -l rplidar -w "${PX4_SITL_WORLD}"
+  exec bash /workspace/AV_Drone/docker/sim/multi_px4_entrypoint.sh
 fi
 
 # In an isolated shared network namespace there is no external GCS packet to

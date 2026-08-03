@@ -54,6 +54,9 @@ def _load(context):
         spawn = list(vehicle["spawn"])
         if len(spawn) != 4:
             raise RuntimeError(f"{name}.spawn must be [x, y, z, yaw]")
+        goal = list(vehicle.get("goal_local", [38.0, 0.0, 3.0]))
+        if len(goal) != 3:
+            raise RuntimeError(f"{name}.goal_local must be [x, y, z]")
         map_frame = f"{name}/map"
         odom_frame = f"{name}/odom"
         base_frame = f"{name}/base_link"
@@ -80,15 +83,17 @@ def _load(context):
             "slam_map_ready_topic": "slam/map_ready",
             "slam_localization_ok_topic": "slam/localization_ok",
             "slam_coverage_topic": "slam/coverage",
-            "goal_x": 38.0,
-            "goal_y": 0.0,
-            "goal_z": 3.0,
+            "goal_x": float(goal[0]),
+            "goal_y": float(goal[1]),
+            "goal_z": float(goal[2]),
             "takeoff_z": 3.0,
             "return_home_enabled": True,
             "require_scan": True,
             "slam_mapping_mode_enabled": True,
             "map_source": fusion_source,
             "run_id": run_id,
+            "world_name": str(manifest["world_name"]),
+            "world_path": str(manifest.get("world_path", "")),
         }
 
         mavros = IncludeLaunchDescription(
@@ -114,6 +119,7 @@ def _load(context):
                 name="pose_odom_tf",
                 output="screen",
                 parameters=[{
+                    "use_sim_time": True,
                     "pose_topic": "mavros/local_position/pose",
                     "odom_topic": "odom",
                     "odom_frame_id": odom_frame,
@@ -146,6 +152,7 @@ def _load(context):
                 name="slam_toolbox",
                 output="screen",
                 parameters=[toolbox_params, {
+                    "use_sim_time": True,
                     "map_frame": map_frame,
                     "odom_frame": odom_frame,
                     "base_frame": base_frame,

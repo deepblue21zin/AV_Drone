@@ -12,11 +12,12 @@ The source of truth is `src/drone_bringup/config/swarm_two_uav.yaml`.
 
 | Vehicle | PX4 instance | SYSID | MAVROS URL | Spawn |
 |---|---:|---:|---|---|
-| drone1 | 0 | 2 | `udp://:14541@127.0.0.1:14581` | `(0, -3, 0.2, 0)` |
-| drone2 | 1 | 3 | `udp://:14542@127.0.0.1:14582` | `(0, 3, 0.2, 0)` |
+| drone1 | 2 | 3 | `udp://:14542@127.0.0.1:14582` | `(3, -7.5, 0.83, 0)` |
+| drone2 | 3 | 4 | `udp://:14543@127.0.0.1:14583` | `(3, 7.5, 0.83, 0)` |
 
-PX4 v1.14.3's Gazebo Classic multi-run script starts instances at 1, so its
-first two MAVLink system IDs are 2 and 3. The sim entrypoint also generates a
+Instances 2 and 3 intentionally avoid the host-network TCP/UDP ports occupied by
+the established experiment containers (instances 0 and 1). Their MAVLink system
+IDs are therefore 3 and 4. The sim entrypoint also generates a
 separate `iris_rplidar_droneN` model for every vehicle. This is required because
 the upstream LiDAR model has one fixed ROS namespace and frame.
 
@@ -33,11 +34,12 @@ No second publisher is allowed for any one of these transforms.
 
 ## Build and run
 
-Start the two-vehicle simulation in the dedicated deterministic world:
+Start the two-vehicle simulation in the established
+`random_cylinders_double` experiment world:
 
 ```bash
 export RUN_ID="$(date +%Y-%m-%d_%H-%M-%S)_swarm"
-VEHICLE_COUNT=2 PX4_SITL_WORLD=swarm_two_lane RUN_ID="$RUN_ID" \
+VEHICLE_COUNT=2 PX4_SITL_WORLD=random_cylinders_double RUN_ID="$RUN_ID" \
   docker compose up --build sim ros
 ```
 
@@ -80,7 +82,7 @@ ros2 run tf2_tools view_frames
 
 Each scan topic must have exactly one Gazebo publisher, MAVROS topics must live
 below their vehicle namespace, and `view_frames` must show no duplicate TF
-authority. The two autonomy managers use local goals `(38, 0, 3)`, which map to
+authority. The two autonomy managers use local goals `(137, 0, 3)`, which map to
 the two physical lanes because MAVROS local coordinates start at each spawn.
 
 Gate C (known-pose fusion and fallback):

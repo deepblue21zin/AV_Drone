@@ -579,13 +579,14 @@ class RosMonitor:
     def _expected_nodes(self):
         nodes = self.get_node_list()
         mavros_ns = self._profile.mavros_ns()
+        drone_ns = self._profile.drone_namespace()
         core = [
             ('MAVROS namespace', mavros_ns, any(n == mavros_ns or n.startswith(mavros_ns + '/') for n in nodes)),
-            ('autonomy_manager', '/autonomy_manager', '/autonomy_manager' in nodes),
-            ('lidar_obstacle', '/lidar_obstacle', '/lidar_obstacle' in nodes),
-            ('local_planner', '/local_planner', '/local_planner' in nodes),
-            ('safety_monitor', '/safety_monitor', '/safety_monitor' in nodes),
-            ('metrics_logger', '/metrics_logger', '/metrics_logger' in nodes),
+            ('autonomy_manager', f'{drone_ns}/autonomy_manager', f'{drone_ns}/autonomy_manager' in nodes),
+            ('lidar_obstacle', f'{drone_ns}/lidar_obstacle', f'{drone_ns}/lidar_obstacle' in nodes),
+            ('local_planner', f'{drone_ns}/local_planner', f'{drone_ns}/local_planner' in nodes),
+            ('safety_monitor', f'{drone_ns}/safety_monitor', f'{drone_ns}/safety_monitor' in nodes),
+            ('metrics_logger', f'{drone_ns}/metrics_logger', f'{drone_ns}/metrics_logger' in nodes),
         ]
 
         result = []
@@ -630,9 +631,15 @@ class RosMonitor:
             return result
 
         suffix = f'_{profile.drone_name}'
-        candidates = [p for p in root.iterdir() if p.is_dir() and p.name.endswith(suffix)]
+        run_dirs = [p for p in root.iterdir() if p.is_dir()]
+        candidates = [p for p in run_dirs if p.name.endswith(suffix)]
+        candidates.extend(
+            p / profile.drone_name
+            for p in run_dirs
+            if (p / profile.drone_name).is_dir()
+        )
         if not candidates:
-            candidates = [p for p in root.iterdir() if p.is_dir()]
+            candidates = run_dirs
         if not candidates:
             result['message'] = 'No artifact directories found'
             return result
