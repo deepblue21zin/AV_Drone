@@ -4,8 +4,12 @@
 build
 install
 log
+.cache/gz/
+/runtime/
+# Backups and recordings are not image build inputs.
+artifacts/
+rosbags/
 __pycache__
 *.pyc
 *.pyo
 *.swp
-

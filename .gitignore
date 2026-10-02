@@ -11,6 +11,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.venv-dashboard/
+.dashboard-deps/
 
 # ===== VS Code =====
 .vscode/
@@ -25,6 +27,7 @@ px4_sitl_default/
 *.log
 
 # ===== Runtime artifacts =====
+/runtime/
 artifacts/
 .cache/gz/
 
@@ -44,3 +47,18 @@ Thumbs.db
 
 # ===== Local startup logs =====
 .logs/
+
+# ===== Recordings, bundles, dashboard runtime state =====
+rosbags/
+dashboard_archive/
+*.db3
+*.tar.gz
+*.zip
+experiments/dashboard_catalog.lock
+experiments/dashboard_active_runs.txt
+experiments/dashboard_catalog_history/
+
+# ===== Presentation materials (kept locally) =====
+docs/presentation/
+/*.pptx
+/*.png
