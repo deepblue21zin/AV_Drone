@@ -1,0 +1,77 @@
+experiment:
+  correction_mode: two_regions
+regions:
+  minimum_progress_separation_m: 30.0
+  minimum_world_separation_m: 25.0
+vehicles:
+  - {name: drone1, spawn: [3.0, -7.5, 0.0]}
+  - {name: drone2, spawn: [3.0, 7.5, 0.0]}
+topics:
+  scan_suffix: scan
+  odom_suffix: odom
+  ground_truth_suffix: ground_truth/odom
+  tf: /tf
+  tf_static: /tf_static
+sampling:
+  keyframe_translation_m: 2.0
+  keyframe_yaw_deg: 5.0
+  interpolation_max_gap_sec: 0.25
+  map_scan_stride: 4
+  map_beam_stride: 3
+retrieval:
+  minimum_travel_m: 12.0
+  anchor_spacing_m: 6.0
+  maximum_prior_distance_m: 22.0
+  top_k_per_anchor: 2
+  maximum_candidates: 60
+registration:
+  submap_half_length_m: 5.0
+  submap_scan_stride: 3
+  submap_beam_stride: 2
+  submap_voxel_m: 0.20
+  minimum_submap_points: 80
+  search_translation_m: 6.0
+  search_yaw_deg: 30.0
+  coarse_translation_step_m: 1.0
+  coarse_yaw_step_deg: 5.0
+  correspondence_distance_m: 0.60
+  coarse_max_points: 500
+  top_k: 8
+  hypothesis_translation_separation_m: 0.75
+  hypothesis_yaw_separation_deg: 5.0
+gate:
+  minimum_overlap_ratio: 0.25
+  maximum_inlier_rmse_m: 0.35
+  minimum_score_margin_ratio: 0.02
+  maximum_correction_translation_m: 6.0
+  maximum_correction_yaw_deg: 15.0
+consistency:
+  minimum_anchor_separation_m: 4.0
+  neighborhood_m: 20.0
+  translation_m: 1.5
+  yaw_deg: 5.0
+pose_graph:
+  intra_translation_sigma_m: 0.15
+  intra_yaw_sigma_deg: 2.0
+  prior_translation_sigma_m: 0.02
+  prior_yaw_sigma_deg: 0.2
+  registration_translation_sigma_m: 0.30
+  registration_yaw_sigma_deg: 5.0
+  robust_loss: huber
+  robust_scale: 1.5
+  max_function_evaluations: 500
+map:
+  resolution_m: 0.10
+  bounds: [-1.0, 151.0, -16.0, 16.0]
+  free_log_odds: -0.4
+  occupied_log_odds: 0.85
+  min_log_odds: -4.0
+  max_log_odds: 4.0
+  occupied_probability: 0.65
+evaluation:
+  rpe_distance_m: 10.0
+  differential_sample_spacing_m: 5.0
+  overlap_bin_m: 5.0
+  overlap_voxel_m: 0.5
+  correct_match_translation_m: 1.0
+  correct_match_yaw_deg: 5.0

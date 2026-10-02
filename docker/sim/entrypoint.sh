@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This file is bind-mounted, so stopped existing containers get the guard on
+# their next start without recreation or changes to their PX4 parameters.
+if [ "${AV_RUNTIME_GUARDED:-0}" != "1" ]; then
+  exec python3 /workspace/AV_Drone/scripts/runtime_guard.py sim -- bash "$0" "$@"
+fi
+
 if [ -f /opt/ros/humble/setup.bash ]; then
   # Gazebo ROS plugins need the ROS 2 runtime available in the sim container.
   set +u
@@ -60,6 +66,11 @@ if [ "${VEHICLE_COUNT}" -gt 1 ]; then
   fi
   exec bash /workspace/AV_Drone/docker/sim/multi_px4_entrypoint.sh
 fi
+
+# Classic's single-vehicle sitl_run.sh uses rootfs itself (not rootfs/0).
+python3 /workspace/AV_Drone/scripts/runtime_guard.py prepare-px4 \
+  --working-dir /opt/PX4-Autopilot/build/px4_sitl_default/rootfs \
+  --instance "${PX4_INSTANCE}"
 
 # In an isolated shared network namespace there is no external GCS packet to
 # teach PX4 the offboard peer address, so make the loopback target explicit.

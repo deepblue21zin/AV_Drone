@@ -48,6 +48,22 @@ def body_to_world(vx_body: float, vy_body: float, yaw: float) -> Tuple[float, fl
     return vx_world, vy_world
 
 
+def goal_capture_world_velocity(
+    goal_dx_world: float,
+    goal_dy_world: float,
+    max_speed: float,
+) -> Tuple[float, float]:
+    """Return a bounded direct velocity used only inside the goal capture zone."""
+    distance = math.hypot(goal_dx_world, goal_dy_world)
+    if distance < 1e-9 or max_speed <= 0.0:
+        return 0.0, 0.0
+    speed = min(float(max_speed), distance)
+    return (
+        speed * goal_dx_world / distance,
+        speed * goal_dy_world / distance,
+    )
+
+
 @dataclass
 class GapCandidate:
     start_idx: int
@@ -98,6 +114,10 @@ class LocalPlannerNode(Node):
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_tol_xy", 0.5)
         self.declare_parameter("goal_latch_enabled", True)
+        self.declare_parameter("goal_capture_radius", 8.0)
+        self.declare_parameter("goal_capture_speed", 0.30)
+        self.declare_parameter("goal_capture_clearance", 1.50)
+        self.declare_parameter("goal_capture_sector_deg", 10.0)
         self.declare_parameter("guidance_mode", "direct")
 
         # circular mode
@@ -371,6 +391,24 @@ class LocalPlannerNode(Node):
 
         angle_increment = abs(float(self.scan.angle_increment)) if self.scan.angle_increment != 0.0 else 0.01
         return angles, ranges, valid, angle_increment
+
+    def _clearance_toward_body_angle(self, target_angle: float) -> float:
+        """Read clearance in any 360-degree direction from the untrimmed scan."""
+        if self.scan is None:
+            return 0.0
+        half_angle = math.radians(
+            max(1.0, float(self.get_parameter("goal_capture_sector_deg").value))
+        )
+        clearances = []
+        for index, raw_range in enumerate(self.scan.ranges):
+            angle = self.scan.angle_min + index * self.scan.angle_increment
+            if abs(normalize_angle(angle - target_angle)) > half_angle:
+                continue
+            if math.isinf(raw_range) and raw_range > 0.0:
+                clearances.append(float(self.scan.range_max))
+            elif math.isfinite(raw_range) and raw_range >= self.scan.range_min:
+                clearances.append(min(float(raw_range), float(self.scan.range_max)))
+        return min(clearances) if clearances else 0.0
 
     def _build_gap_mask(
         self,
@@ -735,6 +773,35 @@ class LocalPlannerNode(Node):
             self._publish_cmd(vx_world, vy_world)
             self._publish_debug(False, reason="direct_goal_no_scan")
             return
+
+        capture_radius = max(
+            goal_tol_xy,
+            float(self.get_parameter("goal_capture_radius").value),
+        )
+        capture_phase = self._mission_phase in {
+            "MAPPING_TO_GOAL",
+            "RETURN_HOME_AVOID",
+            "RETURN_HOME_MPPI",
+        }
+        if capture_phase and goal_distance <= capture_radius:
+            goal_vx_body, goal_vy_body = world_to_body(
+                goal_dx_world, goal_dy_world, yaw
+            )
+            goal_angle_body = math.atan2(goal_vy_body, goal_vx_body)
+            capture_clearance = self._clearance_toward_body_angle(goal_angle_body)
+            required_clearance = float(
+                self.get_parameter("goal_capture_clearance").value
+            )
+            if capture_clearance >= required_clearance:
+                vx_world, vy_world = goal_capture_world_velocity(
+                    goal_dx_world,
+                    goal_dy_world,
+                    float(self.get_parameter("goal_capture_speed").value),
+                )
+                self._last_target_angle = goal_angle_body
+                self._publish_cmd(vx_world, vy_world)
+                self._publish_debug(False, reason="goal_capture_direct")
+                return
 
         sample_bundle = self._scan_samples()
         if sample_bundle is None:

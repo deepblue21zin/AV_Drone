@@ -11,6 +11,7 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>drone_control</exec_depend>
+  <exec_depend>drone_cslam</exec_depend>
   <exec_depend>drone_metrics</exec_depend>
   <exec_depend>drone_map_fusion</exec_depend>
   <exec_depend>drone_perception</exec_depend>

@@ -4,7 +4,13 @@ import time
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    GroupAction,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
@@ -25,14 +31,27 @@ def _load(context):
         raise RuntimeError("swarm manifest contains no vehicles")
 
     requested_source = LaunchConfiguration("fusion_source").perform(context).strip()
-    fusion_source = requested_source or str(manifest.get("fusion_source", "known_pose"))
+    fusion_source = requested_source or str(manifest.get("fusion_source", "slam"))
     if fusion_source not in {"known_pose", "slam"}:
         raise RuntimeError("fusion_source must be 'known_pose' or 'slam'")
+    if fusion_source == "slam":
+        baseline_name = "two_uav_slam_mapping"
+        experiment_condition = "two_uav_slam_fusion"
+    else:
+        baseline_name = "two_uav_known_pose_mapping"
+        experiment_condition = "gate_c_known_pose_fusion"
+    algorithm_name = str(
+        manifest.get("algorithm_name", experiment_condition)
+    ).strip()
+    algorithm_slug = "".join(
+        char if char.isalnum() or char in {"-", "_"} else "_"
+        for char in algorithm_name
+    ).strip("_") or experiment_condition
     run_id = LaunchConfiguration("run_id").perform(context).strip()
     if not run_id:
         run_id = str(manifest.get("run_id", "")).strip()
     if not run_id:
-        run_id = time.strftime("%Y-%m-%d_%H-%M-%S_swarm")
+        run_id = f"{time.strftime('%Y-%m-%d_%H-%M-%S')}_{algorithm_slug}"
 
     shared_params = os.path.join(bringup_share, "config", "swarm_mapping.yaml")
     autonomy_params = os.path.join(bringup_share, "config", "drone1_autonomy.yaml")
@@ -40,6 +59,76 @@ def _load(context):
     pluginlists = os.path.join(bringup_share, "config", "mavros_pluginlists.yaml")
     mavros_config = os.path.join(bringup_share, "config", "mavros_config.yaml")
     mavros_launch = os.path.join(mavros_share, "launch", "node.launch")
+    world_frame = str(manifest["fusion"]["frame_id"])
+    diagnostics = manifest.get("diagnostics") or {}
+    diagnostics_enabled = bool(diagnostics.get("enabled", False))
+    map_save_interval_sec = float(
+        diagnostics.get("map_save_interval_sec", 30.0)
+    )
+    if map_save_interval_sec <= 0.0:
+        raise RuntimeError("diagnostics.map_save_interval_sec must be positive")
+    slam_options = manifest.get("slam") or {}
+    use_scan_matching = bool(slam_options.get("use_scan_matching", True))
+    slam_parameter_overrides = {}
+    if "do_loop_closing" in slam_options:
+        slam_parameter_overrides["do_loop_closing"] = bool(
+            slam_options["do_loop_closing"]
+        )
+    if "angle_variance_penalty" in slam_options:
+        angle_variance_penalty = float(
+            slam_options["angle_variance_penalty"]
+        )
+        if angle_variance_penalty <= 0.0:
+            raise RuntimeError(
+                "slam.angle_variance_penalty must be positive"
+            )
+        slam_parameter_overrides["angle_variance_penalty"] = (
+            angle_variance_penalty
+        )
+    if "minimum_angle_penalty" in slam_options:
+        minimum_angle_penalty = float(
+            slam_options["minimum_angle_penalty"]
+        )
+        if not 0.0 <= minimum_angle_penalty <= 1.0:
+            raise RuntimeError(
+                "slam.minimum_angle_penalty must be between 0 and 1"
+            )
+        slam_parameter_overrides["minimum_angle_penalty"] = (
+            minimum_angle_penalty
+        )
+    if "distance_variance_penalty" in slam_options:
+        distance_variance_penalty = float(
+            slam_options["distance_variance_penalty"]
+        )
+        if distance_variance_penalty <= 0.0:
+            raise RuntimeError(
+                "slam.distance_variance_penalty must be positive"
+            )
+        slam_parameter_overrides["distance_variance_penalty"] = (
+            distance_variance_penalty
+        )
+    if "minimum_distance_penalty" in slam_options:
+        minimum_distance_penalty = float(
+            slam_options["minimum_distance_penalty"]
+        )
+        if not 0.0 <= minimum_distance_penalty <= 1.0:
+            raise RuntimeError(
+                "slam.minimum_distance_penalty must be between 0 and 1"
+            )
+        slam_parameter_overrides["minimum_distance_penalty"] = (
+            minimum_distance_penalty
+        )
+    if "link_scan_maximum_distance" in slam_options:
+        link_scan_maximum_distance = float(
+            slam_options["link_scan_maximum_distance"]
+        )
+        if link_scan_maximum_distance <= 0.0:
+            raise RuntimeError(
+                "slam.link_scan_maximum_distance must be positive"
+            )
+        slam_parameter_overrides["link_scan_maximum_distance"] = (
+            link_scan_maximum_distance
+        )
     actions = []
 
     source_topics = []
@@ -48,6 +137,7 @@ def _load(context):
     source_y = []
     source_yaw = []
     names = []
+    gazebo_entities = []
 
     for vehicle in vehicles:
         name = str(vehicle["name"])
@@ -83,17 +173,37 @@ def _load(context):
             "slam_map_ready_topic": "slam/map_ready",
             "slam_localization_ok_topic": "slam/localization_ok",
             "slam_coverage_topic": "slam/coverage",
+            "planner_debug_selected_gap_topic": "planner/avoid/debug/selected_gap",
+            "planner_debug_score_terms_topic": "planner/avoid/debug/score_terms",
+            "planner_debug_mode_topic": "planner/avoid/debug/mode",
+            "planner_debug_escape_active_topic": "planner/avoid/debug/escape_active",
+            "planner_compute_time_topic": "planner/compute_time_ms",
             "goal_x": float(goal[0]),
             "goal_y": float(goal[1]),
             "goal_z": float(goal[2]),
+            "outbound_waypoints": [
+                float(value) for waypoint in vehicle.get("waypoints_local", [goal])
+                for value in waypoint
+            ],
+            "hover_sec_after_takeoff": float(vehicle.get("hover_sec_after_takeoff", 2.0)),
             "takeoff_z": 3.0,
-            "return_home_enabled": True,
+            "return_home_enabled": bool(
+                vehicle.get(
+                    "return_home_enabled",
+                    manifest.get("return_home_enabled", True),
+                )
+            ),
             "require_scan": True,
             "slam_mapping_mode_enabled": True,
             "map_source": fusion_source,
             "run_id": run_id,
             "world_name": str(manifest["world_name"]),
             "world_path": str(manifest.get("world_path", "")),
+            "trajectory_frame_id": odom_frame,
+            "world_frame_id": world_frame,
+            "world_from_local_x": float(spawn[0]),
+            "world_from_local_y": float(spawn[1]),
+            "world_from_local_yaw": float(spawn[3]),
         }
 
         mavros = IncludeLaunchDescription(
@@ -124,6 +234,10 @@ def _load(context):
                     "odom_topic": "odom",
                     "odom_frame_id": odom_frame,
                     "base_frame_id": base_frame,
+                    "scan_topic": "scan",
+                    "tf_stamp_source": "scan",
+                    "zero_initial_yaw": True,
+                    "normalized_pose_topic": "slam_pose",
                 }],
             ),
             Node(
@@ -139,7 +253,7 @@ def _load(context):
                 output="screen",
                 parameters=[shared_params, {
                     "scan_topic": "scan",
-                    "pose_topic": "mavros/local_position/pose",
+                    "pose_topic": "slam_pose",
                     "map_topic": "mapping/known_pose_map",
                     "map_frame_id": map_frame,
                     "publish_health": False,
@@ -157,6 +271,8 @@ def _load(context):
                     "odom_frame": odom_frame,
                     "base_frame": base_frame,
                     "scan_topic": f"/{name}/scan",
+                    "use_scan_matching": use_scan_matching,
+                    **slam_parameter_overrides,
                 }],
                 remappings=[("/map", f"/{name}/slam/map")],
             ),
@@ -166,7 +282,7 @@ def _load(context):
                 name="slam_health",
                 output="screen",
                 parameters=[shared_params, {
-                    "map_topic": selected_map,
+                    "map_topic": "slam/map",
                     "odom_topic": "odom",
                 }],
             ),
@@ -181,7 +297,8 @@ def _load(context):
                     "run_id": run_id,
                     "vehicle_id": name,
                     "map_source": fusion_source,
-                    "save_interval_sec": 30.0,
+                    "save_interval_sec": map_save_interval_sec,
+                    "save_history": True,
                 }],
             ),
             Node(
@@ -218,8 +335,9 @@ def _load(context):
                 name="metrics_logger",
                 output="screen",
                 parameters=[autonomy_params, vehicle_params, {
-                    "baseline_name": "two_uav_known_pose_mapping",
-                    "experiment_condition": "gate_c_known_pose_fusion",
+                    "baseline_name": baseline_name,
+                    "experiment_condition": experiment_condition,
+                    "condition_id": experiment_condition,
                     "scenario_manifest_path": manifest_path,
                     "autonomy_config_path": autonomy_params,
                     "mavros_config_path": mavros_config,
@@ -228,13 +346,113 @@ def _load(context):
                 }],
             ),
         ]
+        if diagnostics_enabled:
+            vehicle_nodes.append(
+                Node(
+                    package="drone_slam",
+                    executable="slam_tf_diagnostics",
+                    name="slam_tf_diagnostics",
+                    output="screen",
+                    parameters=[{
+                        "use_sim_time": True,
+                        "tf_topic": "/tf",
+                        "odom_topic": "odom",
+                        "scan_topic": "scan",
+                        "map_frame_id": map_frame,
+                        "odom_frame_id": odom_frame,
+                        "base_frame_id": base_frame,
+                        "scan_frame_id": lidar_frame,
+                        "run_id": run_id,
+                        "vehicle_id": name,
+                        "gap_threshold_sec": float(
+                            diagnostics.get("gap_threshold_sec", 0.20)
+                        ),
+                        "translation_jump_threshold_m": float(
+                            diagnostics.get(
+                                "translation_jump_threshold_m", 0.25
+                            )
+                        ),
+                        "yaw_jump_threshold_deg": float(
+                            diagnostics.get("yaw_jump_threshold_deg", 0.50)
+                        ),
+                    }],
+                )
+            )
+        if fusion_source == "slam":
+            vehicle_nodes.append(
+                Node(
+                    package="drone_slam",
+                    executable="map_artifact_recorder",
+                    name="known_pose_reference_recorder",
+                    output="screen",
+                    parameters=[{
+                        "map_topic": "mapping/known_pose_map",
+                        "mission_phase_topic": "mission/phase",
+                        "run_id": run_id,
+                        "vehicle_id": name,
+                        "map_source": "known_pose_reference",
+                        "save_interval_sec": map_save_interval_sec,
+                        "save_history": diagnostics_enabled,
+                    }],
+                ),
+            )
+        else:
+            # Keep raw scan-matching SLAM visible and measurable even when the
+            # validated odometry map is the operational fusion input. This is
+            # deliberately a diagnostic layer, not a silently substituted
+            # source for the fused navigation map.
+            vehicle_nodes.append(
+                Node(
+                    package="drone_slam",
+                    executable="map_artifact_recorder",
+                    name="raw_slam_diagnostic_recorder",
+                    output="screen",
+                    parameters=[{
+                        "map_topic": "slam/map",
+                        "mission_phase_topic": "mission/phase",
+                        "run_id": run_id,
+                        "vehicle_id": name,
+                        "map_source": "slam",
+                        "save_interval_sec": map_save_interval_sec,
+                        "save_history": True,
+                    }],
+                ),
+            )
         actions.append(GroupAction(vehicle_nodes))
         names.append(name)
+        gazebo_entities.append(
+            str(vehicle.get("gazebo_entity", f"iris_rplidar_{len(names) - 1}"))
+        )
         source_topics.append(f"/{name}/{selected_map}")
         source_frames.append(map_frame)
         source_x.append(float(spawn[0]))
         source_y.append(float(spawn[1]))
         source_yaw.append(float(spawn[3]))
+
+    record_ground_truth = diagnostics_enabled and bool(
+        diagnostics.get("record_ground_truth", True)
+    )
+    if record_ground_truth:
+        actions.append(Node(
+            package="drone_cslam",
+            executable="gazebo_gt_recorder",
+            name="gazebo_gt_recorder",
+            output="screen",
+            parameters=[{
+                "use_sim_time": True,
+                "vehicle_names": names,
+                "entity_names": gazebo_entities,
+                "service_name": str(
+                    diagnostics.get(
+                        "gt_service_name", "/gazebo/get_entity_state"
+                    )
+                ),
+                "publish_rate_hz": float(
+                    diagnostics.get("gt_publish_rate_hz", 10.0)
+                ),
+                "reference_frame": "world",
+            }],
+        ))
 
     fusion = manifest["fusion"]
     min_x, max_x, min_y, max_y = fusion["bounds"]
@@ -264,6 +482,49 @@ def _load(context):
             "run_id": run_id,
         }],
     ))
+    actions.append(Node(
+        package="drone_slam",
+        executable="map_artifact_recorder",
+        name="swarm_map_artifact_recorder",
+        output="screen",
+        parameters=[{
+            "map_topic": "/swarm/global_map",
+            "mission_phase_topic": "/swarm/mission_phase_unused",
+            "run_id": run_id,
+            "vehicle_id": "swarm",
+            "map_source": f"fused_{fusion_source}",
+            "save_interval_sec": map_save_interval_sec,
+            "save_history": True,
+        }],
+    ))
+    if diagnostics_enabled and bool(diagnostics.get("record_rosbag", False)):
+        bag_topics = ["/tf", "/tf_static", "/clock"]
+        for name in names:
+            bag_topics.extend([f"/{name}/scan", f"/{name}/odom"])
+            bag_topics.extend(f"/{name}/{suffix}" for suffix in (
+                "mission/phase", "mission/active_goal", "mission/goal_reached",
+                "mavros/local_position/pose", "mavros/state",
+                "perception/nearest_obstacle_distance", "safety/event",
+            ))
+            if record_ground_truth:
+                bag_topics.append(f"/{name}/ground_truth/odom")
+        actions.append(
+            ExecuteProcess(
+                cmd=[
+                    "ros2",
+                    "bag",
+                    "record",
+                    "--storage",
+                    "sqlite3",
+                    "--output",
+                    f"/workspace/AV_Drone/rosbags/{run_id}_slam_debug",
+                    *bag_topics,
+                ],
+                output="screen",
+                sigterm_timeout="10",
+                sigkill_timeout="5",
+            )
+        )
     return actions
 
 

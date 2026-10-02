@@ -66,6 +66,13 @@ services:
     stdin_open: true
     tty: true
     command: ["/workspace/AV_Drone/docker/sim/entrypoint.sh"]
+    # Recorder/ROS shutdown precedes PX4 shutdown in the guarded runner.
+    stop_grace_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ros:
     build:
@@ -88,6 +95,7 @@ services:
       RUN_ID: ${RUN_ID:-}
       MAVROS_FCU_URL: ${MAVROS_FCU_URL:-}
       MAVROS_TARGET_SYSTEM_ID: ${MAVROS_TARGET_SYSTEM_ID:-}
+      ROS_LOG_DIR: /workspace/AV_Drone/runtime/ros_manual
     volumes:
       - .:/workspace/AV_Drone
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -99,6 +107,12 @@ services:
     depends_on:
       - sim
     command: ["sleep", "infinity"]
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   sim-home:

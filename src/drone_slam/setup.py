@@ -29,6 +29,7 @@ setup(
             "pose_odom_tf_node = drone_slam.pose_odom_tf_node:main",
             "slam_health_node = drone_slam.slam_health_node:main",
             "map_artifact_recorder = drone_slam.map_artifact_recorder_node:main",
+            "slam_tf_diagnostics = drone_slam.slam_tf_diagnostics_node:main",
         ],
     },
 )

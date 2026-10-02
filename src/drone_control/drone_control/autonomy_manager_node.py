@@ -10,6 +10,7 @@ from rclpy.node import Node
 from std_msgs.msg import Bool, String
 
 from drone_control.vehicle_interface import VehicleInterface
+from drone_control.waypoint_route import WaypointRoute
 
 
 def clamp(x: float, lo: float, hi: float) -> float:
@@ -39,6 +40,9 @@ class AutonomyManagerNode(Node):
         self.declare_parameter("goal_y", 0.0)
         self.declare_parameter("goal_z", 3.0)
         self.declare_parameter("home_goal_z", 3.0)
+        self.declare_parameter("outbound_waypoints", [
+            float(self.get_parameter(f"goal_{axis}").value) for axis in ("x", "y", "z")
+        ])
 
         self.declare_parameter("hover_sec_after_takeoff", 2.0)
         self.declare_parameter("hover_sec_at_goal", 2.0)
@@ -97,11 +101,11 @@ class AutonomyManagerNode(Node):
         self._ground_reference_z = None
         self._home_pose = None
 
-        self._active_goal = self._make_goal_pose(
-            float(self.get_parameter("goal_x").value),
-            float(self.get_parameter("goal_y").value),
-            float(self.get_parameter("goal_z").value),
+        self._outbound_route = WaypointRoute(
+            self.get_parameter("outbound_waypoints").value or [],
+            [self.get_parameter(f"goal_{axis}").value for axis in ("x", "y", "z")],
         )
+        self._active_goal = self._make_goal_pose(*self._outbound_route.current)
         self._return_goal_active = False
 
         self.create_subscription(TwistStamped, self.safe_cmd_topic, self._on_cmd, 10)
@@ -179,6 +183,13 @@ class AutonomyManagerNode(Node):
         self.active_goal_pub.publish(self._active_goal)
 
     def _capture_home_pose(self):
+        if self._home_pose is not None:
+            p = self._home_pose.pose.position
+            self.get_logger().info(
+                f"Home pose already locked: x={p.x:.2f}, y={p.y:.2f}"
+            )
+            self._publish_home_pose()
+            return
         if self.vehicle.pose is None:
             return
         self._home_pose = self._copy_current_pose()
@@ -189,14 +200,22 @@ class AutonomyManagerNode(Node):
         )
 
     def _set_outbound_goal(self):
-        self._active_goal = self._make_goal_pose(
-            float(self.get_parameter("goal_x").value),
-            float(self.get_parameter("goal_y").value),
-            float(self.get_parameter("goal_z").value),
-        )
+        self._active_goal = self._make_goal_pose(*self._outbound_route.current)
         self._return_goal_active = False
         self._goal_reached = False
         self._publish_active_goal()
+
+    def _advance_outbound_goal(self):
+        x, y, _, _ = self._get_xyz_yaw()
+        status = self._outbound_route.advance(x, y, self._goal_reached)
+        if status == "changed":
+            self._set_outbound_goal()
+            self.get_logger().info(
+                f"WAYPOINT {self._outbound_route.index + 1}/{len(self._outbound_route.points)}: "
+                f"{self._outbound_route.current}"
+            )
+        elif status == "final":
+            self._enter_phase("HOVER_AT_GOAL")
 
     def _set_home_goal(self) -> bool:
         if self._home_pose is None:
@@ -398,7 +417,7 @@ class AutonomyManagerNode(Node):
 
         if self._phase == "FOLLOW_PLAN":
             if self._goal_reached and not continuous_mode:
-                self._enter_phase("HOVER_AT_GOAL")
+                self._advance_outbound_goal()
                 return
 
             self._forward_latest_plan_cmd(goal_target_z, z, kp_z, vz_max)
@@ -406,7 +425,7 @@ class AutonomyManagerNode(Node):
 
         if self._phase == "MAPPING_TO_GOAL":
             if self._goal_reached and not continuous_mode:
-                self._enter_phase("HOVER_AT_GOAL")
+                self._advance_outbound_goal()
                 return
 
             self._forward_latest_plan_cmd(goal_target_z, z, kp_z, vz_max)

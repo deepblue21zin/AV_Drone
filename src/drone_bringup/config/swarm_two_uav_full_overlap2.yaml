@@ -1,0 +1,76 @@
+# Fixed routes create observation opportunities, NOT estimator associations.
+scenario_name: random_cylinders_double_full_length_overlap2
+world_name: random_cylinders_double
+world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
+vehicle_model: iris_rplidar
+vehicle_count: 2
+fusion_source: known_pose
+algorithm_name: offline_lidar_no_gt_two_regions
+run_id: ""
+experiment:
+  purpose: same_bag_first_second_and_two_shared_region_ablation
+  intended_shared_world_x: [[60.0, 85.5], [115.0, 135.0]]
+  world_length_m: 150.0
+  target_world_x: 145.0
+  initial_frame_calibration_known: true
+  note: Two asynchronous shared-observation regions are intended; actual overlap and validated constraints must be audited separately.
+slam:
+  use_scan_matching: true
+  do_loop_closing: false
+diagnostics:
+  enabled: true
+  map_save_interval_sec: 30.0
+  record_rosbag: true
+  record_ground_truth: true
+  gt_service_name: /gazebo/get_entity_state
+  gt_publish_rate_hz: 10.0
+vehicles:
+  - name: drone1
+    gazebo_entity: iris_rplidar_0
+    px4_instance: 2
+    system_id: 3
+    fcu_url: "udp://:14542@127.0.0.1:14582"
+    spawn: [3.0, -7.5, 0.83, 0.0]
+    goal_local: [142.0, 0.0, 3.0]
+    waypoints_local:
+      - [22.0, -2.5, 3.0]
+      - [43.5, -4.0, 3.0]
+      - [57.5, 4.5, 3.0]
+      - [67.5, 4.5, 3.0]
+      - [82.0, 4.5, 3.0]
+      - [100.5, -2.5, 3.0]
+      - [112.0, 4.5, 3.0]
+      - [117.0, 1.5, 3.0]
+      - [127.0, 4.5, 3.0]
+      - [132.0, 4.5, 3.0]
+      - [142.0, 0.0, 3.0]
+    return_home_enabled: false
+  - name: drone2
+    gazebo_entity: iris_rplidar_1
+    px4_instance: 3
+    system_id: 4
+    fcu_url: "udp://:14543@127.0.0.1:14583"
+    spawn: [3.0, 7.5, 0.83, 0.0]
+    goal_local: [142.0, 4.5, 3.0]
+    hover_sec_after_takeoff: 20.0
+    waypoints_local:
+      - [27.0, 3.5, 3.0]
+      - [41.5, 1.0, 3.0]
+      - [57.0, -4.5, 3.0]
+      - [69.5, -4.0, 3.0]
+      - [82.5, -4.5, 3.0]
+      - [97.5, 2.0, 3.0]
+      - [112.0, -5.5, 3.0]
+      - [117.0, -4.5, 3.0]
+      - [127.0, -4.5, 3.0]
+      - [132.0, -4.5, 3.0]
+      - [142.0, 4.5, 3.0]
+    return_home_enabled: false
+fusion:
+  frame_id: swarm_map
+  resolution: 0.10
+  bounds: [-1.0, 151.0, -16.0, 16.0]
+  publish_hz: 1.0
+  map_timeout_sec: 2.0
+  free_threshold: 25
+  occupied_threshold: 65

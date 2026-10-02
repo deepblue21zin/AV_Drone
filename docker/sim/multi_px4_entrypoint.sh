@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "${AV_RUNTIME_GUARDED:-0}" != "1" ]; then
+  exec python3 /workspace/AV_Drone/scripts/runtime_guard.py sim -- bash "$0" "$@"
+fi
+
 set +u
 source /opt/ros/humble/setup.bash
 set -u
@@ -9,7 +13,9 @@ cd /opt/PX4-Autopilot
 PX4_ROOT=/opt/PX4-Autopilot
 CLASSIC_ROOT="${PX4_ROOT}/Tools/simulation/gazebo-classic/sitl_gazebo-classic"
 BUILD_ROOT="${PX4_ROOT}/build/px4_sitl_default"
-RUNTIME_MODELS=/tmp/av_drone_multi_models
+# docker-compose.yml bind-mounts the project from /home3 at /workspace/AV_Drone.
+# Keep generated models in its ignored cache, on the project filesystem.
+RUNTIME_MODELS=/workspace/AV_Drone/.cache/gz/av_drone_multi_models
 WORLD_NAME="${PX4_SITL_WORLD:-random_cylinders_double}"
 WORLD_SOURCE="/workspace/AV_Drone/sim_assets/worlds/${WORLD_NAME}.world"
 SPAWN_X="${SWARM_SPAWN_X:-3.0}"
@@ -123,6 +129,8 @@ for index in 0 1; do
   instance="$((PX4_INSTANCE_BASE + index))"
   working_dir="${BUILD_ROOT}/rootfs/${instance}"
   mkdir -p "${working_dir}"
+  python3 /workspace/AV_Drone/scripts/runtime_guard.py prepare-px4 \
+    --working-dir "${working_dir}" --instance "${instance}"
   (
     cd "${working_dir}"
     "${BUILD_ROOT}/bin/px4" -i "${instance}" -d "${BUILD_ROOT}/etc" \

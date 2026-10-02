@@ -4,16 +4,30 @@ world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
 vehicle_model: iris_rplidar
 vehicle_count: 2
 fusion_source: known_pose
+algorithm_name: two_uav_odom_fusion_slam_diagnostics
 run_id: ""
+
+slam:
+  use_scan_matching: true
+
+diagnostics:
+  enabled: true
+  map_save_interval_sec: 30.0
+  record_rosbag: false
+  record_ground_truth: true
+  gt_service_name: /gazebo/get_entity_state
+  gt_publish_rate_hz: 10.0
 
 vehicles:
   - name: drone1
+    gazebo_entity: iris_rplidar_0
     px4_instance: 2
     system_id: 3
     fcu_url: "udp://:14542@127.0.0.1:14582"
     spawn: [3.0, -7.5, 0.83, 0.0]
     goal_local: [137.0, 0.0, 3.0]
   - name: drone2
+    gazebo_entity: iris_rplidar_1
     px4_instance: 3
     system_id: 4
     fcu_url: "udp://:14543@127.0.0.1:14583"

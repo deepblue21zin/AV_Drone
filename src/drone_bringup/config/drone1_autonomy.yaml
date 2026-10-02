@@ -36,6 +36,10 @@
     home_goal_z: 3.0
     goal_tol_xy: 0.60
     goal_latch_enabled: true
+    goal_capture_radius: 8.0
+    goal_capture_speed: 0.30
+    goal_capture_clearance: 1.50
+    goal_capture_sector_deg: 10.0
     return_home_enabled: false
     return_mode: "avoid"
     allow_motion_without_scan: false

@@ -1,0 +1,11 @@
+{
+  "root_min_free_gib": 50,
+  "project_min_free_gib": 100,
+  "max_log_gib": 5,
+  "max_runtime_sec": 1200,
+  "poll_sec": 2,
+  "bag_grace_sec": 20,
+  "ros_grace_sec": 20,
+  "sim_grace_sec": 15,
+  "term_grace_sec": 5
+}

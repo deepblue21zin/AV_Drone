@@ -60,6 +60,11 @@ class MetricsLoggerNode(Node):
         self.declare_parameter("world_path", "")
         self.declare_parameter("planner_family", "")
         self.declare_parameter("map_source", "")
+        self.declare_parameter("trajectory_frame_id", "")
+        self.declare_parameter("world_frame_id", "")
+        self.declare_parameter("world_from_local_x", 0.0)
+        self.declare_parameter("world_from_local_y", 0.0)
+        self.declare_parameter("world_from_local_yaw", 0.0)
         self.declare_parameter("planned_path_length_m", 0.0)
         self.declare_parameter("planning_time_ms_p50", -1.0)
         self.declare_parameter("planning_time_ms_p95", -1.0)
@@ -96,6 +101,15 @@ class MetricsLoggerNode(Node):
         self.world_name = str(self.get_parameter("world_name").value).strip()
         self.planner_family = str(self.get_parameter("planner_family").value).strip()
         self.map_source = str(self.get_parameter("map_source").value).strip()
+        self.trajectory_frame_id = str(
+            self.get_parameter("trajectory_frame_id").value
+        ).strip()
+        self.world_frame_id = str(self.get_parameter("world_frame_id").value).strip()
+        self.world_from_local = {
+            "x": float(self.get_parameter("world_from_local_x").value),
+            "y": float(self.get_parameter("world_from_local_y").value),
+            "yaw": float(self.get_parameter("world_from_local_yaw").value),
+        }
         self.world_path = str(self.get_parameter("world_path").value).strip()
         self.world_snapshot_path = ""
         self.world_sha256 = ""
@@ -435,6 +449,9 @@ class MetricsLoggerNode(Node):
             "world_snapshot_path": self.world_snapshot_path,
             "world_sha256": self.world_sha256,
             "map_source": self.map_source,
+            "trajectory_frame_id": self.trajectory_frame_id,
+            "world_frame_id": self.world_frame_id,
+            "world_from_local": self.world_from_local,
             "experiment_seed": self.experiment_seed,
             "experiment_stage": self.experiment_stage,
             "trial_index": self.trial_index,
@@ -834,6 +851,9 @@ class MetricsLoggerNode(Node):
             "world_sha256": self.world_sha256,
             "planner_family": self.planner_family,
             "map_source": self.map_source,
+            "trajectory_frame_id": self.trajectory_frame_id,
+            "world_frame_id": self.world_frame_id,
+            "world_from_local": self.world_from_local,
             "success": bool(success),
             "success_code": success_code,
             "outbound_success": bool(outbound_success),
