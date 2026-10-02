@@ -1,0 +1,64 @@
+{
+  "source_run_id": "20260911T161139Z_9abd773a46f1",
+  "title": "전체맵: 실제 LiDAR 제약 1개 vs 2개 비교 완료",
+  "status": "기록 완료 / A=1·B=1·A+B=2 적용 / B0 대비 종합 기준 통과",
+  "scope": "150m 월드 · UAV 2대 · 비동시 공통 관측 2구간 · 동일 bag 오프라인 비교",
+  "vehicles": ["drone1", "drone2"],
+  "executive_summary": "이번에는 앞 구간 A만 1개, 뒤 구간 B만 1개, A+B 2개를 각각 실제 적용하고 최적화에 성공했다. 두 상대 pose는 GT 없이 LiDAR로 추정했으며, GT는 지도 저장 후 평가에만 사용했다. A+B는 B0 대비 종단 상대 위치 오차 6.538→0.332m, 상대 위치 RMSE 2.963→0.179m, 지도 Chamfer 1.493→0.442m로 개선됐다. 다만 B만의 종단 오차는 0.281m로 더 작고, A만의 지도 F1도 0.557로 A+B의 0.547보다 조금 높다. 따라서 두 번 보정이 모든 지표에서 무조건 우수한 것은 아니다. B1의 절대 위치·지도 정확도도 여전히 더 좋다.",
+  "slam_stack": {
+    "simulation": "Gazebo Classic + PX4 SITL + MAVROS, two iris_rplidar; existing SLAM scan matching ON / self-loop OFF",
+    "B0": "Initial frame calibration + raw individual SLAM; no inter-UAV factor",
+    "B1": "Initial frame calibration + MAVROS/PX4 external odometry; not GT",
+    "N-prior": "Same raw graph and known-start priors, zero inter-UAV factors",
+    "N-single-A": "Earlier independent LiDAR region: pair 19, one applied factor",
+    "N-single-B": "Later independent LiDAR region: pair 1, one applied factor",
+    "N-double": "Both representatives, two applied factors; no fallback",
+    "GT": "Scoring only, loaded after inference poses/factors/maps were saved",
+    "runtime_fusion": "Known-pose external-odometry map, distinct from offline N-condition maps"
+  },
+  "changes": [
+    {"영역": "후반 공통 통로", "문제": "이전 2구간 실험의 실제 보정은 1제약", "해결": "두 드론이 같은 후반 통로를 시간차 통과하도록 경유점 변경", "결과": "실제 관측·정합 근거를 갖춘 B 구간 확보"},
+    {"영역": "정합 계산", "문제": "전역 Powell 세밀 정합이 좋은 coarse 해를 버림", "해결": "후보 주변 한 격자 간격 안에서 정합, 나빠지면 coarse 해 보존", "결과": "gate 완화 없이 독립 A/B 두 구간 선정"},
+    {"영역": "수치 수렴", "문제": "B 및 A+B가 max_nfev=500 도달", "해결": "모든 조건에 동일하게 계산 한도만 2000으로 증가", "결과": "A 260회 / B 1160회 / A+B 1178회에서 수렴"},
+    {"영역": "완료 판정", "문제": "N-double 이름과 실제 적용 수 혼동", "해결": "엄격한 A=1/B=1/A+B=2 검사, 실패 시 GT 평가 전 중단", "결과": "complete=true, GT 읽기 전 실제 2개 적용 검증"},
+    {"영역": "화면", "문제": "적용 완료와 정확도 개선 혼동", "해결": "비교 성립과 개선 기준을 별도 표시, A/B 공통 관측 그림 제공", "결과": "실험 요약에서 실제 수와 개선·악화 지표를 함께 확인"}
+  ],
+  "validation": [
+    {"항목": "rosbag", "결과": "625.477초 / 226655 messages / LiDAR 9187·9186장 / SQLite 정상"},
+    {"항목": "비행", "결과": "두 기체 목표 도착 / bag 먼저 정상 종료 / 경로 길이 약 175.32·191.95m(대기 포함 외부 odometry)"},
+    {"항목": "실제 적용 수", "결과": "A만=1 / B만=1 / A+B=2, 세 조건 모두 수렴"},
+    {"항목": "독립 구간", "결과": "대표 A/B 사이 양 기체 raw 누적거리 차이 54.36·66.42m; 공간 분리 기준도 통과"},
+    {"항목": "관측 시간차", "결과": "A 55.7초 / B 99.9초; 동시에 만난 횟수·통신 횟수 아님"},
+    {"항목": "대표 정합 GT 사후 오차", "결과": "A 0.130m·0.199° / B 0.017m·0.092°; 둘 다 기준 통과"},
+    {"항목": "종단 상대 위치 B0 / A / B / A+B", "결과": "6.538 / 1.537 / 0.281 / 0.332m"},
+    {"항목": "상대 위치 RMSE B0 / A / B / A+B", "결과": "2.963 / 0.444 / 0.203 / 0.179m"},
+    {"항목": "지도 Chamfer B0 / A / B / A+B", "결과": "1.493 / 0.496 / 1.063 / 0.442m"},
+    {"항목": "지도 F1 B0 / A / B / A+B", "결과": "0.200 / 0.557 / 0.397 / 0.547"},
+    {"항목": "B1 참고", "결과": "지도 Chamfer 0.173m / F1 0.651; 절대 지도는 B1이 더 정확"},
+    {"항목": "절대 위치 ATE RMSE", "결과": "B0 1.493·1.891m → A+B 0.305·0.331m (drone1·drone2)"},
+    {"항목": "최소 LiDAR 거리", "결과": "0.223·0.206m; 안전 항법 성공 주장 금지"}
+  ],
+  "tests": [
+    {"테스트": "cSLAM", "결과": "25 PASS: GT 분리·독립 구간·좋은 coarse 해 보존·엄격한 1/1/2 적용 검사"},
+    {"테스트": "Streamlit", "결과": "38 PASS: 편집·보관·가이드·실제 적용 수·별도 정확도 판정"},
+    {"테스트": "원본 및 소스", "결과": "bag SHA-256 유지, 9개 주요 추론 소스의 스냅샷과 해시 일치"}
+  ],
+  "remaining_risks": [
+    "초기 좌표 정렬을 안다는 가정과 raw SLAM 공간 prior 22m가 남아 있다. 미지 시작 위치의 전역 정합 실험은 아니다.",
+    "두 제약 적용과 모든 지표의 우수함은 별개다. B만이 종단 상대 오차에서는, A만이 지도 F1에서는 A+B보다 좋다.",
+    "B1의 절대 위치와 지도 정확도는 더 좋다. PX4 odometry보다 전반적으로 우수하다고 주장하지 않는다.",
+    "고정 경로 한 번의 개발 기록을 재분석한 탐색적 결과다. 코드와 설정을 동결한 독립 반복 비행으로 재현성을 검증해야 한다.",
+    "GT-reference는 동일 LiDAR를 GT pose로 배치한 지도이고, 지도 지표는 공통 관측 영역에서 계산한다. coverage와 F1도 함께 본다.",
+    "종단 상대 pose는 각 기체의 마지막 GT 지원 keyframe 사이 변환이다. 동시각 거리 또는 단순 위치 오차 차이가 아니다.",
+    "실시간 통신·재회 계획·기체 충돌 회피·안전 항법 성능을 검증한 실험은 아니다."
+  ],
+  "notes": [
+    "문서: docs/two_region_shared_corridor_20260912.md",
+    "Streamlit: 전체맵 · 1회 vs 2회 보정 (검증 2구간) → 실험 요약 → 공통 관측 위치 / 전체 지도 오차 → LiDAR 상세",
+    "최종 분석 설정: lidar_no_gt_two_regions_converged.yaml; --require-complete-ablation 사용",
+    "GT 없는 검색·최적화 약 240.2초, 지도·평가 포함 약 765.8초",
+    "이전 실패 분석은 lidar_registration_pre_refinement_fix 및 lidar_registration_iteration_limit에 소스와 함께 보존",
+    "원본 bag SHA-256: a4e649dc03455ccf3c0dcfe83c7e81d716bb5cac4a3a3870ec6733907e5a6afc",
+    "모든 데이터 /home3 저장, sudo·과거 데이터 삭제·컨테이너 재생성 없이 수행"
+  ]
+}

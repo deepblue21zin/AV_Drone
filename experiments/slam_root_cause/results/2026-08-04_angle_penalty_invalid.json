@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "run_id": "2026-08-04_02-02-18_slam_diag_angle_penalty",
+      "vehicles": [
+        {
+          "vehicle_id": "drone1",
+          "valid": false,
+          "invalid_reasons": [
+            "SLAM_MAP_MISSING",
+            "REFERENCE_MAP_MISSING"
+          ],
+          "spawn_y": -7.5,
+          "use_scan_matching": true,
+          "slam_parameters": {
+            "use_scan_matching": true,
+            "angle_variance_penalty": 0.0001,
+            "minimum_angle_penalty": 0.5
+          },
+          "latest_alignment": {
+            "occupied_cells": 0
+          },
+          "drift_onset": null,
+          "history": [],
+          "tf_diagnostics": {
+            "rows": 0
+          }
+        },
+        {
+          "vehicle_id": "drone2",
+          "valid": false,
+          "invalid_reasons": [
+            "FCU_DISCONNECT",
+            "SLAM_MAP_MISSING",
+            "REFERENCE_MAP_MISSING"
+          ],
+          "spawn_y": 7.5,
+          "use_scan_matching": true,
+          "slam_parameters": {
+            "use_scan_matching": true,
+            "angle_variance_penalty": 0.0001,
+            "minimum_angle_penalty": 0.5
+          },
+          "latest_alignment": {
+            "occupied_cells": 0
+          },
+          "drift_onset": null,
+          "history": [],
+          "tf_diagnostics": {
+            "rows": 0
+          }
+        }
+      ]
+    }
+  ]
+}

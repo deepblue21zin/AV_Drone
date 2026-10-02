@@ -1,0 +1,151 @@
+{
+  "source_run_id": "2026-08-03_23-19-03_two_uav_slam_fusion_goal_capture",
+  "title": "2-UAV 목표 도달·SLAM 영역·지도 융합 검증 보고서",
+  "status": "GOAL MISSION PASS / SLAM ALIGNMENT FAIL",
+  "scope": "2-UAV GOAL CAPTURE · REAL SLAM · MAP FUSION",
+  "vehicles": [
+    "drone1",
+    "drone2"
+  ],
+  "executive_summary": "각 드론을 world (3,-7.5), (3,7.5)에서 시작해 local (137,0,3), 즉 world (140,-7.5), (140,7.5) 목표로 보냈다. drone1은 388.67초, drone2는 405.19초에 목표 허용 오차 0.6m 안으로 들어와 HOVER_AT_GOAL에 도달했다. 실제 slam_toolbox 지도 두 개와 fused map도 끝 구간까지 생성·저장됐다. 그러나 known-pose reference 대비 장거리 SLAM drift가 커서 지도 정렬 품질은 실패로 분리 판정한다.",
+  "slam_stack": {
+    "backend": "ROS 2 Humble slam_toolbox async_slam_toolbox_node",
+    "solver": "CeresSolver / SPARSE_NORMAL_CHOLESKY",
+    "sensor": "/droneN/scan (2D LaserScan)",
+    "odometry_prior": "MAVROS local_position/pose -> scan-stamped droneN/odom",
+    "tf_contract": "slam_toolbox owns map->odom; manifest spawn supplies swarm_map->droneN/map",
+    "fusion": "0.1m target grid, freshness-weighted log-odds, free<=25, occupied>=65",
+    "reference_source": "known_pose_reference saved in parallel for drift diagnosis",
+    "visualization": "grey unknown, white fused free, black fused occupied, blue/orange per-UAV SLAM, purple source overlap"
+  },
+  "changes": [
+    {
+      "영역": "목표 도달",
+      "문제": "이전 137m run에서 두 기체가 목표를 지나친 뒤 뒤쪽 목표로 수렴하지 못함",
+      "원인": "전방 gap 중심의 reactive planner가 목표 근처에서도 목표 방향보다 회피 방향을 계속 선택",
+      "해결": "목표 8m 이내이면서 목표 방향 LiDAR 여유가 1.5m 이상일 때만 0.30m/s 직접 접근",
+      "결과": "drone1/2 모두 0.6m 허용 오차 안에서 HOVER_AT_GOAL"
+    },
+    {
+      "영역": "실험 시작·목표",
+      "문제": "지도 끝 도달과 각 드론의 목표 성공을 그림에서 구분하기 어려움",
+      "원인": "맵 그림에 실행별 start/goal/현재 위치 표식이 없었음",
+      "해결": "명시적 spawn과 local goal을 manifest에 고정하고 trajectory를 world 좌표로 변환",
+      "결과": "Streamlit PNG에 ○ 시작점, X 선택 시점 위치, ★ 목표점 표시"
+    },
+    {
+      "영역": "SLAM 영역 표시",
+      "문제": "PGM만으로 어느 드론이 어느 셀을 관측했고 어떻게 합쳐졌는지 확인하기 어려움",
+      "원인": "로컬 OccupancyGrid와 fused target grid를 동일 raster로 투영하지 않음",
+      "해결": "각 local grid의 origin SE(2)와 world_from_local을 적용해 saved fused raster에 재투영",
+      "결과": "드론1 파랑, 드론2 주황, 겹침 보라, fused free/occupied와 경로를 한 이미지에서 확인하고 PNG 다운로드 가능"
+    },
+    {
+      "영역": "시간별 융합 디버깅",
+      "문제": "최종 결과만으로 drift 발생 시점과 입력 충돌을 찾기 어려움",
+      "원인": "latest map만 보면 생성 과정이 사라짐",
+      "해결": "두 SLAM과 fused map을 30초마다 순번별로 저장",
+      "결과": "각 레이어 14회, 총 42개 시점 bundle을 Streamlit에서 선택 가능"
+    },
+    {
+      "영역": "실험명",
+      "문제": "새 artifact 이름만으로 실행 시각과 알고리즘을 알기 어려움",
+      "원인": "run_id를 수동으로 제각각 지정",
+      "해결": "run_id가 없으면 YYYY-MM-DD_HH-MM-SS_algorithm 형식으로 생성",
+      "결과": "이번 run부터 날짜·시간·알고리즘이 이름에 포함됨"
+    },
+    {
+      "영역": "데이터 정리",
+      "문제": "분석 가치가 없는 비정상 artifact가 대시보드와 저장공간을 차지",
+      "원인": "0-row run과 11.9시간 uncontrolled log가 누적",
+      "해결": "사용자가 승인한 정확한 4개 경로만 영구 삭제하고 유효 run은 active 목록으로 제한",
+      "결과": "유효 SLAM/격리 실험과 rosbag은 보존"
+    }
+  ],
+  "validation": [
+    {
+      "항목": "목표 도달 시각 / 최소 XY 오차",
+      "drone1": "388.67s / 0.157m",
+      "drone2": "405.19s / 0.107m",
+      "판정": "PASS"
+    },
+    {
+      "항목": "최종 mission phase / goal_reached",
+      "drone1": "HOVER_AT_GOAL / true",
+      "drone2": "HOVER_AT_GOAL / true",
+      "판정": "PASS"
+    },
+    {
+      "항목": "outbound time / path length",
+      "drone1": "369.15s / 151.79m",
+      "drone2": "385.05s / 153.00m",
+      "판정": "도달 경로 기록 완료"
+    },
+    {
+      "항목": "LaserScan / map ready",
+      "drone1": "6288 / true",
+      "drone2": "6288 / true",
+      "판정": "PASS"
+    },
+    {
+      "항목": "30초 map history",
+      "drone1": "SLAM 14",
+      "drone2": "SLAM 14",
+      "판정": "fused 14 / PASS"
+    },
+    {
+      "항목": "최종 fused 관측 범위",
+      "drone1": "active source",
+      "drone2": "active source",
+      "판정": "world x=-0.15~146.35m / coverage 40.53%"
+    },
+    {
+      "항목": "Fusion runtime",
+      "drone1": "active source",
+      "drone2": "active source",
+      "판정": "mission 중 HEALTHY / version 443 / p95 64.45ms"
+    },
+    {
+      "항목": "known-pose reference 0.3m 이내 / 최종 SLAM",
+      "drone1": "14.33% (median 1.957m)",
+      "drone2": "38.40% (median 0.522m)",
+      "판정": "FAIL: 장거리 drift"
+    },
+    {
+      "항목": "초기 30초 reference 0.3m 이내",
+      "drone1": "96.5%",
+      "drone2": "100.0%",
+      "판정": "초기 좌표 정렬 정상, 이동 중 drift 누적"
+    }
+  ],
+  "tests": [
+    {
+      "테스트": "goal-capture pure unit tests",
+      "결과": "3/3 PASS"
+    },
+    {
+      "테스트": "ROS-side planner/SLAM/dashboard related tests",
+      "결과": "20/20 PASS"
+    },
+    {
+      "테스트": "Streamlit AppTest",
+      "결과": "exceptions 0 / warnings 0 / image 8 / PNG download button 1"
+    },
+    {
+      "테스트": "isolated PX4-Gazebo-MAVROS full run",
+      "결과": "2/2 goal reached / real SLAM maps and fusion saved"
+    }
+  ],
+  "remaining_risks": [
+    "SLAM 정렬률은 drone1이 30초 96.5%에서 최종 14.33%, drone2가 100%에서 38.40%로 감소했다. fused map은 생성되지만 현 상태로 global navigation truth로 사용하면 안 된다.",
+    "이번 목표 도달 성공은 seed 0 단일 trial이다. 여러 seed와 반복 run으로 goal-capture의 재현성과 0.21m 수준의 최소 장애물 거리를 재검증해야 한다.",
+    "정상 종료 순서에서 map/odom 입력이 끊긴 뒤 summary가 localization_ok=false, scan_timeout, pose_timeout으로 닫혔다. mission 중 health와 teardown 상태를 별도 필드로 남기는 개선이 필요하다.",
+    "swarm_summary의 LOCAL_ONLY_FALLBACK 1회는 종료 과정에서 source가 stale해진 시점이다. mission 중에는 두 source가 active인 HEALTHY 상태였다.",
+    "두 local map은 known spawn transform으로 합친다. unknown-pose registration과 fused map을 소비하는 global planner는 아직 구현하지 않았다."
+  ],
+  "notes": [
+    "Streamlit의 SLAM & Fusion Debug 탭에서 Map run=2026-08-03_23-19-03_two_uav_slam_fusion_goal_capture를 선택하면 history #0001~#0014와 latest를 확인할 수 있다.",
+    "정렬 진단은 SLAM occupancy >=65 셀 중심에서 같은 run의 known_pose_reference occupied cell까지의 최근접 거리를 사용했다.",
+    "최종 artifact: artifacts/2026-08-03_23-19-03_two_uav_slam_fusion_goal_capture"
+  ]
+}

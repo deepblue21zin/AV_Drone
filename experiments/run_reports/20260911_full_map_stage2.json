@@ -1,0 +1,54 @@
+{
+  "source_run_id": "20260911T091146Z_bed606a28e99",
+  "title": "전체 길이 2-UAV: GT 평가 전용 LiDAR 1구간 보정",
+  "status": "CAPTURE PASS / 상대오차 개선 / 지도 개선 미달",
+  "scope": "150m 월드 · 목표 전진 142m · 오프라인 제약 1개",
+  "vehicles": ["drone1", "drone2"],
+  "executive_summary": "실제 Gazebo Classic/PX4 비행 516.81초를 rosbag에 기록했다. GT 없이 37개 후보를 검사해 LiDAR 제약 1개를 적용한 결과, 종단 상대 위치 오차는 7.935m에서 1.245m로 감소했다. 그러나 지도 Chamfer는 1.632m에서 2.110m로 악화했다. 따라서 기록·분석은 완료됐지만 전체 지도 정확도 개선은 아직 달성하지 못했다. 자세한 보정 그림은 LiDAR Registration 탭에서 같은 run을 선택한다.",
+  "slam_stack": {
+    "simulation": "Gazebo Classic + PX4 SITL, two iris_rplidar vehicles",
+    "frontend": "slam_toolbox, scan matching enabled, self loop closure disabled",
+    "B0": "known initial frame calibration + raw SLAM map-to-odom + external odometry",
+    "B1": "known initial frame calibration + MAVROS/PX4 external odometry",
+    "N-single": "LiDAR descriptor + bounded raw-SLAM prior + registration + neighbor consistency + one SE(2) factor",
+    "GT": "evaluation only, loaded after inference poses/factors/maps are saved",
+    "runtime_fusion": "known_pose; NOT the offline N-single map"
+  },
+  "changes": [
+    {"영역": "실제 비행", "문제": "70m 기록으로는 장거리 드리프트 확인이 제한됨", "원인": "기존 짧은 목표", "해결": "142m 전진 목표와 기체별 7개 waypoint", "결과": "두 기체 목표 도달, 실제 누적 거리 약 166/174m"},
+    {"영역": "공통 관측", "문제": "독립 경로는 여러 장소 정합을 보장하지 않음", "원인": "LiDAR 관측 범위 및 장애물 가림", "해결": "중간에 한 주 공통 관측 구역을 갖도록 고정 경로 설계", "결과": "사후 관측 감사에서 약 world x=55~90m가 주 공통 구역"},
+    {"영역": "GT 분리", "문제": "기존 controlled 실험은 GT로 pair를 선택", "원인": "정합 자체만 확인한 실험", "해결": "GT 없는 데이터 동기화, keyframe, 후보 검색과 추론 결과 선저장", "결과": "초기 좌표 정렬 기지 가정하에 GT 평가 전용 N-single 구현"},
+    {"영역": "이웃 검증", "문제": "원점에서 멀어질수록 보정 불일치가 과장됨", "원인": "world translation 계수 비교의 yaw 레버암 효과", "해결": "동일 지역 기준점에서 두 보정의 차이 비교", "결과": "임계값 유지, 2개 일관 후보 중 대표 제약 1개 채택; 첫 분석 보존"},
+    {"영역": "시각화", "문제": "상대오차 감소만 보면 지도 성공으로 오해 가능", "원인": "상대·절대·지도 지표 혼동", "해결": "GT 대비 궤적, 절대 yaw/위치, 지도 오차 그림과 종합 판정 분리", "결과": "상대 개선과 지도 악화를 함께 표시"}
+  ],
+  "validation": [
+    {"항목": "rosbag LaserScan 개수", "drone1": "7494", "drone2": "7485", "판정": "PASS / 전체 185795 messages"},
+    {"항목": "목표 상태", "drone1": "HOVER_AT_GOAL", "drone2": "HOVER_AT_GOAL", "판정": "mission_complete / 강제 종료 없음"},
+    {"항목": "종단 상대 위치 오차", "drone1": "B0 7.935m", "drone2": "N-single 1.245m", "판정": "84.3% 감소"},
+    {"항목": "상대 yaw RMSE", "drone1": "B0 3.343°", "drone2": "N-single 0.729°", "판정": "78.2% 감소"},
+    {"항목": "종단 상대 yaw 오차", "drone1": "B0 1.686°", "drone2": "N-single 1.963°", "판정": "악화"},
+    {"항목": "절대 위치 RMSE: B0 → N-single", "drone1": "2.331 → 2.335m", "drone2": "2.174 → 1.999m", "판정": "drone1 미개선 / drone2 소폭 개선"},
+    {"항목": "지도 Chamfer", "drone1": "B0 1.632m", "drone2": "N-single 2.110m", "판정": "29.3% 악화 / 종합 개선 미달"},
+    {"항목": "최소 LiDAR 거리", "drone1": "0.218m", "drone2": "0.212m", "판정": "위험 근접 기록 있음; 안전 항법 성공 주장 금지"}
+  ],
+  "tests": [
+    {"테스트": "cSLAM 관련 회귀 검사", "결과": "16 PASS; GT 누락/오염 무관 후보, 좌표계 불변성, yaw 경계 등"},
+    {"테스트": "대시보드 좌표/조건 로딩 검사", "결과": "16 PASS; N-single 표시 포함"},
+    {"테스트": "저장 submap 4쌍 재계산", "결과": "pair 0/11/18/27의 저장 정합 pose 재현"},
+    {"테스트": "실제 smoke 및 전체 길이 rosbag 종료", "결과": "metadata 저장, recorder 선종료, sim/ROS 정상 정지 확인"}
+  ],
+  "remaining_risks": [
+    "상대 제약 1개는 두 추정 사이 관계를 개선해도 공통 절대 드리프트를 모두 제거하지 못한다. 이번 N-single의 전체 지도는 B0보다 나빠졌다.",
+    "초기 좌표 정렬과 raw-SLAM 22m 후보 prior를 사용한다. 초기 위치 미지 전역 정합이나 GT-free 비행 제어 전반을 주장하지 않는다.",
+    "공통 구간은 사후 약 55~90m이며 다른 구간에도 약한 공통 관측이 있다. 정확히 겹침 1회라는 엄밀한 카운트는 아니다.",
+    "한 번의 전체 길이 기록이다. 1/2/3구간 반복 실험과 일반화 평가는 아직 수행하지 않았다.",
+    "종단 상대 지표는 각 기체 마지막 keyframe, 상대오차 곡선은 공통 raw-SLAM 누적거리 표본이다. 실시간 동시 상대거리와 구분한다."
+  ],
+  "notes": [
+    "Streamlit: LiDAR Registration → LiDAR registration run=20260911T091146Z_bed606a28e99 → Summary / Registration / Drift & Trajectory / Maps.",
+    "아래 자동 지도 비교는 비행 중 저장 원본이다. 오프라인 N-single 지도는 LiDAR Registration 탭에서 확인한다.",
+    "보고서: docs/full_map_stage2_experiment_20260911.md",
+    "원본 bag: rosbags/20260911T091146Z_bed606a28e99_slam_debug",
+    "데이터·새 로그 /home3 저장, sudo 미사용, 기존 컨테이너 재생성·기존 데이터 삭제 없음."
+  ]
+}

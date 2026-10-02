@@ -1,0 +1,56 @@
+{
+  "source_run_id": "20260911T122110Z_21f6a1d0f520",
+  "title": "전체 길이 2구간 공통 관측: 기록 완료, 독립 정합은 1구간만 확보",
+  "status": "CAPTURE PASS / 2구간 보정 비교 미성립 / 지도 개선 미달",
+  "scope": "150m 월드 · UAV 2대 · 두 공간 구간 공통 관측 · GT 평가 전용",
+  "vehicles": ["drone1", "drone2"],
+  "executive_summary": "두 공통 관측 구간을 갖도록 실제 Gazebo/PX4 비행을 수행하고 533.08초를 기록했다. 후반에도 공통 관측은 있었지만 신뢰할 만한 독립 정합 구간은 1개만 확보했다. 후보를 43개에서 64개로 확장해도 동일했다. 따라서 1회 대 2회 보정 효과 비교는 아직 성립하지 않는다. 유효한 A 제약 1개는 종단 상대 위치 오차를 4.055m에서 0.279m로 줄였지만 지도 Chamfer는 1.285m에서 1.645m로 악화했다. N-double은 실제로 A 제약 1개만 사용한 fallback이며 2회 보정 성공 결과가 아니다.",
+  "slam_stack": {
+    "simulation": "Gazebo Classic + PX4 SITL + MAVROS, two iris_rplidar",
+    "frontend": "Existing individual SLAM, scan matching ON / self loop closing OFF",
+    "B0": "Initial calibration + individual raw SLAM",
+    "B1": "Initial calibration + MAVROS/PX4 external odometry",
+    "N-prior": "Raw graph with known-start priors, zero inter-UAV factors",
+    "N-single-A": "Earlier LiDAR-validated region representative, 1 applied factor",
+    "N-single-B": "Unavailable; B0 fallback, not a valid ablation",
+    "N-double": "Only A available; 1 applied factor out of 2 requested, not a valid two-factor ablation",
+    "GT": "Scoring only, after inference poses/factors/maps are frozen",
+    "runtime_fusion": "known_pose external odometry, not offline corrected map"
+  },
+  "changes": [
+    {"영역": "비행 경로", "문제": "이전에는 주 공통 구간 1개", "원인": "후반 경로 분리", "해결": "기존 첫 구간 유지, 후반 115–135m에 공통 관측 기회 추가", "결과": "두 드론 목표 도착 / 후반 공통 관측 확인"},
+    {"영역": "동일 bag 비교", "문제": "다른 경로의 실행끼리 비교하면 횟수 효과 분리 불가", "원인": "입력 차이", "해결": "A만 / B만 / A+B와 prior-only 비교 구현", "결과": "요청·채택·실제 적용·조건 성립 상태를 분리"},
+    {"영역": "GT 없는 검색", "문제": "반복 원통 형상으로 가까운 후보 누락", "원인": "descriptor top-2 제한 및 부족한 submap 점", "해결": "기본 분석 보존 후 spatial top-2 합집합 추가 진단", "결과": "43→64 후보, 독립 구간은 여전히 1개; gate 완화 없음"},
+    {"영역": "Streamlit", "문제": "N-double 이름만 보고 2회 성공으로 오해 가능", "원인": "요청 수와 실제 수 혼동", "해결": "미성립 경고·실제 제약 수·공통 관측 위치 그림·가이드 추가", "결과": "기록 성공과 보정 성공을 구분"}
+  ],
+  "validation": [
+    {"항목": "rosbag", "결과": "533.078초 / 192981 messages / SQLite quick_check OK"},
+    {"항목": "LiDAR 관측", "결과": "drone1 7822장 / drone2 7821장"},
+    {"항목": "비행 종료", "결과": "양쪽 HOVER_AT_GOAL / bag 먼저 정상 저장 / 강제 종료 없음"},
+    {"항목": "후반 실제 공통 관측", "결과": "GT 사후 평가: world x=110–135m에서 shared hit-voxel ratio 약 0.19–0.28"},
+    {"항목": "독립 정합 구간", "결과": "기본·확장 검색 모두 1개; 2구간 비교 미성립"},
+    {"항목": "종단 상대 위치 B0→A", "결과": "4.055→0.279m, 약 93.1% 감소"},
+    {"항목": "지도 Chamfer B0→A", "결과": "1.285→1.645m, 약 28.0% 악화"},
+    {"항목": "종단 상대 yaw B0→A", "결과": "0.360→2.602°, 악화"},
+    {"항목": "최소 LiDAR 거리", "결과": "0.208/0.212m; 안전 항법 성공 주장 금지"}
+  ],
+  "tests": [
+    {"테스트": "cSLAM", "결과": "22 PASS; GT 분리, 독립 구간 선택, 동일 factor ablation, missing-region fallback, spatial retrieval 중복 방지"},
+    {"테스트": "Streamlit", "결과": "37 PASS; 기존 기능 보존, 실패 최적화의 적용 수 0 표시 포함"},
+    {"테스트": "실제 기록", "결과": "bag 정상 종료 / DB 검사 / 원본 SHA-256 기록 / 실제 화면 확인"}
+  ],
+  "remaining_risks": [
+    "2구간 공통 관측과 2개 신뢰 정합 제약은 다르다. 현재는 두 번째 제약이 없다.",
+    "후반 공통 형상이 적고 일부 submap은 최소 80점에도 미달했다. 후보 증가만으로는 해결되지 않았다.",
+    "상대오차 감소가 절대 지도 개선을 의미하지 않는다. 이번에도 지도 Chamfer는 악화했다.",
+    "알려진 시작 prior 자체의 영향이 크므로 N-prior 대조군과 초기 SLAM pose 안정화를 함께 점검해야 한다.",
+    "단일 비행의 개발 실험이며, 확장 검색은 같은 bag에서 수행한 탐색적 진단이다. 독립 평가 데이터의 일반화 결과가 아니다.",
+    "초기 좌표계 정렬 기지, raw SLAM 공간 prior 22m, 오프라인 처리라는 가정이 남아 있다. 실시간 통신·재회 계획 실험이 아니다."
+  ],
+  "notes": [
+    "문서: docs/two_region_experiment_20260911.md",
+    "Streamlit: 전체맵 · LiDAR 2구간 비교 → 실험 요약 / 공통 관측 위치 / LiDAR 상세",
+    "다음은 3구간 추가가 아니라 두 번째 구간의 공통 가시성·형상·독립 anchor 수를 강화한 재실험이다.",
+    "원본 bag과 기본/확장 분석을 모두 /home3에 보존. sudo·컨테이너 재생성·과거 데이터 삭제 없음."
+  ]
+}

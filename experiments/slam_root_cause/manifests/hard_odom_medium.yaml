@@ -1,0 +1,50 @@
+scenario_name: random_cylinders_double_slam_hard_odom_medium
+world_name: random_cylinders_double
+world_path: /workspace/AV_Drone/sim_assets/worlds/random_cylinders_double.world
+vehicle_model: iris_rplidar
+vehicle_count: 2
+fusion_source: slam
+algorithm_name: slam_hard_odom_medium
+run_id: ""
+return_home_enabled: false
+
+slam:
+  use_scan_matching: true
+  do_loop_closing: true
+  angle_variance_penalty: 0.0001
+  minimum_angle_penalty: 0.50
+  # Correlation resolution is 0.01 m. At 1e-5, every non-zero translation
+  # grid candidate receives the 0.10 floor penalty.
+  distance_variance_penalty: 0.00001
+  minimum_distance_penalty: 0.10
+
+diagnostics:
+  enabled: true
+  map_save_interval_sec: 20.0
+  record_rosbag: false
+  gap_threshold_sec: 0.20
+  translation_jump_threshold_m: 0.25
+  yaw_jump_threshold_deg: 0.50
+
+vehicles:
+  - name: drone1
+    px4_instance: 8
+    system_id: 9
+    fcu_url: "udp://:14548@127.0.0.1:14588"
+    spawn: [3.0, -7.5, 0.83, 0.0]
+    goal_local: [70.0, 0.0, 3.0]
+  - name: drone2
+    px4_instance: 9
+    system_id: 10
+    fcu_url: "udp://:14549@127.0.0.1:14589"
+    spawn: [3.0, 7.5, 0.83, 0.0]
+    goal_local: [70.0, 0.0, 3.0]
+
+fusion:
+  frame_id: swarm_map
+  resolution: 0.10
+  bounds: [-1.0, 90.0, -20.0, 20.0]
+  publish_hz: 1.0
+  map_timeout_sec: 2.0
+  free_threshold: 25
+  occupied_threshold: 65

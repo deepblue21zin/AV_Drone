@@ -4,7 +4,8 @@
 
 메모:
 
-- `README.md`만 저장소에 포함한다.
+- 실행 중 생성되는 원본 지표와, 사람이 편집하는 표시용 메타데이터를 분리한다.
+- `dashboard_catalog.json`: 실험 표시 이름·목적·메모·보관 상태. 편집 전 값은 `dashboard_catalog_history/`에 백업된다.
 - `index.csv`, `index.md`, `scenario_table.csv`, `scenario_table.md`, `ledger.csv`, `ledger.md`, `plots/`는 실행 후 생성되는 generated output이므로 `.gitignore`에 포함한다.
 
 주요 파일:
@@ -19,7 +20,15 @@
 
 조회 도구:
 
-- `scripts/quant_dashboard.py`: Streamlit 기반 read-only 대시보드. `artifacts/`와 `experiments/`를 읽어 condition/scenario/run 단위로 비교한다.
+- `scripts/quant_dashboard.py`: 실험별 조회와 이름·목적 편집을 제공한다. 측정 데이터는 읽기 전용이며 라벨/보관 상태만 저장한다.
+- 기본 화면: `실험 보기` / `이름·보관 관리`. 사용법은 [실험 목록·라벨 관리](../docs/dashboard_experiment_management.md) 참고.
+- `실험 해석 가이드`: [B0/B1·GT·보정 조건과 그래프 해석 README](../docs/slam_experiment_guide.md)를 화면에서 읽거나 다운로드한다.
+- `Oracle Drift Correction` 탭: `artifacts/<RUN_ID>/oracle_correction`을 읽어
+  B0/B1/O-single/O-periodic 상대 drift, trajectory, map, factor와 gate를 비교한다.
+- `LiDAR Registration` 탭: `artifacts/<RUN_ID>/lidar_registration`을 읽어
+  GT-associated keyframe pair의 LiDAR 정합 전/후 오차, overlap, confidence gate,
+  R-single/R-periodic trajectory와 map을 비교한다.
+- 위 기존 탭은 `기존 상세 분석 도구`에 유지한다. 새 화면의 `LiDAR 상세`는 GT 평가 전용 N-single과 과거 GT-associated 조건을 명확히 구분한다.
 
 권장 사용 흐름:
 
@@ -31,7 +40,7 @@
 대시보드로 확인:
 
 ```bash
-python3 -m pip install -r requirements-dashboard.txt
+python3 -m pip install --target .dashboard-deps -r requirements-dashboard.txt
 ./scripts/run_quant_dashboard.sh
 ```
 
@@ -53,4 +62,4 @@ python3 scripts/quant_dashboard.py --check-data --repo-root .
 - artifact에는 `parameter_snapshot.json`과 `config_snapshots/`가 함께 남아 재현성 근거를 보강한다.
 - registry update는 `--failure-code` override를 받을 수 있지만, 기본은 artifact summary의 `failure_code`를 사용한다.
 - 기존 artifact를 다시 스캔해서 장부를 재생성하려면 `python3 scripts/update_experiment_registry.py --scan-artifacts artifacts`를 사용한다.
-- Streamlit은 read-only 조회 도구다. 논문 숫자의 원본은 `paper_metrics.json`, `summary_table.csv`, `figure_manifest.csv`로 둔다.
+- Streamlit의 이름 편집과 보관은 원본 숫자를 변경하지 않는다. 논문 숫자의 원본은 `paper_metrics.json`, 분석 `metrics.json`, `summary_table.csv`, `figure_manifest.csv`로 둔다.

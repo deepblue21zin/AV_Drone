@@ -1,0 +1,9 @@
+scenario_id,metric,direction,baseline_condition,target_condition,reference_condition,baseline_mean,target_mean,reference_mean,gap_ratio_to_reference,reference_closeness_pct
+static_obstacle_world,mission_time_s,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,148.041,133.236,101.005,0.685241,31.4759
+static_obstacle_world,actual_path_length_m,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,162.429,150.57,163.958,8.75605,-775.605
+static_obstacle_world,total_path_length_m,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,162.429,150.57,163.958,8.75605,-775.605
+static_obstacle_world,path_efficiency,higher,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,0.860033,0.929868,0.851428,9.11563,-811.563
+static_obstacle_world,min_obstacle_distance_m,higher,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,0.202292,0.2,0.2,-0,100
+static_obstacle_world,safety_event_count,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,0,2,1,-1,200
+static_obstacle_world,control_effort,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,0,476.704,409.604,-0.163817,116.382
+static_obstacle_world,pose_period_p99_s,lower,lidar_only_mppi_return,partial_map_mppi_return,partial_map_astar_return,0.0450949,0.0462926,0.0436897,1.85233,-85.2334

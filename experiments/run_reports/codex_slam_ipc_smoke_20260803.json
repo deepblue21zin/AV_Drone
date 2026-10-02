@@ -1,0 +1,163 @@
+{
+  "source_run_id": "codex_slam_ipc_smoke_20260803",
+  "title": "2-UAV 실제 SLAM·지도 정렬 수정 및 검증 보고서",
+  "status": "SLAM/FUSION SMOKE PASS",
+  "scope": "SLAM·TF·MAP FUSION",
+  "vehicles": [
+    "drone1",
+    "drone2"
+  ],
+  "executive_summary": "실제 slam_toolbox를 기본 fusion source로 전환하고, scan timestamp TF와 기체별 초기 yaw 정규화로 큰 지도 좌표 오차를 제거했다. 최종 159초 smoke에서 두 SLAM map과 2-source fusion은 정상 동작했다. 이 실험은 SLAM/fusion 검증이며 두 기체의 임무 완주 실험은 아니다.",
+  "slam_stack": {
+    "backend": "ROS 2 Humble slam_toolbox async_slam_toolbox_node",
+    "solver": "CeresSolver / SPARSE_NORMAL_CHOLESKY",
+    "sensor": "/droneN/scan (2D LaserScan, 15 Hz source)",
+    "odometry_prior": "MAVROS local_position/pose -> droneN/odom",
+    "tf_contract": "scan timestamp 기반 odom->base, slam_toolbox가 map->odom 소유",
+    "fusion_source": "slam",
+    "reference_source": "known_pose_reference (동일 run에서 병렬 저장)"
+  },
+  "changes": [
+    {
+      "영역": "분석 좌표",
+      "문제": "local trajectory를 world map 위에 그대로 그려 spawn offset만큼 불일치",
+      "원인": "artifact에 frame/transform 계약이 없고 dashboard가 x/y를 world 좌표로 간주",
+      "해결": "trajectory/world frame과 world_from_local을 기록하고 dashboard에서 SE(2) 변환",
+      "결과": "trajectory overlay가 spawn 위치를 기준으로 world geometry와 정렬"
+    },
+    {
+      "영역": "지도 yaw",
+      "문제": "작은 초기 yaw 편차가 긴 지도에서 수 m 횡방향 오차로 확대",
+      "원인": "MAVROS 첫 pose yaw는 기체마다 약 -0.048 rad인데 fusion spawn yaw는 0",
+      "해결": "제어 pose는 유지하고 SLAM/known-pose 입력에서만 첫 yaw를 0으로 정규화",
+      "결과": "known-pose reference는 두 기체 모두 월드 장애물 0.3m 이내 100%"
+    },
+    {
+      "영역": "SLAM 실행",
+      "문제": "기본 fusion이 known-pose였고 namespaced slam_toolbox 설정 적용이 불명확",
+      "원인": "manifest 기본값과 노드명 고정 YAML root",
+      "해결": "기본 fusion_source=slam, slam_toolbox YAML root를 /**로 변경",
+      "결과": "실제 scan-matching map 두 개가 fusion 입력으로 사용됨"
+    },
+    {
+      "영역": "TF 시간",
+      "문제": "Gazebo scan과 MAVROS pose clock 차이로 scan message-filter drop",
+      "원인": "epoch 계열 pose stamp와 simulation-time scan stamp 혼용",
+      "해결": "odom->base TF를 scan header timestamp에 맞춰 발행",
+      "결과": "초기 pose 준비 전 drop 이후 지속적인 TF drop 없음"
+    },
+    {
+      "영역": "멀티 UAV 토픽",
+      "문제": "planner debug/compute topic이 차량 간 섞일 가능성",
+      "원인": "단일 기체용 absolute topic 기본값 재사용",
+      "해결": "multi launch에서 모든 debug/compute topic을 vehicle-relative로 지정",
+      "결과": "각 기체 publisher/subscriber가 namespace 안에서 분리"
+    },
+    {
+      "영역": "미션 기준점",
+      "문제": "OFFBOARD 복구 때 home pose가 현재 위치로 덮어써질 수 있음",
+      "원인": "home capture가 재진입마다 실행",
+      "해결": "첫 home pose를 latch하고 이후에는 재발행만 수행",
+      "결과": "return 기준점이 실행 중 유지됨"
+    },
+    {
+      "영역": "디버깅",
+      "문제": "SLAM 오차와 좌표 오차를 같은 run에서 분리하기 어려움",
+      "원인": "선택된 map source만 artifact로 저장",
+      "해결": "SLAM run에서 known_pose_reference map도 30초 주기로 함께 저장",
+      "결과": "동일 센서·궤적으로 backend 오차를 직접 비교 가능"
+    },
+    {
+      "영역": "실험 환경",
+      "문제": "중간 격리 실험에서 /scan이 0건",
+      "원인": "임시 docker run에 Compose의 ipc: host 누락",
+      "해결": "최종 실험을 host network + host IPC + 독립 ROS_DOMAIN_ID로 실행",
+      "결과": "각 기체 scan_count 2124, SLAM map 정상 생성"
+    }
+  ],
+  "validation": [
+    {
+      "항목": "실행 시간",
+      "drone1": "159.0 s",
+      "drone2": "159.1 s",
+      "판정": "smoke window 완료"
+    },
+    {
+      "항목": "LaserScan 수신",
+      "drone1": "2124",
+      "drone2": "2124",
+      "판정": "PASS"
+    },
+    {
+      "항목": "SLAM map ready",
+      "drone1": "true",
+      "drone2": "true",
+      "판정": "PASS"
+    },
+    {
+      "항목": "월드 장애물 0.3m 이내 / 25m 구간",
+      "drone1": "SLAM 99.8%",
+      "drone2": "SLAM 89.1%",
+      "판정": "큰 좌표 오차 제거"
+    },
+    {
+      "항목": "월드 장애물 0.3m 이내 / 최종 map",
+      "drone1": "SLAM 99.9%",
+      "drone2": "SLAM 64.3%",
+      "판정": "drone2 scan-matching drift 잔존"
+    },
+    {
+      "항목": "known-pose reference / 최종 map",
+      "drone1": "100.0%",
+      "drone2": "100.0%",
+      "판정": "좌표 계약 PASS"
+    },
+    {
+      "항목": "Fusion",
+      "drone1": "active source",
+      "drone2": "active source",
+      "판정": "HEALTHY / version 155 / fallback 0"
+    },
+    {
+      "항목": "Fusion latency p95",
+      "drone1": "-",
+      "drone2": "-",
+      "판정": "27.78 ms"
+    },
+    {
+      "항목": "최종 conflict ratio",
+      "drone1": "-",
+      "drone2": "-",
+      "판정": "0.0081%"
+    }
+  ],
+  "tests": [
+    {
+      "테스트": "dashboard coordinate/report unit tests",
+      "결과": "5/5 PASS"
+    },
+    {
+      "테스트": "map fusion unit tests",
+      "결과": "4/4 PASS"
+    },
+    {
+      "테스트": "SLAM TF/yaw + home latch tests",
+      "결과": "4/4 PASS"
+    },
+    {
+      "테스트": "compileall / diff check / dashboard check-data",
+      "결과": "PASS"
+    }
+  ],
+  "remaining_risks": [
+    "drone2 SLAM 정렬률이 25m 구간 89.1%에서 최종 map 64.3%로 감소했다. 좌표계가 아니라 scan-matching drift이므로 별도 SLAM 튜닝·반복 실험이 필요하다.",
+    "실험 종료 시 입력이 끊겨 최종 slam_summary는 localization_ok=false, vehicle summary는 POSE_TIMEOUT으로 닫혔다. 실행 중 health와 종료 후 snapshot을 구분해야 한다.",
+    "drone1은 outbound goal 후 return 단계에 진입했지만 drone2는 종료 시 outbound 단계였다. 이 run으로 두 기체 임무 성공을 주장할 수 없다.",
+    "장시간·다중 seed 반복 및 source kill/fallback/recovery 자동 시험은 아직 수행하지 않았다."
+  ],
+  "notes": [
+    "정렬률은 occupancy >= 65인 점을 월드의 cylinder/wall 표면과 비교한 진단 지표다.",
+    "최종 artifact: artifacts/codex_slam_ipc_smoke_20260803",
+    "실패한 중간 artifact 3개와 임시 Docker 이미지는 정리했다."
+  ]
+}

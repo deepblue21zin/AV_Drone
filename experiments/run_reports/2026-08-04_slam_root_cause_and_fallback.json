@@ -1,0 +1,59 @@
+{
+  "source_run_id": "2026-08-04_03-00-47_slam_diag_stable_fusion_full",
+  "title": "2-UAV SLAM drift 원인 분리 및 operational fallback",
+  "status": "OPERATIONAL PASS / RAW SLAM FAIL",
+  "scope": "137 m two-UAV full run",
+  "executive_summary": "scan-matching SLAM drift가 반복 조건과 기체를 바꿔도 재발해 raw SLAM을 operational fusion에서 분리했다. 최종 run은 odometry-based 두 map을 융합해 두 목표와 전체 구간 coverage를 통과했고, raw slam_toolbox map과 TF drift는 같은 실행에서 진단 레이어로 보존했다.",
+  "vehicles": ["drone1", "drone2"],
+  "slam_stack": {
+    "raw_diagnostic": "slam_toolbox async / Karto scan matching ON",
+    "operational_map": "known_pose_mapper using normalized MAVROS local odometry + LaserScan",
+    "fusion_input": "known_pose",
+    "raw_slam_consumed_by_fusion": false,
+    "diagnostics": "map->odom TF, odom, scan timing, periodic map history"
+  },
+  "changes": [
+    {
+      "problem": "드론별 SLAM map이 trajectory에서 분리됨",
+      "cause": "slam_toolbox map->odom translation/yaw correction 누적",
+      "resolution": "TF/odom/scan recorder와 time-matched known-pose reference 추가",
+      "result": "fusion 이전 raw SLAM 단계에서 오류가 시작됨을 수치로 분리"
+    },
+    {
+      "problem": "단거리 tuning 성공이 full run에서 재현되지 않음",
+      "cause": "Karto scan response와 비페널티 graph match의 실행별 오일치",
+      "resolution": "각도/거리/near-chain/loop 조건을 한 그룹씩 실험하고 독립 full Gate 적용",
+      "result": "검증되지 않은 tuning 값을 기본 설정에 미채택"
+    },
+    {
+      "problem": "틀어진 raw SLAM이 operational fused map을 오염",
+      "cause": "fusion은 입력 map을 정상 투영하지만 source 자체가 이미 drift",
+      "resolution": "known-pose operational fusion과 raw SLAM diagnostic layer 분리",
+      "result": "goal/coverage/fusion PASS와 raw SLAM FAIL을 동시에 관측 가능"
+    }
+  ],
+  "validation": [
+    {"metric": "drone1 goal 137 m", "value": "PASS", "gate": "goal_reached=True"},
+    {"metric": "drone2 goal 137 m", "value": "PASS", "gate": "goal_reached=True"},
+    {"metric": "fused observed world x", "value": "-0.05~147.65 m", "gate": "map end coverage"},
+    {"metric": "fusion HEALTHY samples", "value": 430, "gate": "two active sources"},
+    {"metric": "fusion fallback", "value": 0, "gate": "0 expected"},
+    {"metric": "raw SLAM alignment drone1", "value": "40.6%", "gate": ">=80% (FAIL)"},
+    {"metric": "raw SLAM alignment drone2", "value": "29.3%", "gate": ">=80% (FAIL)"}
+  ],
+  "tests": [
+    {"name": "diagnostic/analyzer/dashboard unit tests", "result": "PASS"},
+    {"name": "launch Python compile + YAML/bash validation", "result": "PASS"},
+    {"name": "baseline repeat/lane swap/scan matching OFF matrix", "result": "COMPLETE"},
+    {"name": "137 m stable operational fusion full run", "result": "PASS"}
+  ],
+  "remaining_risks": [
+    "Operational map은 scan-matching SLAM이 아니라 MAVROS local odometry 기반이다.",
+    "실기에서 local odometry가 drift하면 현재 fallback map도 함께 drift한다.",
+    "raw SLAM을 fusion source로 되돌리려면 독립 반복 full run의 정렬률 Gate를 먼저 통과해야 한다."
+  ],
+  "notes": [
+    "Streamlit SLAM & Fusion Debug 탭은 실제 fusion input과 raw SLAM diagnostic을 별도 레이어로 표시한다.",
+    "상세 보고서: experiments/run_reports/2026-08-04_slam_root_cause_and_fallback.md"
+  ]
+}
