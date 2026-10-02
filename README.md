@@ -415,7 +415,7 @@ Streamlit 대시보드는 이 파일들을 읽어서 condition, scenario, run �
 처음 한 번만 의존성을 설치합니다.
 
 ```bash
-python3 -m pip install -r requirements-dashboard.txt
+python3 -m pip install --target .dashboard-deps -r requirements-dashboard.txt
 ```
 
 대시보드 실행:
@@ -439,16 +439,23 @@ python3 scripts/quant_dashboard.py --check-data --repo-root .
 주의:
 
 - 대시보드는 실험 데이터를 수정하지 않습니다.
+- `Oracle Drift Correction` 탭은 `artifacts/<RUN_ID>/oracle_correction`의
+  조건별 상대 drift, trajectory, map, factor와 gate를 표시합니다.
+- `LiDAR Registration` 탭은 `artifacts/<RUN_ID>/lidar_registration`의
+  GT-associated pair별 서브맵 정합, confidence/rejection 사유,
+  R-single/R-periodic PGO 결과를 표시합니다.
 - 논문에 들어갈 최종 숫자는 `paper_metrics.json`, `experiments/paper_outputs/summary_table.csv`, `experiments/paper_outputs/figure_manifest.csv`를 기준으로 관리합니다.
 - 자세한 실험 설계는 [gap_vs_mppi_quantification_plan.md](/home/deepblue/AV_Drone/docs/gap_vs_mppi_quantification_plan.md)를 봅니다.
 
 ## 10. 문서
 
+- 용량 보호·자동 종료 실행: [guarded_simulation.md](docs/guarded_simulation.md) — 새 실험은 `scripts/run_guarded_experiment.py` 사용 권장. 기존 컨테이너 자동 재생성 없음.
 - 구조 설명: [architecture.md](/home/deepblue/AV_Drone/docs/architecture.md)
 - 명령어 치트시트: [command-reference.md](/home/deepblue/AV_Drone/docs/command-reference.md)
 - Docker 명세: [docker-environment-spec.md](/home/deepblue/AV_Drone/docs/docker-environment-spec.md)
 - HTML 대시보드: [project_command_center.html](/home/deepblue/AV_Drone/docs/project_command_center.html)
 - Gap vs MPPI 정량화 계획: [gap_vs_mppi_quantification_plan.md](/home/deepblue/AV_Drone/docs/gap_vs_mppi_quantification_plan.md)
 - 실험 기록 규칙: [experiment_recording_policy.md](/home/deepblue/AV_Drone/docs/experiment_recording_policy.md)
+- 70m LiDAR drift 보정 결과: [lidar_phase2_70m_experiment.md](/home3/deepblue/work/AV_Drone/docs/lidar_phase2_70m_experiment.md)
 - 변경 로그: [docs/change/README.md](/home/deepblue/AV_Drone/docs/change/README.md)
 - 장애 보고서: [docs/error/index.html](/home/deepblue/AV_Drone/docs/error/index.html)

@@ -5,6 +5,12 @@
 > 기준 커밋: `0ecd3a2` (`Implement two-UAV known-pose map fusion`)
 > 조사 범위: 저장소 소스·설정·Git 변경 상태·실행 중 Docker/ROS 그래프·누적 artifact·실험 집계·로컬 테스트
 
+> 구현 업데이트: 2026-08-03 21:40 KST 기준 2-UAV 기본 `fusion_source`를 `slam`으로 전환하고 known-pose mapper는 비교 기준으로 병렬 유지한다. scan timestamp 기반 odom TF, 기체별 최초 MAVROS yaw 정규화, 차량별 debug topic 격리, local→world 분석 좌표 변환을 적용했다. 이어 137 m 전체 구간 run에서 각 SLAM과 fused map을 30초 간격 17회 저장하고 Streamlit에 시간별 입력·변환·융합·충돌 디버그 탭을 추가했다. 최종 fused map은 world x=149.95 m까지 관측했고 fusion은 517 sample `HEALTHY`, fallback 0이었다. 반면 장거리 최종 정렬률은 drone1 77.49%, drone2 29.46%로 하락했고 두 기체 모두 goal overshoot 후 미도달했으므로 map coverage만 PASS, mission은 FAIL로 분리 판정한다. 아래 Git/런타임 표는 17:10 당시의 조사 스냅샷으로 남긴다.
+
+> 최신 검증: 2026-08-03 23:31 KST에 `2026-08-03_23-19-03_two_uav_slam_fusion_goal_capture`를 완료했다. 목표 8 m 안에서 LiDAR 진행 방향 여유가 있을 때만 0.30 m/s 직접 접근하는 최소 goal-capture 보정을 추가했고, drone1은 388.67 s(최소 오차 0.157 m), drone2는 405.19 s(0.107 m)에 각각 `HOVER_AT_GOAL`로 종료했다. 두 `slam_toolbox` map과 중앙 fused map은 30초 간격 14회 저장됐고 fused 관측 범위는 world x=-0.15~146.35 m, mission 중 fusion은 두 source 모두 active인 `HEALTHY`였다. 다만 known-pose reference 0.3 m 이내 최종 SLAM occupied cell 비율은 drone1 14.33%, drone2 38.40%로 장거리 drift가 크다. 따라서 이번 결과는 **목표 임무 PASS / SLAM 생성·융합 동작 PASS / 장거리 지도 정렬 품질 FAIL**로 판정한다.
+
+> 2026-08-04 원인 분리 및 fallback 검증: baseline 반복, lane swap, scan matching OFF, 각도/거리 penalty, near-chain, loop closure를 분리해 실행했다. OFF 대조군만 99.1%/99.5% 정렬을 보였고, ON tuning은 단·중거리 성공 뒤 독립 full 반복에서 다시 실패했다. `2026-08-04_03-00-47_slam_diag_stable_fusion_full`부터 기본 operational fusion은 정규화 MAVROS odometry 기반 `known_pose` map을 사용하고 raw `slam_toolbox`는 병렬 진단 레이어로 보존한다. 두 드론은 137 m 목표에 도달했고 fused 관측 범위는 world x=-0.05~147.65 m, fusion은 430 sample `HEALTHY`/fallback 0이었다. 같은 run의 raw SLAM 정렬률은 40.6%/29.3%로 FAIL이므로 현재 상태를 **odometry map fusion PASS / raw scan-matching SLAM FAIL**로 명시한다. 상세 근거는 `experiments/run_reports/2026-08-04_slam_root_cause_and_fallback.md`에 있다.
+
 이 문서는 “계획상 무엇을 하려는가”만 적은 문서가 아니다. 현재 저장소에 실제로 들어 있는 코드, 아직 커밋되지 않은 수정, 지금 실행 중인 프로세스, 과거 실행 결과를 서로 대조해 다음 네 가지를 구분한다.
 
 - **구현 완료**: 코드가 있고 최소 단위 검증 또는 실행 근거가 있다.
@@ -20,9 +26,9 @@
 
 그러나 현재를 “2대 드론 협업 자율주행 완성” 상태라고 부르면 안 된다. 가장 정확한 표현은 다음과 같다.
 
-> **2-UAV known-pose map-fusion 연구용 plumbing과 장시간 융합 실행 근거는 확보했지만, 실제 SLAM localization의 신뢰성, 두 기체의 정상 임무 완주, global map을 사용하는 A*–MPPI 연결, 드론 간 충돌 회피, 4대 확장은 아직 완료되지 않았다.**
+> **2-UAV 실제 SLAM map-fusion과 각 기체의 지정 목표 도달을 한 차례 함께 성공했고, 드론별 색상·시작점·선택 시점 위치·목표점·융합 영역을 Streamlit에서 시간순으로 디버깅할 수 있다. 다만 장거리 SLAM drift는 여전히 크며, 반복 신뢰성, global map을 사용하는 A*–MPPI 연결, 드론 간 충돌 회피, 4대 확장은 아직 완료되지 않았다.**
 
-현재 가장 큰 차이는 “맵이 합쳐지는가”와 “합쳐진 맵을 이용해 전체 임무를 안정적으로 성공하는가” 사이에 있다. 전자는 상당 부분 구현되었고 artifact도 남아 있다. 후자는 최신 장시간 실행에서 두 기체 모두 정상 성공으로 끝나지 않았으므로 아직 연구 과제다.
+현재 가장 큰 차이는 “맵 데이터가 합쳐지는가”와 “합쳐진 맵이 실제 월드와 충분히 정렬돼 항법에 사용 가능한가” 사이에 있다. 전자는 구현되어 artifact가 남고 목표 임무도 최신 단일 run에서는 성공했다. 후자는 장거리 drift 때문에 아직 만족하지 못했으며, 단일 성공 run만으로 반복 신뢰성을 주장할 수도 없다.
 
 ### 현재 성숙도 요약
 
@@ -34,7 +40,7 @@
 | 2-UAV PX4/MAVROS 분리 | 부분 완료 | instance/SYSID/port/namespace 설계와 실행 스크립트가 있으나 현재 launcher 교체가 미커밋 상태 |
 | 드론별 local map | 부분 완료 | known-pose mapper와 `slam_toolbox`가 병렬 실행되도록 구성됨 |
 | known-pose map fusion | 구현 및 실행 근거 있음 | `drone_map_fusion`, 단위 테스트 4개 통과, 장시간 `HEALTHY` artifact 존재 |
-| 실제 scan-matching SLAM | 불안정/미검증 | 최신 장시간 artifact에서 두 기체 모두 `map_ready=true`이지만 `localization_ok=false` |
+| 실제 scan-matching SLAM | 장시간 동작 검증, 품질 미달 | 두 map, fusion 입력, known-pose 동시 reference를 420 s 이상 저장했으나 최종 0.3 m 정렬률 14.33%/38.40%로 drift 튜닝 필요 |
 | fusion fallback | 코드 구현, 제한적 실행 근거 | stale source 제외 및 `LOCAL_ONLY_FALLBACK` 상태 구현, 일부 artifact에 fallback 1회 기록 |
 | global map 기반 A* | 미연결 | A* 관련 코드는 있으나 `/swarm/global_map` 소비 파이프라인은 현재 launch에 없음 |
 | Global A* + Local MPPI | 미구현 | 설계 문서의 다음 핵심 Gate |
@@ -250,6 +256,7 @@ MAVROS pose/state + planner/safety/mission topics
 ├─ slam/slam_toolbox
 ├─ slam_health
 ├─ map_artifact_recorder
+├─ known_pose_reference_recorder (`fusion_source=slam`일 때)
 ├─ lidar_obstacle
 ├─ local_planner
 ├─ safety_monitor
@@ -260,16 +267,16 @@ MAVROS pose/state + planner/safety/mission topics
 중앙에는 한 개의 `map_fusion` 노드가 있다.
 
 ```text
-/drone1/mapping/known_pose_map ─┐
-                               ├─ map_fusion ─> /swarm/global_map
-/drone2/mapping/known_pose_map ─┘             ├> /swarm/map_version
-                                              └> /swarm/fusion_status
+/drone1/{slam/map | mapping/known_pose_map} ─┐
+                                            ├─ map_fusion ─> /swarm/global_map
+/drone2/{slam/map | mapping/known_pose_map} ─┘             ├> /swarm/map_version
+                                                           └> /swarm/fusion_status
 ```
 
 launch argument `fusion_source`에 따라 입력을 바꿀 수 있다.
 
-- `known_pose`: deterministic baseline mapper 사용; 현재 기본값
-- `slam`: `slam_toolbox`의 scan-matching map 사용; 비교 실험용
+- `slam`: `slam_toolbox`의 scan-matching map 사용; 현재 기본값
+- `known_pose`: deterministic reference/baseline mapper 사용; A/B 디버깅용
 
 두 mapper는 동시에 실행되므로 source만 바꿔도 센서·비행 trajectory baseline을 유지하려는 설계다.
 
@@ -292,7 +299,7 @@ swarm_map
 | `droneN/odom -> droneN/base_link` | `pose_odom_tf` |
 | `droneN/base_link -> droneN/lidar_link` | static transform publisher |
 
-이 구조에서 가장 위험한 문제는 동일 transform의 multiple authority와 서로 다른 clock domain이다. 현재 미커밋 TF timestamp 수정은 후자를 해결하는 작업이다.
+이 구조에서 가장 위험한 문제는 동일 transform의 multiple authority, 서로 다른 clock domain, 기체별 MAVROS 초기 yaw 편차다. multi launch는 `pose_odom_tf`가 scan timestamp에 맞춰 `odom -> base_link`를 발행하고 첫 pose의 yaw를 SLAM 입력에서만 0으로 정규화한다. 제어기는 원본 MAVROS pose를 계속 사용한다. 최종 smoke run에서는 pose 수신 전 startup drop 이후 지속적인 message-filter drop이 없었다.
 
 ---
 
@@ -306,7 +313,7 @@ swarm_map
 | `drone_planning` | reactive local planner, A* global planner 코드 | reactive planner가 active. global planner와 swarm map의 정식 통합은 미완료 |
 | `drone_safety` | pose/scan/planner timeout 및 emergency stop | 기본 fail-safe 존재. peer collision, global map stale 계층은 없음 |
 | `drone_metrics` | trajectory, phase, summary, event, config snapshot | 재현성 기반이 좋지만 장시간 로그 폭증과 metric integrity 문제가 드러남 |
-| `drone_slam` | pose→odom/TF, known-pose mapper, SLAM health, map 저장 | 멀티 mapping 기반은 구현. 실제 `slam_toolbox` localization은 최신 run에서 불량 |
+| `drone_slam` | pose→odom/TF, known-pose mapper, SLAM health, map 저장 | 멀티 mapping 기반과 실제 SLAM source smoke 검증 완료. 장시간 반복 품질 평가는 남아 있음 |
 | `drone_map_fusion` | local grid 투영, weighted fusion, conflict/stale 상태, summary | Gate C의 중심. 단위 테스트 및 장시간 실행 근거 있음 |
 | `mppi` | known-world MPPI 및 flight wrapper | 기존 단일 UAV 연구 자산. swarm global path follower로는 아직 분리/연결되지 않음 |
 | `mppi_lidar` | LiDAR 직접 사용 MPPI 실험 구현 | 별도 독립 경로. 공통 planner contract와 통합 필요 |
@@ -464,8 +471,11 @@ artifacts/2026-08-03_03-51-08_swarm_random_live_tf/
 |---|---|---|
 | Python AST parse | 84개 Python 파일 통과 | 현재 source에 문법 오류는 발견되지 않음 |
 | map fusion unit test | 4개 모두 통과 | translation, rotation, unknown 보존, conflict, invalid input 검증 |
-| 전체 `pytest` | 실행 불가 | 현재 host Python environment에 `pytest`가 없음 |
-| `compileall` | 일부 실패 | 코드 문법이 아니라 root 소유 `__pycache__`에 쓸 권한이 없어 실패 |
+| dashboard 좌표·보고서 단위 테스트 | 5개 모두 통과 | metadata/manifest transform, local→world 변환, run report 로딩 검증 |
+| SLAM TF/home latch 단위 테스트 | 4개 모두 통과 | scan timestamp TF, 중복 stamp 거절, 초기 yaw 정규화, home 재획득 방지 검증 |
+| 최종 2-UAV smoke | 통과 | 두 SLAM map ready/localization OK, fusion `HEALTHY`, active source 2, fallback 0, known-pose reference 동시 저장 |
+| host 전체 `pytest` | 실행 불가 | host 환경에는 ROS 2 Python message package가 없어 ROS 단위 테스트는 ROS container에서 실행 |
+| `compileall` | 통과 | 별도 pycache 경로를 사용해 수정된 Python source 문법 검증 |
 | Docker container 상태 | 확인 | sim/ros 컨테이너 Up |
 | live swarm fusion topic | 현재 없음 | 전체 launch가 실행되지 않은 시점이므로 정상적인 대기 상태 |
 
@@ -508,9 +518,9 @@ artifacts/2026-08-03_03-51-08_swarm_random_live_tf/
 - escape state rate-limit과 stuck detector
 - outbound/return phase별 성공 조건 재검증
 
-### P0. 실제 SLAM localization 불안정
+### P0. 실제 SLAM localization 장시간 품질 미검증
 
-두 기체 모두 `map_ready=true`, `localization_ok=false`다. 현재 기본 fusion source가 known-pose mapper이므로 global map은 만들어져도 실제 scan-matching SLAM이 성공했다는 뜻은 아니다.
+17:10 기준 장시간 artifact에서는 두 기체 모두 `map_ready=true`, `localization_ok=false`였다. 이후 기본 fusion source를 SLAM으로 전환하고 timestamp 및 초기 yaw 경로를 수정했다. 최종 격리 smoke에서는 두 기체 모두 `map_ready=true`, `localization_ok=true`였고 2-source fusion도 `HEALTHY`였다. 같은 런의 known-pose reference는 월드 장애물과 두 기체 모두 100%가 0.3 m 이내였지만, SLAM은 drone1 99.8%, drone2 89.1%였다. 즉 큰 좌표계 오차는 수정됐고, drone2의 작은 scan-matching drift와 장시간 반복 품질은 남아 있다.
 
 필요 조치:
 
@@ -681,14 +691,28 @@ artifacts/2026-08-03_03-51-08_swarm_random_live_tf/
 
 목표: spawn pose를 fusion 입력으로 직접 사용하지 않고 local map 상대 transform을 추정한다.
 
+2026-08-26 설계 결정:
+
+- 통신 연결 또는 map 전달 자체를 drift 보정으로 간주하지 않는다.
+- 일자 환경의 주 경로는 full-grid ICP가 아니라 `inter-UAV relative constraint + joint pose graph`다.
+- 두 기체의 완전한 왕복 loop 대신 시작/중간/목표 anchor의 짧은 active rendezvous로 공통 제약을
+  만든다.
+- 전체 OccupancyGrid에 transform 하나를 적용하는 현재 방식은 fixed-transform baseline으로
+  유지하고, cooperative SLAM은 keyframe/frozen submap pose를 보정한 뒤 global map을 다시 만든다.
+- 현재 중앙 fusion 구조와의 구체적인 message contract, 상태 머신, C0~C5 구현 Gate는
+  [`docs/communication-assisted-multi-uav-map-stitching.md`](docs/communication-assisted-multi-uav-map-stitching.md)를
+  따른다.
+
 권장 순서:
 
-1. OccupancyGrid edge/distance transform
-2. coarse rotation/translation candidate
-3. ICP refinement
-4. overlap/RMSE/inlier 평가
-5. 연속 confidence gate
-6. known-pose transform과 오차 평가
+1. keyframe/submap/odometry 통신 contract와 timestamp audit
+2. synthetic range+bearing 또는 실제 상대 센서 adapter
+3. inter-UAV constraint의 time/geometric/outlier gate
+4. centralized SE(2) pose graph와 transform revision
+5. optimized frozen submap 재투영
+6. 일자 구간 active rendezvous
+7. LiDAR place/ICP는 보조 후보와 refinement로 사용
+8. known-pose transform과 오차 평가
 
 중요 원칙:
 
@@ -737,7 +761,7 @@ artifacts/2026-08-03_03-51-08_swarm_random_live_tf/
 - [ ] Gate A/B/C 자동 판정 JSON 생성
 - [ ] source kill/fallback/recovery test 자동화
 - [ ] `fusion_source=known_pose` 5회 반복 성공
-- [ ] `fusion_source=slam` timestamp/TF 문제 해결
+- [x] `fusion_source=slam` timestamp/TF smoke 문제 해결
 - [ ] README와 roadmap 상태 동기화
 
 ### 다음 2~4주

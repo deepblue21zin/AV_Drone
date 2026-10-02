@@ -484,7 +484,40 @@ replanning:
 
 드론의 초기 상대 위치를 주지 않고 각 local map의 상대 회전·이동을 추정하여 병합한다.
 
-### 처리 단계
+> 2026-08-26 설계 보완: 일자·반복 환경에서는 전체 OccupancyGrid끼리의 coarse alignment와
+> ICP만으로 transform을 결정하지 않는다. 통신은 데이터 전달 계층일 뿐이며, 실제 drift 보정은
+> odometry/keyframe 교환과 공통 장소 또는 직접 상대 센싱으로 생성한 `inter-UAV constraint`를
+> joint pose graph에 추가해 수행한다. 또한 전체 map에 transform 하나만 적용하면 구간별 누적
+> drift를 고칠 수 없으므로 frozen submap pose를 최적화한 뒤 global grid를 재투영한다. 상세
+> 설계와 구현 Gate는
+> [`docs/communication-assisted-multi-uav-map-stitching.md`](docs/communication-assisted-multi-uav-map-stitching.md)를
+> 기준으로 한다.
+
+### 일자 환경의 우선 처리 경로
+
+```text
+local odometry + keyframe/submap 공유
+        ↓
+direct relative observation 또는 inter-UAV place match
+        ↓
+time/geometric/outlier gate
+        ↓
+central SE(2) pose graph
+        ↓
+optimized submap poses + transform revision
+        ↓
+global OccupancyGrid 재투영
+```
+
+단순 map 통신, 낮은 overlap의 rigid ICP, 단발 상대 측정만으로 registration confidence를
+`VERIFIED`로 올리지 않는다. 공통 관측이 자연스럽게 생기지 않는 현재 137 m 평행 lane에서는
+중간 anchor에서 hover와 짧은 상대 운동을 수행하는 active rendezvous를 사용한다.
+
+### 보조 LiDAR place-registration 단계
+
+아래 grid/image 정합은 inter-UAV constraint의 **후보 생성과 refinement**로 사용한다. 직접 상대
+센서가 없고 두 submap에 충분한 고유 overlap이 있을 때만 독립 제약으로 승격하며, 반복 일자
+환경에서는 pose-graph consistency와 연속 검증 없이 단독으로 global transform을 확정하지 않는다.
 
 ```text
 OccupancyGrid A + OccupancyGrid B
