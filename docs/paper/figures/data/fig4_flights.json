@@ -1,0 +1,98 @@
+[
+ {
+  "world": "a1",
+  "zi": 0,
+  "type": "RU",
+  "same": 7,
+  "usable": 6,
+  "predAlias": 0.68,
+  "predAlpha": 0.3,
+  "b0": 16.1,
+  "corr": 6.7,
+  "selected_correct": true
+ },
+ {
+  "world": "a1",
+  "zi": 1,
+  "type": "RR",
+  "same": 6,
+  "usable": 2,
+  "predAlias": 0.94,
+  "predAlpha": 0.29,
+  "b0": 14.8,
+  "corr": 4.9,
+  "selected_correct": false
+ },
+ {
+  "world": "a2",
+  "zi": 0,
+  "type": "RR",
+  "same": 7,
+  "usable": 3,
+  "predAlias": 0.91,
+  "predAlpha": 0.28,
+  "b0": 14.0,
+  "corr": 5.2,
+  "selected_correct": true
+ },
+ {
+  "world": "a2",
+  "zi": 1,
+  "type": "RU",
+  "same": 5,
+  "usable": 3,
+  "predAlias": 0.67,
+  "predAlpha": 0.31,
+  "b0": 12.8,
+  "corr": 2.9,
+  "selected_correct": true
+ },
+ {
+  "world": "a3",
+  "zi": 0,
+  "type": "RU",
+  "same": 6,
+  "usable": 5,
+  "predAlias": 0.64,
+  "predAlpha": 0.31,
+  "b0": 13.0,
+  "corr": 1.7,
+  "selected_correct": true
+ },
+ {
+  "world": "a3",
+  "zi": 1,
+  "type": "RR",
+  "same": 7,
+  "usable": 5,
+  "predAlias": 0.92,
+  "predAlpha": 0.32,
+  "b0": 14.6,
+  "corr": 3.7,
+  "selected_correct": false
+ },
+ {
+  "world": "a4",
+  "zi": 0,
+  "type": "RR",
+  "same": 8,
+  "usable": 3,
+  "predAlias": 0.97,
+  "predAlpha": 0.35,
+  "b0": 19.1,
+  "corr": 13.9,
+  "selected_correct": false
+ },
+ {
+  "world": "a4",
+  "zi": 1,
+  "type": "RU",
+  "same": 6,
+  "usable": 5,
+  "predAlias": 0.72,
+  "predAlpha": 0.24,
+  "b0": 12.3,
+  "corr": 5.1,
+  "selected_correct": true
+ }
+]

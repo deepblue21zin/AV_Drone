@@ -1,0 +1,158 @@
+{
+ "repeated|fixed6": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.3707,
+   "usable": 0.6122,
+   "n": 410
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.3512,
+   "usable": 0.6171,
+   "n": 410
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.3171,
+   "usable": 0.6488,
+   "n": 410
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.2171,
+   "usable": 0.639,
+   "n": 410
+  }
+ ],
+ "repeated|k3": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.0098,
+   "usable": 0.978,
+   "n": 410
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.0415,
+   "usable": 0.9415,
+   "n": 410
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.3171,
+   "usable": 0.6488,
+   "n": 410
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.2171,
+   "usable": 0.639,
+   "n": 410
+  }
+ ],
+ "repeated|k2": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.0098,
+   "usable": 0.978,
+   "n": 410
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.0073,
+   "usable": 0.978,
+   "n": 410
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.1537,
+   "usable": 0.8268,
+   "n": 410
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.2171,
+   "usable": 0.639,
+   "n": 410
+  }
+ ],
+ "unique|fixed6": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.0158,
+   "usable": 0.8763,
+   "n": 380
+  }
+ ],
+ "unique|k3": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.0158,
+   "usable": 0.8763,
+   "n": 380
+  }
+ ],
+ "unique|k2": [
+  {
+   "sigma": 0.5,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 1.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 2.0,
+   "accepted_wrong": 0.0,
+   "usable": 1.0,
+   "n": 380
+  },
+  {
+   "sigma": 4.0,
+   "accepted_wrong": 0.0158,
+   "usable": 0.8763,
+   "n": 380
+  }
+ ]
+}
