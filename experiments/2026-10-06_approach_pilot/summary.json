@@ -1,0 +1,109 @@
+{
+ "date": "2026-10-06",
+ "runs": [
+  {
+   "run": "20261006T130504Z_2106d547f3eb",
+   "world": "p1",
+   "approach": "RU",
+   "dip": [
+    24,
+    36
+   ],
+   "d2_slam_err_30m": 0.67,
+   "d1_slam_err_30m": 0.54,
+   "cands": 5,
+   "same": 2,
+   "usable": 2,
+   "alias": 0,
+   "alias_pass": 0,
+   "wrong_pass": 0
+  },
+  {
+   "run": "20261006T131426Z_501c3973fdee",
+   "world": "p1",
+   "approach": "RR",
+   "dip": [
+    54,
+    66
+   ],
+   "d2_slam_err_30m": 0.56,
+   "d1_slam_err_30m": 0.49,
+   "cands": 0,
+   "same": 0,
+   "usable": 0,
+   "alias": 0,
+   "alias_pass": 0,
+   "wrong_pass": 0
+  },
+  {
+   "run": "20261006T133357Z_96420ab34b65",
+   "world": "p2",
+   "approach": "RU",
+   "dip": [
+    24,
+    36
+   ],
+   "d2_slam_err_30m": 2.91,
+   "d1_slam_err_30m": 0.93,
+   "cands": 15,
+   "same": 8,
+   "usable": 8,
+   "alias": 0,
+   "alias_pass": 0,
+   "wrong_pass": 1
+  },
+  {
+   "run": "20261006T134319Z_7498cdc35ce0",
+   "world": "p2",
+   "approach": "RR",
+   "dip": [
+    54,
+    66
+   ],
+   "d2_slam_err_30m": 3.49,
+   "d1_slam_err_30m": 0.8,
+   "cands": 19,
+   "same": 10,
+   "usable": 0,
+   "alias": 0,
+   "alias_pass": 0,
+   "wrong_pass": 1
+  },
+  {
+   "run": "20261006T140209Z_e090fc910ca2",
+   "world": "p3",
+   "approach": "RU",
+   "dip": [
+    24,
+    36
+   ],
+   "d2_slam_err_30m": 0.49,
+   "d1_slam_err_30m": 0.96,
+   "cands": 11,
+   "same": 7,
+   "usable": 7,
+   "alias": 0,
+   "alias_pass": 0,
+   "wrong_pass": 0
+  },
+  {
+   "run": "20261006T141136Z_fd45d0ff37e8",
+   "world": "p3",
+   "approach": "RR",
+   "dip": [
+    54,
+    66
+   ],
+   "d2_slam_err_30m": 0.36,
+   "d1_slam_err_30m": 0.86,
+   "cands": 19,
+   "same": 8,
+   "usable": 4,
+   "alias": 2,
+   "alias_pass": 0,
+   "wrong_pass": 0
+  }
+ ],
+ "same_place": "GT-aligned overlap >= 0.5 (0.6 m radius)",
+ "alias": "wrong same-place match with 3.0-5.5 m error (repeat period 4 m)"
+}

@@ -1,0 +1,202 @@
+[
+ {
+  "run": "20261006T154318Z_63257987209c",
+  "world": "a1",
+  "zi": 0,
+  "type": "RU",
+  "label": "a1 \u00b7 \uad6c\uac04 1 \u00b7 \uc720\uc77c",
+  "same": 7,
+  "usable": 6,
+  "alias": 0,
+  "aliasPass": 0,
+  "predAlias": 0.68,
+  "predAlpha": 0.3,
+  "pred": "safe",
+  "b0": 16.1,
+  "corr": 6.7,
+  "ie": 1.3,
+  "sel": [
+   {
+    "pair": 28,
+    "correct": true,
+    "err": 0.2,
+    "gt_overlap": 0.77
+   }
+  ]
+ },
+ {
+  "run": "20261006T155243Z_72d48e938d8c",
+  "world": "a1",
+  "zi": 1,
+  "type": "RR",
+  "label": "a1 \u00b7 \uad6c\uac04 2 \u00b7 \ubc18\ubcf5",
+  "same": 6,
+  "usable": 2,
+  "alias": 1,
+  "aliasPass": 0,
+  "predAlias": 0.94,
+  "predAlpha": 0.29,
+  "pred": "risky",
+  "b0": 14.8,
+  "corr": 4.9,
+  "ie": 3.2,
+  "sel": [
+   {
+    "pair": 32,
+    "correct": false,
+    "err": 4.22,
+    "gt_overlap": 0.41
+   }
+  ]
+ },
+ {
+  "run": "20261006T160059Z_628e946fdbb5",
+  "world": "a2",
+  "zi": 0,
+  "type": "RR",
+  "label": "a2 \u00b7 \uad6c\uac04 1 \u00b7 \ubc18\ubcf5",
+  "same": 7,
+  "usable": 3,
+  "alias": 3,
+  "aliasPass": 0,
+  "predAlias": 0.91,
+  "predAlpha": 0.28,
+  "pred": "risky",
+  "b0": 14.0,
+  "corr": 5.2,
+  "ie": 1.1,
+  "sel": [
+   {
+    "pair": 34,
+    "correct": true,
+    "err": 0.2,
+    "gt_overlap": 0.81
+   }
+  ]
+ },
+ {
+  "run": "20261006T161026Z_f95aee6e02f6",
+  "world": "a2",
+  "zi": 1,
+  "type": "RU",
+  "label": "a2 \u00b7 \uad6c\uac04 2 \u00b7 \uc720\uc77c",
+  "same": 5,
+  "usable": 3,
+  "alias": 0,
+  "aliasPass": 0,
+  "predAlias": 0.67,
+  "predAlpha": 0.31,
+  "pred": "safe",
+  "b0": 12.8,
+  "corr": 2.9,
+  "ie": 2.5,
+  "sel": [
+   {
+    "pair": 38,
+    "correct": true,
+    "err": 0.22,
+    "gt_overlap": 0.75
+   }
+  ]
+ },
+ {
+  "run": "20261006T161900Z_2da82440a668",
+  "world": "a3",
+  "zi": 0,
+  "type": "RU",
+  "label": "a3 \u00b7 \uad6c\uac04 1 \u00b7 \uc720\uc77c",
+  "same": 6,
+  "usable": 5,
+  "alias": 0,
+  "aliasPass": 0,
+  "predAlias": 0.64,
+  "predAlpha": 0.31,
+  "pred": "safe",
+  "b0": 13.0,
+  "corr": 1.7,
+  "ie": 0.8,
+  "sel": [
+   {
+    "pair": 36,
+    "correct": true,
+    "err": 0.45,
+    "gt_overlap": 0.74
+   }
+  ]
+ },
+ {
+  "run": "20261006T162829Z_d81751705a09",
+  "world": "a3",
+  "zi": 1,
+  "type": "RR",
+  "label": "a3 \u00b7 \uad6c\uac04 2 \u00b7 \ubc18\ubcf5",
+  "same": 7,
+  "usable": 5,
+  "alias": 2,
+  "aliasPass": 0,
+  "predAlias": 0.92,
+  "predAlpha": 0.32,
+  "pred": "risky",
+  "b0": 14.6,
+  "corr": 3.7,
+  "ie": 3.0,
+  "sel": [
+   {
+    "pair": 7,
+    "correct": false,
+    "err": 4.04,
+    "gt_overlap": 0.47
+   }
+  ]
+ },
+ {
+  "run": "20261006T163643Z_be8ca77ebe3d",
+  "world": "a4",
+  "zi": 0,
+  "type": "RR",
+  "label": "a4 \u00b7 \uad6c\uac04 1 \u00b7 \ubc18\ubcf5",
+  "same": 8,
+  "usable": 3,
+  "alias": 3,
+  "aliasPass": 3,
+  "predAlias": 0.97,
+  "predAlpha": 0.35,
+  "pred": "risky",
+  "b0": 19.1,
+  "corr": 13.9,
+  "ie": 1.0,
+  "sel": [
+   {
+    "pair": 19,
+    "correct": false,
+    "err": 3.85,
+    "gt_overlap": 0.75
+   }
+  ]
+ },
+ {
+  "run": "20261006T164611Z_1ff0455b42b1",
+  "world": "a4",
+  "zi": 1,
+  "type": "RU",
+  "label": "a4 \u00b7 \uad6c\uac04 2 \u00b7 \uc720\uc77c",
+  "same": 6,
+  "usable": 5,
+  "alias": 0,
+  "aliasPass": 0,
+  "predAlias": 0.72,
+  "predAlpha": 0.24,
+  "pred": "safe",
+  "b0": 12.3,
+  "corr": 5.1,
+  "ie": 1.6,
+  "sel": [
+   {
+    "pair": 39,
+    "correct": true,
+    "err": 0.33,
+    "gt_overlap": 0.68
+   }
+  ]
+ }
+]

@@ -1,0 +1,554 @@
+[
+ {
+  "run": "20261006T130504Z_2106d547f3eb",
+  "label": "p1 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 6,
+  "zone": "RU",
+  "same": true,
+  "d1x": 20.9
+ },
+ {
+  "run": "20261006T130504Z_2106d547f3eb",
+  "label": "p1 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 7,
+  "zone": "outside",
+  "same": false,
+  "d1x": 14.85
+ },
+ {
+  "run": "20261006T130504Z_2106d547f3eb",
+  "label": "p1 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 12,
+  "zone": "RU",
+  "same": false,
+  "d1x": 33.02
+ },
+ {
+  "run": "20261006T130504Z_2106d547f3eb",
+  "label": "p1 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 15,
+  "zone": "RU",
+  "same": true,
+  "d1x": 26.97
+ },
+ {
+  "run": "20261006T130504Z_2106d547f3eb",
+  "label": "p1 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 17,
+  "zone": "RU",
+  "same": false,
+  "d1x": 39.05
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 9,
+  "zone": "RU",
+  "same": false,
+  "d1x": 15.01
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 10,
+  "zone": "RU",
+  "same": false,
+  "d1x": 15.01
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 11,
+  "zone": "RU",
+  "same": true,
+  "d1x": 20.87
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 12,
+  "zone": "RU",
+  "same": true,
+  "d1x": 32.81
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 13,
+  "zone": "RU",
+  "same": false,
+  "d1x": 20.87
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 14,
+  "zone": "RU",
+  "same": false,
+  "d1x": 38.64
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 16,
+  "zone": "RU",
+  "same": true,
+  "d1x": 32.81
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 17,
+  "zone": "RU",
+  "same": true,
+  "d1x": 26.86
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 18,
+  "zone": "RU",
+  "same": false,
+  "d1x": 26.86
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 19,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.58
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 20,
+  "zone": "RU",
+  "same": true,
+  "d1x": 38.64
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 21,
+  "zone": "RU",
+  "same": true,
+  "d1x": 38.64
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 22,
+  "zone": "RU",
+  "same": true,
+  "d1x": 26.86
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 28,
+  "zone": "RU",
+  "same": true,
+  "d1x": 20.87
+ },
+ {
+  "run": "20261006T133357Z_96420ab34b65",
+  "label": "p2 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 29,
+  "zone": "RU",
+  "same": false,
+  "d1x": 15.01
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 0,
+  "zone": "RR",
+  "same": true,
+  "d1x": 56.51
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 1,
+  "zone": "RR",
+  "same": false,
+  "d1x": 62.48
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 2,
+  "zone": "RR",
+  "same": true,
+  "d1x": 50.41
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 3,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.57
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 4,
+  "zone": "RU",
+  "same": false,
+  "d1x": 32.63
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 5,
+  "zone": "RU",
+  "same": false,
+  "d1x": 38.63
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 6,
+  "zone": "RR",
+  "same": false,
+  "d1x": 56.51
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 7,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.48
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 8,
+  "zone": "RR",
+  "same": false,
+  "d1x": 74.24
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 10,
+  "zone": "RR",
+  "same": true,
+  "d1x": 68.17
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 12,
+  "zone": "RR",
+  "same": true,
+  "d1x": 68.17
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 15,
+  "zone": "RR",
+  "same": false,
+  "d1x": 50.41
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 17,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.48
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 18,
+  "zone": "RR",
+  "same": true,
+  "d1x": 56.51
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 19,
+  "zone": "RR",
+  "same": true,
+  "d1x": 50.41
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 20,
+  "zone": "RR",
+  "same": false,
+  "d1x": 74.24
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 23,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.57
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 24,
+  "zone": "RR",
+  "same": true,
+  "d1x": 56.51
+ },
+ {
+  "run": "20261006T134319Z_7498cdc35ce0",
+  "label": "p2 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 25,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.48
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 13,
+  "zone": "RU",
+  "same": true,
+  "d1x": 38.61
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 14,
+  "zone": "RU",
+  "same": false,
+  "d1x": 20.85
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 16,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.56
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 17,
+  "zone": "RU",
+  "same": false,
+  "d1x": 26.8
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 18,
+  "zone": "RU",
+  "same": true,
+  "d1x": 32.7
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 24,
+  "zone": "outside",
+  "same": false,
+  "d1x": 15.0
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 29,
+  "zone": "RU",
+  "same": true,
+  "d1x": 20.85
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 30,
+  "zone": "RU",
+  "same": true,
+  "d1x": 26.8
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 32,
+  "zone": "RU",
+  "same": true,
+  "d1x": 32.7
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 33,
+  "zone": "RU",
+  "same": true,
+  "d1x": 38.61
+ },
+ {
+  "run": "20261006T140209Z_e090fc910ca2",
+  "label": "p3 \u00b7 \uc720\uc77c \uad6c\uac04 \uc811\uadfc",
+  "pair": 34,
+  "zone": "RU",
+  "same": true,
+  "d1x": 26.8
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 0,
+  "zone": "RR",
+  "same": true,
+  "d1x": 56.5
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 1,
+  "zone": "RR",
+  "same": false,
+  "d1x": 62.54
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 2,
+  "zone": "RR",
+  "same": true,
+  "d1x": 50.4
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 3,
+  "zone": "RR",
+  "same": false,
+  "d1x": 68.37
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 4,
+  "zone": "RR",
+  "same": false,
+  "d1x": 50.4
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 5,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.56
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 6,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.54
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 7,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.54
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 8,
+  "zone": "RU",
+  "same": false,
+  "d1x": 44.56
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 9,
+  "zone": "RR",
+  "same": false,
+  "d1x": 56.5
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 10,
+  "zone": "RU",
+  "same": false,
+  "d1x": 38.57
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 11,
+  "zone": "RR",
+  "same": false,
+  "d1x": 74.35
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 12,
+  "zone": "RR",
+  "same": true,
+  "d1x": 68.37
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 13,
+  "zone": "RU",
+  "same": false,
+  "d1x": 80.19
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 15,
+  "zone": "RU",
+  "same": false,
+  "d1x": 38.57
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 25,
+  "zone": "RR",
+  "same": true,
+  "d1x": 68.37
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 27,
+  "zone": "RR",
+  "same": true,
+  "d1x": 56.5
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 28,
+  "zone": "RR",
+  "same": true,
+  "d1x": 62.54
+ },
+ {
+  "run": "20261006T141136Z_fd45d0ff37e8",
+  "label": "p3 \u00b7 \ubc18\ubcf5 \uad6c\uac04 \uc811\uadfc",
+  "pair": 30,
+  "zone": "RR",
+  "same": false,
+  "d1x": 74.35
+ }
+]

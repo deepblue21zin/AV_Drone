@@ -1,0 +1,95 @@
+{
+ "date": "2026-10-07",
+ "containers": "deepblue_av_drone-sim-1 / deepblue_av_drone-ros-1",
+ "valid": [
+  {
+   "run": "20261006T154318Z_63257987209c",
+   "world": "a1",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24,
+    36
+   ],
+   "zone_type": "RU",
+   "virtual_prediction": "safe"
+  },
+  {
+   "run": "20261006T155243Z_72d48e938d8c",
+   "world": "a1",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54,
+    66
+   ],
+   "zone_type": "RR",
+   "virtual_prediction": "risky"
+  },
+  {
+   "run": "20261006T160059Z_628e946fdbb5",
+   "world": "a2",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24,
+    36
+   ],
+   "zone_type": "RR",
+   "virtual_prediction": "risky"
+  },
+  {
+   "run": "20261006T161026Z_f95aee6e02f6",
+   "world": "a2",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54,
+    66
+   ],
+   "zone_type": "RU",
+   "virtual_prediction": "safe"
+  },
+  {
+   "run": "20261006T161900Z_2da82440a668",
+   "world": "a3",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24,
+    36
+   ],
+   "zone_type": "RU",
+   "virtual_prediction": "safe"
+  },
+  {
+   "run": "20261006T162829Z_d81751705a09",
+   "world": "a3",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54,
+    66
+   ],
+   "zone_type": "RR",
+   "virtual_prediction": "risky"
+  },
+  {
+   "run": "20261006T163643Z_be8ca77ebe3d",
+   "world": "a4",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24,
+    36
+   ],
+   "zone_type": "RR",
+   "virtual_prediction": "risky"
+  },
+  {
+   "run": "20261006T164611Z_1ff0455b42b1",
+   "world": "a4",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54,
+    66
+   ],
+   "zone_type": "RU",
+   "virtual_prediction": "safe"
+  }
+ ],
+ "excluded": []
+}
