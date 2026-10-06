@@ -1,0 +1,93 @@
+# Trailing capture over a zoned world (see docs/zoned_world_experiment.md).
+# Drone2 flies drone1's lane later so every zone yields same-place submap pairs.
+# Neither the route nor the world layout is fed to LiDAR retrieval, registration or
+# pose-graph measurements; zone labels are used only for offline scoring.
+scenario_name: zoned_corridor_w4_trailing
+world_name: zoned_corridor_w4
+world_path: /workspace/AV_Drone/sim_assets/worlds/zoned_corridor_w4.world
+vehicle_model: iris_rplidar
+vehicle_count: 2
+fusion_source: known_pose
+algorithm_name: offline_lidar_zoned_trailing
+run_id: ""
+experiment:
+  purpose: separate_degeneracy_from_aliasing_with_same_place_pairs_in_every_zone
+  world_role: evaluation
+  world_seed: 404
+  layout: sim_assets/worlds/zoned_corridor_w4_layout.json
+  zones:
+    - {type: SR, world_x: [15.0, 45.0]}
+    - {type: SU, world_x: [45.0, 75.0]}
+    - {type: RR, world_x: [75.0, 105.0]}
+    - {type: RU, world_x: [105.0, 135.0]}
+  drone1_lane_world_y: -7.5
+  drone2_follows_drone1_lane: true
+  world_length_m: 150.0
+  target_world_x: 145.0
+  initial_frame_calibration_known: true
+  note: Drone2 waits 30 s after takeoff, crosses to the drone1 lane in the cylinder-free start area (x < 10 m), then follows. Drone1 parks beside the lane at the goal so drone2 can stop behind it.
+slam:
+  use_scan_matching: true
+  do_loop_closing: false
+diagnostics:
+  enabled: true
+  map_save_interval_sec: 30.0
+  record_rosbag: true
+  record_ground_truth: true
+  gt_service_name: /gazebo/get_entity_state
+  gt_publish_rate_hz: 10.0
+vehicles:
+  - name: drone1
+    gazebo_entity: iris_rplidar_0
+    px4_instance: 2
+    system_id: 3
+    fcu_url: "udp://:14542@127.0.0.1:14582"
+    spawn: [3.0, -7.5, 0.83, 0.0]
+    # world (146, -3): off the lane, past the goal-buffer cylinders (x <= 142)
+    goal_local: [143.0, 4.5, 3.0]
+    waypoints_local:
+      - [12.0, 0.0, 3.0]
+      - [28.0, 0.0, 3.0]
+      - [44.0, 0.0, 3.0]
+      - [60.0, 0.0, 3.0]
+      - [76.0, 0.0, 3.0]
+      - [92.0, 0.0, 3.0]
+      - [108.0, 0.0, 3.0]
+      - [124.0, 0.0, 3.0]
+      - [140.0, 0.0, 3.0]
+      - [143.0, 4.5, 3.0]
+    return_home_enabled: false
+  - name: drone2
+    gazebo_entity: iris_rplidar_1
+    px4_instance: 3
+    system_id: 4
+    fcu_url: "udp://:14543@127.0.0.1:14583"
+    spawn: [3.0, 7.5, 0.83, 0.0]
+    # world (142, -7.5): on the drone1 lane, about 6 m from parked drone1
+    goal_local: [139.0, -15.0, 3.0]
+    hover_sec_after_takeoff: 30.0
+    # Crossing split into legs shorter than goal_capture_radius (8 m) so the planner uses
+    # direct goal capture; one 15.6 m leg let the gap planner overshoot the first waypoint in w3.
+    # w1/w2 were flown with the single leg; the cylinder-free crossing (x < 10 m) is outside all zones.
+    waypoints_local:
+      - [0.5, -6.5, 3.0]
+      - [2.5, -13.0, 3.0]
+      - [6.0, -15.0, 3.0]
+      - [12.0, -15.0, 3.0]
+      - [28.0, -15.0, 3.0]
+      - [44.0, -15.0, 3.0]
+      - [60.0, -15.0, 3.0]
+      - [76.0, -15.0, 3.0]
+      - [92.0, -15.0, 3.0]
+      - [108.0, -15.0, 3.0]
+      - [124.0, -15.0, 3.0]
+      - [139.0, -15.0, 3.0]
+    return_home_enabled: false
+fusion:
+  frame_id: swarm_map
+  resolution: 0.10
+  bounds: [-1.0, 151.0, -16.0, 16.0]
+  publish_hz: 1.0
+  map_timeout_sec: 2.0
+  free_threshold: 25
+  occupied_threshold: 65
