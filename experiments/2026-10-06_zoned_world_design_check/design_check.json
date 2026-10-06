@@ -1,0 +1,670 @@
+{
+ "summary": {
+  "RU": {
+   "submaps": 20,
+   "min_points": 185,
+   "alpha_median": 0.31185084376835953,
+   "alias_median": 0.5777358490566038
+  },
+  "RR": {
+   "submaps": 20,
+   "min_points": 196,
+   "alpha_median": 0.27067790060273333,
+   "alias_median": 0.9444337256415203
+  },
+  "SU": {
+   "submaps": 20,
+   "min_points": 144,
+   "alpha_median": 0.1474769917941991,
+   "alias_median": 0.7583783783783784
+  },
+  "SR": {
+   "submaps": 20,
+   "min_points": 143,
+   "alpha_median": 0.12054534022617659,
+   "alias_median": 0.949205837297428
+  }
+ },
+ "rows": [
+  {
+   "world": "zoned_corridor_w1",
+   "x": 24.0,
+   "type": "RU",
+   "points": 226,
+   "alpha": 0.3182494044949207,
+   "alias": 0.5973451327433629
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 27.0,
+   "type": "RU",
+   "points": 211,
+   "alpha": 0.32525391772788736,
+   "alias": 0.5687203791469194
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 30.0,
+   "type": "RU",
+   "points": 211,
+   "alpha": 0.2550947941001884,
+   "alias": 0.6398104265402843
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 33.0,
+   "type": "RU",
+   "points": 215,
+   "alpha": 0.36766555957781655,
+   "alias": 0.6232558139534884
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 36.0,
+   "type": "RU",
+   "points": 196,
+   "alpha": 0.27168001834046973,
+   "alias": 0.6581632653061225
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 54.0,
+   "type": "RR",
+   "points": 214,
+   "alpha": 0.25743313206551,
+   "alias": 0.9345794392523364
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 57.0,
+   "type": "RR",
+   "points": 228,
+   "alpha": 0.25520766133791645,
+   "alias": 0.956140350877193
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 60.0,
+   "type": "RR",
+   "points": 219,
+   "alpha": 0.2552906246480092,
+   "alias": 0.9452054794520548
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 63.0,
+   "type": "RR",
+   "points": 207,
+   "alpha": 0.21062448092157063,
+   "alias": 0.9516908212560387
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 66.0,
+   "type": "RR",
+   "points": 210,
+   "alpha": 0.238020796411538,
+   "alias": 0.9761904761904762
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 84.0,
+   "type": "SU",
+   "points": 144,
+   "alpha": 0.11877832735450496,
+   "alias": 0.7777777777777778
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 87.0,
+   "type": "SU",
+   "points": 150,
+   "alpha": 0.1148383210388246,
+   "alias": 0.76
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 90.0,
+   "type": "SU",
+   "points": 160,
+   "alpha": 0.1503485558073257,
+   "alias": 0.75
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 93.0,
+   "type": "SU",
+   "points": 157,
+   "alpha": 0.15634748766107262,
+   "alias": 0.7261146496815286
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 96.0,
+   "type": "SU",
+   "points": 152,
+   "alpha": 0.1446054277810725,
+   "alias": 0.75
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 114.0,
+   "type": "SR",
+   "points": 146,
+   "alpha": 0.11952392893814943,
+   "alias": 0.9178082191780822
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 117.0,
+   "type": "SR",
+   "points": 146,
+   "alpha": 0.15104161646366351,
+   "alias": 0.9178082191780822
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 120.0,
+   "type": "SR",
+   "points": 143,
+   "alpha": 0.11649441575938918,
+   "alias": 0.9370629370629371
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 123.0,
+   "type": "SR",
+   "points": 143,
+   "alpha": 0.11811085379341445,
+   "alias": 0.9230769230769231
+  },
+  {
+   "world": "zoned_corridor_w1",
+   "x": 126.0,
+   "type": "SR",
+   "points": 150,
+   "alpha": 0.12156675151420375,
+   "alias": 0.8933333333333333
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 24.0,
+   "type": "RR",
+   "points": 213,
+   "alpha": 0.22399543980385192,
+   "alias": 0.9436619718309859
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 27.0,
+   "type": "RR",
+   "points": 216,
+   "alpha": 0.20663052067890503,
+   "alias": 0.9675925925925926
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 30.0,
+   "type": "RR",
+   "points": 212,
+   "alpha": 0.20977818618594624,
+   "alias": 0.9528301886792453
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 33.0,
+   "type": "RR",
+   "points": 213,
+   "alpha": 0.23021536998821182,
+   "alias": 0.9577464788732394
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 36.0,
+   "type": "RR",
+   "points": 196,
+   "alpha": 0.15444973402629616,
+   "alias": 0.9744897959183674
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 54.0,
+   "type": "SR",
+   "points": 145,
+   "alpha": 0.17992664321086346,
+   "alias": 0.9517241379310345
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 57.0,
+   "type": "SR",
+   "points": 163,
+   "alpha": 0.1712096959771066,
+   "alias": 0.9693251533742331
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 60.0,
+   "type": "SR",
+   "points": 155,
+   "alpha": 0.18916663967517391,
+   "alias": 0.9548387096774194
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 63.0,
+   "type": "SR",
+   "points": 158,
+   "alpha": 0.17742976643509725,
+   "alias": 0.9493670886075949
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 66.0,
+   "type": "SR",
+   "points": 174,
+   "alpha": 0.2588035130698429,
+   "alias": 0.8620689655172413
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 84.0,
+   "type": "RU",
+   "points": 216,
+   "alpha": 0.3394673610548183,
+   "alias": 0.5694444444444444
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 87.0,
+   "type": "RU",
+   "points": 204,
+   "alpha": 0.31120634548414333,
+   "alias": 0.5980392156862745
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 90.0,
+   "type": "RU",
+   "points": 201,
+   "alpha": 0.29669315385286377,
+   "alias": 0.5572139303482587
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 93.0,
+   "type": "RU",
+   "points": 199,
+   "alpha": 0.27938709059484673,
+   "alias": 0.5527638190954773
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 96.0,
+   "type": "RU",
+   "points": 185,
+   "alpha": 0.29419545598440056,
+   "alias": 0.5513513513513514
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 114.0,
+   "type": "SU",
+   "points": 152,
+   "alpha": 0.13975683830267693,
+   "alias": 0.756578947368421
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 117.0,
+   "type": "SU",
+   "points": 153,
+   "alpha": 0.13209886764277842,
+   "alias": 0.7647058823529411
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 120.0,
+   "type": "SU",
+   "points": 155,
+   "alpha": 0.13787090241446848,
+   "alias": 0.7677419354838709
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 123.0,
+   "type": "SU",
+   "points": 148,
+   "alpha": 0.22178418955681692,
+   "alias": 0.7567567567567568
+  },
+  {
+   "world": "zoned_corridor_w2",
+   "x": 126.0,
+   "type": "SU",
+   "points": 151,
+   "alpha": 0.13402507487657492,
+   "alias": 0.8278145695364238
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 24.0,
+   "type": "SU",
+   "points": 161,
+   "alpha": 0.11037021321027723,
+   "alias": 0.782608695652174
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 27.0,
+   "type": "SU",
+   "points": 153,
+   "alpha": 0.13877133744003556,
+   "alias": 0.7777777777777778
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 30.0,
+   "type": "SU",
+   "points": 157,
+   "alpha": 0.17634652436417217,
+   "alias": 0.7770700636942676
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 33.0,
+   "type": "SU",
+   "points": 147,
+   "alpha": 0.13295009891175727,
+   "alias": 0.782312925170068
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 36.0,
+   "type": "SU",
+   "points": 164,
+   "alpha": 0.21009897828483318,
+   "alias": 0.725609756097561
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 54.0,
+   "type": "RU",
+   "points": 213,
+   "alpha": 0.32084825685572593,
+   "alias": 0.6056338028169014
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 57.0,
+   "type": "RU",
+   "points": 200,
+   "alpha": 0.3098068225028273,
+   "alias": 0.58
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 60.0,
+   "type": "RU",
+   "points": 199,
+   "alpha": 0.3539936001304842,
+   "alias": 0.5577889447236181
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 63.0,
+   "type": "RU",
+   "points": 208,
+   "alpha": 0.31249534205257573,
+   "alias": 0.5721153846153846
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 66.0,
+   "type": "RU",
+   "points": 186,
+   "alpha": 0.26043996237451517,
+   "alias": 0.5752688172043011
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 84.0,
+   "type": "SR",
+   "points": 169,
+   "alpha": 0.14272920596981226,
+   "alias": 0.9112426035502958
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 87.0,
+   "type": "SR",
+   "points": 169,
+   "alpha": 0.13316826309545757,
+   "alias": 0.9467455621301775
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 90.0,
+   "type": "SR",
+   "points": 163,
+   "alpha": 0.10928812808764224,
+   "alias": 0.9754601226993865
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 93.0,
+   "type": "SR",
+   "points": 170,
+   "alpha": 0.11826428082119293,
+   "alias": 0.9529411764705882
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 96.0,
+   "type": "SR",
+   "points": 166,
+   "alpha": 0.10964414779779047,
+   "alias": 0.9578313253012049
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 114.0,
+   "type": "RR",
+   "points": 197,
+   "alpha": 0.2839226691399566,
+   "alias": 0.8934010152284264
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 117.0,
+   "type": "RR",
+   "points": 212,
+   "alpha": 0.35843222567514066,
+   "alias": 0.8867924528301887
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 120.0,
+   "type": "RR",
+   "points": 199,
+   "alpha": 0.3427937144290833,
+   "alias": 0.8894472361809045
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 123.0,
+   "type": "RR",
+   "points": 209,
+   "alpha": 0.3362304037937251,
+   "alias": 0.8708133971291866
+  },
+  {
+   "world": "zoned_corridor_w3",
+   "x": 126.0,
+   "type": "RR",
+   "points": 197,
+   "alpha": 0.35084067967791793,
+   "alias": 0.8324873096446701
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 24.0,
+   "type": "SR",
+   "points": 170,
+   "alpha": 0.12720264822500044,
+   "alias": 0.9294117647058824
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 27.0,
+   "type": "SR",
+   "points": 159,
+   "alpha": 0.09747372726506676,
+   "alias": 0.9937106918238994
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 30.0,
+   "type": "SR",
+   "points": 167,
+   "alpha": 0.09948050454978548,
+   "alias": 0.9760479041916168
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 33.0,
+   "type": "SR",
+   "points": 161,
+   "alpha": 0.08477264721323183,
+   "alias": 0.9565217391304348
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 36.0,
+   "type": "SR",
+   "points": 157,
+   "alpha": 0.10849811848836877,
+   "alias": 0.9490445859872612
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 54.0,
+   "type": "SU",
+   "points": 169,
+   "alpha": 0.1827384626185993,
+   "alias": 0.727810650887574
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 57.0,
+   "type": "SU",
+   "points": 170,
+   "alpha": 0.17965297085321172,
+   "alias": 0.7352941176470589
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 60.0,
+   "type": "SU",
+   "points": 170,
+   "alpha": 0.23067970748445207,
+   "alias": 0.7176470588235294
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 63.0,
+   "type": "SU",
+   "points": 176,
+   "alpha": 0.22641602442487122,
+   "alias": 0.7159090909090909
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 66.0,
+   "type": "SU",
+   "points": 175,
+   "alpha": 0.1968238777599694,
+   "alias": 0.7942857142857143
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 84.0,
+   "type": "RR",
+   "points": 210,
+   "alpha": 0.33399363660536746,
+   "alias": 0.9333333333333333
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 87.0,
+   "type": "RR",
+   "points": 223,
+   "alpha": 0.36310298959693815,
+   "alias": 0.9461883408071748
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 90.0,
+   "type": "RR",
+   "points": 220,
+   "alpha": 0.411419552110461,
+   "alias": 0.9181818181818182
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 93.0,
+   "type": "RR",
+   "points": 213,
+   "alpha": 0.34250280663174854,
+   "alias": 0.9530516431924883
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 96.0,
+   "type": "RR",
+   "points": 223,
+   "alpha": 0.41058282188991285,
+   "alias": 0.8878923766816144
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 114.0,
+   "type": "RU",
+   "points": 200,
+   "alpha": 0.27388808724563485,
+   "alias": 0.6
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 117.0,
+   "type": "RU",
+   "points": 196,
+   "alpha": 0.35914693673039644,
+   "alias": 0.5816326530612245
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 120.0,
+   "type": "RU",
+   "points": 212,
+   "alpha": 0.32481871343184754,
+   "alias": 0.5754716981132075
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 123.0,
+   "type": "RU",
+   "points": 207,
+   "alpha": 0.35258405610992916,
+   "alias": 0.5652173913043478
+  },
+  {
+   "world": "zoned_corridor_w4",
+   "x": 126.0,
+   "type": "RU",
+   "points": 228,
+   "alpha": 0.2784736547880833,
+   "alias": 0.618421052631579
+  }
+ ]
+}

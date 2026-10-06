@@ -1,0 +1,75 @@
+{
+ "n": 158,
+ "by_zone": {
+  "RU": {
+   "n": 42,
+   "wrong": 0,
+   "wrong_pass": 0,
+   "alpha_med": 0.51,
+   "alias6_old_med": 0.49,
+   "alias6_med": 0.49,
+   "alias30_med": 0.51
+  },
+  "RR": {
+   "n": 37,
+   "wrong": 14,
+   "wrong_pass": 12,
+   "alpha_med": 0.51,
+   "alias6_old_med": 0.93,
+   "alias6_med": 0.93,
+   "alias30_med": 0.93
+  },
+  "SU": {
+   "n": 34,
+   "wrong": 0,
+   "wrong_pass": 0,
+   "alpha_med": 0.36,
+   "alias6_old_med": 0.52,
+   "alias6_med": 0.52,
+   "alias30_med": 0.62
+  },
+  "SR": {
+   "n": 45,
+   "wrong": 18,
+   "wrong_pass": 18,
+   "alpha_med": 0.3,
+   "alias6_old_med": 0.86,
+   "alias6_med": 0.86,
+   "alias30_med": 0.88
+  }
+ },
+ "auroc": {
+  "all": {
+   "n": 158,
+   "wrong": 32,
+   "alpha": 0.735,
+   "alias6": 0.863,
+   "alias30": 0.855,
+   "alias6_old": 0.863
+  },
+  "rich": {
+   "n": 79,
+   "wrong": 14,
+   "alpha": 0.712,
+   "alias6": 0.866,
+   "alias30": 0.868,
+   "alias6_old": 0.866
+  },
+  "design": {
+   "n": 77,
+   "wrong": 19,
+   "alpha": 0.842,
+   "alias6": 0.871,
+   "alias30": 0.868,
+   "alias6_old": 0.871
+  },
+  "eval": {
+   "n": 81,
+   "wrong": 13,
+   "alpha": 0.613,
+   "alias6": 0.839,
+   "alias30": 0.827,
+   "alias6_old": 0.839
+  }
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "설계 w1·w2|fixed6": {
+  "n": 1540,
+  "accepted_wrong": 300,
+  "alpha": 0.8120698924731182,
+  "alias_fixed_30m": 0.8425,
+  "alias_search_window": 0.8448118279569893
+ },
+ "설계 w1·w2|k3": {
+  "n": 1540,
+  "accepted_wrong": 133,
+  "alpha": 0.760298934970689,
+  "alias_fixed_30m": 0.7987746551880768,
+  "alias_search_window": 0.9074017666768199
+ },
+ "설계 w1·w2|k2": {
+  "n": 1540,
+  "accepted_wrong": 90,
+  "alpha": 0.7456704980842912,
+  "alias_fixed_30m": 0.7885823754789272,
+  "alias_search_window": 0.9000766283524905
+ },
+ "평가 w3·w4|fixed6": {
+  "n": 1620,
+  "accepted_wrong": 221,
+  "alpha": 0.5955110146549409,
+  "alias_fixed_30m": 0.8118905229656607,
+  "alias_search_window": 0.8213995775909748
+ },
+ "평가 w3·w4|k3": {
+  "n": 1620,
+  "accepted_wrong": 113,
+  "alpha": 0.6031763275804358,
+  "alias_fixed_30m": 0.7813419382116494,
+  "alias_search_window": 0.8409311120376297
+ },
+ "평가 w3·w4|k2": {
+  "n": 1620,
+  "accepted_wrong": 75,
+  "alpha": 0.6016612729234089,
+  "alias_fixed_30m": 0.7607982740021575,
+  "alias_search_window": 0.8318015102481122
+ }
+}

@@ -1,0 +1,95 @@
+{
+ "pairs": 458,
+ "same_place_in_zones": 158,
+ "same_place_wrong": 32,
+ "by_zone": {
+  "RU": {
+   "pairs": 45,
+   "same_place": 42,
+   "same_place_wrong": 0,
+   "gate_pass": 42,
+   "gate_pass_wrong": 1,
+   "gate_pass_consistent": 41,
+   "gate_pass_consistent_wrong": 0,
+   "same_place_correct_rejected": 1,
+   "alpha_median": 0.511465107023202,
+   "alias_6m_median": 0.4859437751004016
+  },
+  "RR": {
+   "pairs": 37,
+   "same_place": 37,
+   "same_place_wrong": 14,
+   "gate_pass": 35,
+   "gate_pass_wrong": 12,
+   "gate_pass_consistent": 31,
+   "gate_pass_consistent_wrong": 8,
+   "same_place_correct_rejected": 0,
+   "alpha_median": 0.5070963322031207,
+   "alias_6m_median": 0.929368029739777
+  },
+  "SU": {
+   "pairs": 42,
+   "same_place": 34,
+   "same_place_wrong": 0,
+   "gate_pass": 33,
+   "gate_pass_wrong": 0,
+   "gate_pass_consistent": 33,
+   "gate_pass_consistent_wrong": 0,
+   "same_place_correct_rejected": 2,
+   "alpha_median": 0.3871977561765365,
+   "alias_6m_median": 0.4957983193277311
+  },
+  "SR": {
+   "pairs": 45,
+   "same_place": 45,
+   "same_place_wrong": 18,
+   "gate_pass": 45,
+   "gate_pass_wrong": 18,
+   "gate_pass_consistent": 40,
+   "gate_pass_consistent_wrong": 13,
+   "same_place_correct_rejected": 0,
+   "alpha_median": 0.2959447833020821,
+   "alias_6m_median": 0.8615384615384616
+  },
+  "boundary": {
+   "pairs": 226,
+   "same_place": 208,
+   "same_place_wrong": 18,
+   "gate_pass": 198,
+   "gate_pass_wrong": 15,
+   "gate_pass_consistent": 190,
+   "gate_pass_consistent_wrong": 7,
+   "same_place_correct_rejected": 7,
+   "alpha_median": 0.45696236066475515,
+   "alias_6m_median": 0.6495037220843672
+  },
+  "outside": {
+   "pairs": 63,
+   "same_place": 48,
+   "same_place_wrong": 8,
+   "gate_pass": 37,
+   "gate_pass_wrong": 1,
+   "gate_pass_consistent": 37,
+   "gate_pass_consistent_wrong": 1,
+   "same_place_correct_rejected": 4,
+   "alpha_median": 0.4355038026810944,
+   "alias_6m_median": 0.5204460966542751
+  }
+ },
+ "auroc_same_place_in_zones": {
+  "alpha (low = risky)": 0.7351190476190477,
+  "alias +-30 m": 0.855406746031746,
+  "alias +-6 m": 0.8625992063492064,
+  "points (few = risky)": 0.44134424603174605
+ },
+ "by_run": {
+  "20261006T050106Z_4db0d0451595": 57,
+  "20261006T051224Z_706c25701e90": 54,
+  "20261006T052037Z_1833cad2f569": 60,
+  "20261006T053001Z_f1fd6a472c02": 59,
+  "20261006T062307Z_b1d4e7473935": 57,
+  "20261006T063123Z_6135352c80a1": 58,
+  "20261006T063939Z_3e758e6885ff": 57,
+  "20261006T064903Z_f7b26a2bb8b6": 56
+ }
+}

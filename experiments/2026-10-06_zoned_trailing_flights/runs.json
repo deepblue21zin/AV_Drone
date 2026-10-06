@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-06",
+  "containers": "deepblue_av_drone-sim-1 / deepblue_av_drone-ros-1 (HEADLESS, ROS_DOMAIN_ID 42)",
+  "valid": [
+    {"run": "20261006T050106Z_4db0d0451595", "world": "zoned_corridor_w1", "crossing": "single_leg"},
+    {"run": "20261006T051224Z_706c25701e90", "world": "zoned_corridor_w1", "crossing": "single_leg"},
+    {"run": "20261006T052037Z_1833cad2f569", "world": "zoned_corridor_w2", "crossing": "single_leg"},
+    {"run": "20261006T053001Z_f1fd6a472c02", "world": "zoned_corridor_w2", "crossing": "single_leg"},
+    {"run": "20261006T062307Z_b1d4e7473935", "world": "zoned_corridor_w3", "crossing": "three_legs"},
+    {"run": "20261006T063123Z_6135352c80a1", "world": "zoned_corridor_w3", "crossing": "three_legs"},
+    {"run": "20261006T063939Z_3e758e6885ff", "world": "zoned_corridor_w4", "crossing": "three_legs"},
+    {"run": "20261006T064903Z_f7b26a2bb8b6", "world": "zoned_corridor_w4", "crossing": "three_legs"}
+  ],
+  "excluded": [
+    {"run": "20261006T051148Z_3b283d4406bd", "world": "zoned_corridor_w1", "reason": "operator abort before takeoff (batch restarted outside a time-limited monitor)"},
+    {"run": "20261006T053817Z_035c122e8527", "world": "zoned_corridor_w3", "reason": "max_runtime: drone2 missed the 15.6 m crossing waypoint (gap planner beyond goal_capture_radius) and never advanced"},
+    {"run": "20261006T060150Z_b35a51b48f03", "world": "zoned_corridor_w3", "reason": "max_runtime: same crossing failure; fixed by splitting the crossing into legs < 8 m for w3/w4"}
+  ],
+  "note": "The crossing (x < 10 m) is cylinder-free and outside all zones; zone flight conditions are identical across worlds."
+}
