@@ -62,3 +62,5 @@ experiments/dashboard_catalog_history/
 docs/presentation/
 /*.pptx
 /*.png
+docs/paper/
+docs/problem_solving_log.md
