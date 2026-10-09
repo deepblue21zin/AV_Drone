@@ -1,0 +1,187 @@
+{
+ "date": "2026-10-09",
+ "containers": "deepblue_av_drone-sim-1 / deepblue_av_drone-ros-1",
+ "valid": [
+  {
+   "run": "20261009T083954Z_8c34db7d9a32",
+   "world": "b1",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T084919Z_c494f489e62c",
+   "world": "b1",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T085734Z_e7b630a16b1f",
+   "world": "b1",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T090550Z_04c1948b5373",
+   "world": "b2",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T091516Z_f9e83b3d6200",
+   "world": "b2",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T092331Z_9b5535c4fca0",
+   "world": "b2",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T093151Z_0ed022184403",
+   "world": "b3",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T094119Z_1676fe743f4f",
+   "world": "b3",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T094934Z_7b2981a6eae8",
+   "world": "b3",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T095749Z_431b410ead09",
+   "world": "b4",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T100712Z_89226cf75739",
+   "world": "b4",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T101537Z_f37d9cb9c46c",
+   "world": "b4",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T102357Z_be78b6d6eca8",
+   "world": "b5",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T103324Z_aca7fefb6f0d",
+   "world": "b5",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RU"
+  },
+  {
+   "run": "20261009T104144Z_62020661ccd4",
+   "world": "b5",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T105003Z_024ee8add205",
+   "world": "b6",
+   "approach_zone_index": 0,
+   "approach_world_x": [
+    24.0,
+    36.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T105927Z_4e7ce04370bc",
+   "world": "b6",
+   "approach_zone_index": 1,
+   "approach_world_x": [
+    54.0,
+    66.0
+   ],
+   "zone_type": "RR"
+  },
+  {
+   "run": "20261009T110742Z_55ef8ee852c9",
+   "world": "b6",
+   "approach_zone_index": 2,
+   "approach_world_x": [
+    84.0,
+    96.0
+   ],
+   "zone_type": "RU"
+  }
+ ],
+ "excluded": []
+}

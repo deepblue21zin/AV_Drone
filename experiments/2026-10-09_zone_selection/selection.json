@@ -1,0 +1,492 @@
+{
+ "worlds": [
+  {
+   "world": "a1",
+   "batch": "a1-a4 (exploratory)",
+   "zone_types": [
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.6641184100099184,
+    0.9397804245461184
+   ],
+   "alpha": [
+    0.30681579013413257,
+    0.2876127304583702
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 0,
+    "alpha": 0,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    6.716048551523458,
+    4.930199854486645
+   ],
+   "b0_terminal_m": [
+    16.12724485592083,
+    14.815753048692107
+   ],
+   "selected_correct": [
+    true,
+    false
+   ],
+   "usable": [
+    6,
+    2
+   ],
+   "same_place": [
+    7,
+    6
+   ]
+  },
+  {
+   "world": "a2",
+   "batch": "a1-a4 (exploratory)",
+   "zone_types": [
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.9211451651223568,
+    0.6759650509006379
+   ],
+   "alpha": [
+    0.309778016782296,
+    0.3061095866265353
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 1,
+    "alpha": 0,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    5.212012061195452,
+    2.9027330755271468
+   ],
+   "b0_terminal_m": [
+    13.977563274068013,
+    12.768899268038053
+   ],
+   "selected_correct": [
+    true,
+    true
+   ],
+   "usable": [
+    3,
+    3
+   ],
+   "same_place": [
+    7,
+    5
+   ]
+  },
+  {
+   "world": "a3",
+   "batch": "a1-a4 (exploratory)",
+   "zone_types": [
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.6475155279503106,
+    0.9228354018912529
+   ],
+   "alpha": [
+    0.3000731765030975,
+    0.3176019742674157
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 0,
+    "alpha": 1,
+    "near": 0,
+    "far": 1,
+    "oracle": 0,
+    "worst": 1
+   },
+   "terminal_m": [
+    1.6527582988286666,
+    3.7048692397655145
+   ],
+   "b0_terminal_m": [
+    12.964289779269047,
+    14.625214822462397
+   ],
+   "selected_correct": [
+    true,
+    false
+   ],
+   "usable": [
+    5,
+    5
+   ],
+   "same_place": [
+    6,
+    7
+   ]
+  },
+  {
+   "world": "a4",
+   "batch": "a1-a4 (exploratory)",
+   "zone_types": [
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.9699252393099791,
+    0.6958309699376064
+   ],
+   "alpha": [
+    0.32044151837025814,
+    0.2697664692956884
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 1,
+    "alpha": 0,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    13.9490733679845,
+    5.068149804689079
+   ],
+   "b0_terminal_m": [
+    19.07113079794881,
+    12.329030620778378
+   ],
+   "selected_correct": [
+    false,
+    true
+   ],
+   "usable": [
+    3,
+    5
+   ],
+   "same_place": [
+    8,
+    6
+   ]
+  },
+  {
+   "world": "a5",
+   "batch": "a5-a8 (pre-registered)",
+   "zone_types": [
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.6635247874217873,
+    0.9302649104632233
+   ],
+   "alpha": [
+    0.36091488533143234,
+    0.3571383524841933
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 0,
+    "alpha": 0,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    8.254399688148016,
+    2.8802490109402
+   ],
+   "b0_terminal_m": [
+    16.01333266449253,
+    12.338165604312687
+   ],
+   "selected_correct": [
+    true,
+    false
+   ],
+   "usable": [
+    7,
+    4
+   ],
+   "same_place": [
+    7,
+    7
+   ]
+  },
+  {
+   "world": "a6",
+   "batch": "a5-a8 (pre-registered)",
+   "zone_types": [
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.8854614597045488,
+    0.7116583257506824
+   ],
+   "alpha": [
+    0.24599931525024943,
+    0.29187686456691686
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 1,
+    "alpha": 1,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    7.533129007222518,
+    2.808235884279456
+   ],
+   "b0_terminal_m": [
+    14.478419131489616,
+    12.353220047096618
+   ],
+   "selected_correct": [
+    true,
+    true
+   ],
+   "usable": [
+    5,
+    7
+   ],
+   "same_place": [
+    6,
+    7
+   ]
+  },
+  {
+   "world": "a7",
+   "batch": "a5-a8 (pre-registered)",
+   "zone_types": [
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.7069634067056747,
+    0.9194504380377986
+   ],
+   "alpha": [
+    0.3091288440984009,
+    0.26908112460420663
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 0,
+    "alpha": 0,
+    "near": 0,
+    "far": 1,
+    "oracle": 0,
+    "worst": 1
+   },
+   "terminal_m": [
+    3.9658707380796647,
+    4.690302304208609
+   ],
+   "b0_terminal_m": [
+    12.85230240203887,
+    9.3404868166516
+   ],
+   "selected_correct": [
+    true,
+    false
+   ],
+   "usable": [
+    7,
+    4
+   ],
+   "same_place": [
+    7,
+    6
+   ]
+  },
+  {
+   "world": "a8",
+   "batch": "a5-a8 (pre-registered)",
+   "zone_types": [
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.9068905771024923,
+    0.724012474012474
+   ],
+   "alpha": [
+    0.3338238809334293,
+    0.3449299806471863
+   ],
+   "alias_choice_agrees_between_flights": true,
+   "choice": {
+    "alias": 1,
+    "alpha": 1,
+    "near": 0,
+    "far": 1,
+    "oracle": 1,
+    "worst": 0
+   },
+   "terminal_m": [
+    8.869096836411135,
+    4.433154792902391
+   ],
+   "b0_terminal_m": [
+    12.272571943096395,
+    14.45578814247104
+   ],
+   "selected_correct": [
+    false,
+    true
+   ],
+   "usable": [
+    4,
+    7
+   ],
+   "same_place": [
+    8,
+    7
+   ]
+  }
+ ],
+ "summary": {
+  "a1-a4 (exploratory)": {
+   "worlds": 4,
+   "alias": {
+    "terminal_median_m": 3.985441440108113,
+    "terminal_mean_m": 4.084922432642088,
+    "constraint_correct": 4,
+    "picked_unique_zone": 4
+   },
+   "alpha": {
+    "terminal_median_m": 5.964030306359454,
+    "terminal_mean_m": 7.395500805117231,
+    "constraint_correct": 2,
+    "picked_unique_zone": 1
+   },
+   "near": {
+    "terminal_median_m": 5.964030306359454,
+    "terminal_mean_m": 6.882473069883019,
+    "constraint_correct": 3,
+    "picked_unique_zone": 2
+   },
+   "far": {
+    "terminal_median_m": 4.31753454712608,
+    "terminal_mean_m": 4.1514879936170965,
+    "constraint_correct": 2,
+    "picked_unique_zone": 2
+   },
+   "oracle": {
+    "terminal_median_m": 3.916466465006896,
+    "terminal_mean_m": 3.6384602583828842,
+    "constraint_correct": 3,
+    "picked_unique_zone": 3
+   },
+   "worst": {
+    "terminal_median_m": 5.964030306359454,
+    "terminal_mean_m": 7.395500805117231,
+    "constraint_correct": 2,
+    "picked_unique_zone": 1
+   },
+   "no_correction_median_m": 14.633125626586095,
+   "alias_better_than_other_zone": 3,
+   "paired_gain_median_m": 2.1806949633025763
+  },
+  "a5-a8 (pre-registered)": {
+   "worlds": 4,
+   "alias": {
+    "terminal_median_m": 4.199512765491027,
+    "terminal_mean_m": 4.865415275852381,
+    "constraint_correct": 4,
+    "picked_unique_zone": 4
+   },
+   "alpha": {
+    "terminal_median_m": 4.199512765491027,
+    "terminal_mean_m": 4.865415275852381,
+    "constraint_correct": 4,
+    "picked_unique_zone": 4
+   },
+   "near": {
+    "terminal_median_m": 7.893764347685267,
+    "terminal_mean_m": 7.155624067465333,
+    "constraint_correct": 3,
+    "picked_unique_zone": 2
+   },
+   "far": {
+    "terminal_median_m": 3.6567019019212954,
+    "terminal_mean_m": 3.702985498082664,
+    "constraint_correct": 2,
+    "picked_unique_zone": 2
+   },
+   "oracle": {
+    "terminal_median_m": 3.4230598745099323,
+    "terminal_mean_m": 3.521877606550428,
+    "constraint_correct": 3,
+    "picked_unique_zone": 3
+   },
+   "worst": {
+    "terminal_median_m": 7.893764347685267,
+    "terminal_mean_m": 7.33673195899757,
+    "constraint_correct": 2,
+    "picked_unique_zone": 1
+   },
+   "no_correction_median_m": 13.389999816038419,
+   "alias_better_than_other_zone": 3,
+   "paired_gain_median_m": 2.5801868048188443
+  },
+  "all": {
+   "worlds": 8,
+   "alias": {
+    "terminal_median_m": 4.199512765491027,
+    "terminal_mean_m": 4.475168854247235,
+    "constraint_correct": 8,
+    "picked_unique_zone": 8
+   },
+   "alpha": {
+    "terminal_median_m": 4.822583427048921,
+    "terminal_mean_m": 6.130458040484806,
+    "constraint_correct": 6,
+    "picked_unique_zone": 5
+   },
+   "near": {
+    "terminal_median_m": 7.1245887793729885,
+    "terminal_mean_m": 7.019048568674177,
+    "constraint_correct": 6,
+    "picked_unique_zone": 4
+   },
+   "far": {
+    "terminal_median_m": 4.069012016333953,
+    "terminal_mean_m": 3.92723674584988,
+    "constraint_correct": 4,
+    "picked_unique_zone": 4
+   },
+   "oracle": {
+    "terminal_median_m": 3.4343019068034057,
+    "terminal_mean_m": 3.580168932466656,
+    "constraint_correct": 6,
+    "picked_unique_zone": 6
+   },
+   "worst": {
+    "terminal_median_m": 7.1245887793729885,
+    "terminal_mean_m": 7.366116382057401,
+    "constraint_correct": 4,
+    "picked_unique_zone": 2
+   },
+   "no_correction_median_m": 13.60528594507942,
+   "alias_better_than_other_zone": 6,
+   "paired_gain_median_m": 2.1806949633025763
+  }
+ }
+}

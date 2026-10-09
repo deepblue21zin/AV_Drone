@@ -1,0 +1,82 @@
+{
+ "20261009T061310Z_fbf82d0faea2": {
+  "b0_terminal_m": 16.01333266449253,
+  "selected_pairs": [
+   34
+  ],
+  "selected_correct": [
+   true
+  ],
+  "corrected_terminal_m": 8.254399688148016
+ },
+ "20261009T062235Z_0044737880ac": {
+  "b0_terminal_m": 12.338165604312687,
+  "selected_pairs": [
+   36
+  ],
+  "selected_correct": [
+   false
+  ],
+  "corrected_terminal_m": 2.8802490109402
+ },
+ "20261009T063053Z_217d0401a38c": {
+  "b0_terminal_m": 14.478419131489616,
+  "selected_pairs": [
+   27
+  ],
+  "selected_correct": [
+   true
+  ],
+  "corrected_terminal_m": 7.533129007222518
+ },
+ "20261009T064024Z_60cf4d2d0d6b": {
+  "b0_terminal_m": 12.353220047096618,
+  "selected_pairs": [
+   8
+  ],
+  "selected_correct": [
+   true
+  ],
+  "corrected_terminal_m": 2.808235884279456
+ },
+ "20261009T064844Z_c704325551ea": {
+  "b0_terminal_m": 12.85230240203887,
+  "selected_pairs": [
+   28
+  ],
+  "selected_correct": [
+   true
+  ],
+  "corrected_terminal_m": 3.9658707380796647
+ },
+ "20261009T065809Z_48f8fd08a120": {
+  "b0_terminal_m": 9.3404868166516,
+  "selected_pairs": [
+   42
+  ],
+  "selected_correct": [
+   false
+  ],
+  "corrected_terminal_m": 4.690302304208609
+ },
+ "20261009T070629Z_92e1a4d71e65": {
+  "b0_terminal_m": 12.272571943096395,
+  "selected_pairs": [
+   38
+  ],
+  "selected_correct": [
+   false
+  ],
+  "corrected_terminal_m": 8.869096836411135
+ },
+ "20261009T071558Z_adcbfc91350f": {
+  "b0_terminal_m": 14.45578814247104,
+  "selected_pairs": [
+   26
+  ],
+  "selected_correct": [
+   true
+  ],
+  "corrected_terminal_m": 4.433154792902391
+ }
+}

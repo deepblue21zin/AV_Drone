@@ -1,0 +1,660 @@
+{
+ "threshold": 0.79,
+ "cost": {
+  "k_m_per_m": 0.05,
+  "e_safe_m": 0.3,
+  "e_risky_m": 4.0,
+  "x_end_m": 142.0
+ },
+ "worlds": [
+  {
+   "world": "b1",
+   "zone_types": [
+    "RU",
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.6983487822283938,
+    0.7265256480273545,
+    0.8919452628166403
+   ],
+   "alpha": [
+    0.27010770121167743,
+    0.3059794440366807,
+    0.36940402098582764
+   ],
+   "alias_per_flight": [
+    [
+     0.6779141104294478,
+     0.7235494880546075,
+     0.8805970149253731
+    ],
+    [
+     0.7133105802047781,
+     0.7417417417417418,
+     0.901245840662357
+    ],
+    [
+     0.7038216560509554,
+     0.7142857142857143,
+     0.8939929328621908
+    ]
+   ],
+   "classified_safe": [
+    true,
+    true,
+    false
+   ],
+   "classification_correct": [
+    true,
+    true,
+    true
+   ],
+   "predicted_cost_m": [
+    5.608029957123981,
+    4.110960958218894,
+    4.770744176750625
+   ],
+   "choice": {
+    "latest_safe": 1,
+    "cost": 1,
+    "nearest_safe": 0,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 0,
+    "alpha_best": 2,
+    "oracle": 2
+   },
+   "terminal_m": [
+    4.985636297384076,
+    3.6310217218353316,
+    3.378470032678964
+   ],
+   "b0_terminal_m": [
+    12.88186895764018,
+    15.409868372379677,
+    10.018376511737335
+   ],
+   "selected_correct": [
+    true,
+    true,
+    true
+   ],
+   "has_constraint": [
+    true,
+    true,
+    true
+   ],
+   "usable": [
+    6,
+    7,
+    6
+   ],
+   "same_place": [
+    6,
+    7,
+    7
+   ]
+  },
+  {
+   "world": "b2",
+   "zone_types": [
+    "RU",
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.6424517489183966,
+    0.9429907525582065,
+    0.755341591783019
+   ],
+   "alpha": [
+    0.33145621202032793,
+    0.31209133211432233,
+    0.3098336780800101
+   ],
+   "alias_per_flight": [
+    [
+     0.6510638297872341,
+     0.951048951048951,
+     0.7406143344709898
+    ],
+    [
+     0.6327868852459017,
+     0.9383259911894273,
+     0.7628205128205128
+    ],
+    [
+     0.6435045317220544,
+     0.9395973154362416,
+     0.762589928057554
+    ]
+   ],
+   "classified_safe": [
+    true,
+    false,
+    true
+   ],
+   "classification_correct": [
+    true,
+    true,
+    true
+   ],
+   "predicted_cost_m": [
+    5.608029957123981,
+    5.728001396647875,
+    2.6172504656604803
+   ],
+   "choice": {
+    "latest_safe": 2,
+    "cost": 2,
+    "nearest_safe": 0,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 0,
+    "alpha_best": 0,
+    "oracle": 2
+   },
+   "terminal_m": [
+    2.794493841475466,
+    3.2732582483160653,
+    1.235719507069764
+   ],
+   "b0_terminal_m": [
+    11.63388131461983,
+    9.588295825679559,
+    9.638877549658194
+   ],
+   "selected_correct": [
+    true,
+    true,
+    true
+   ],
+   "has_constraint": [
+    true,
+    true,
+    true
+   ],
+   "usable": [
+    7,
+    3,
+    5
+   ],
+   "same_place": [
+    7,
+    7,
+    5
+   ]
+  },
+  {
+   "world": "b3",
+   "zone_types": [
+    "RR",
+    "RU",
+    "RU"
+   ],
+   "alias": [
+    0.96546986812992,
+    0.6972280376539436,
+    0.6554799769933676
+   ],
+   "alpha": [
+    0.31604925444966453,
+    0.3448404120081072,
+    0.2922408952728493
+   ],
+   "alias_per_flight": [
+    [
+     0.9698996655518395,
+     0.700374531835206,
+     0.6474820143884892
+    ],
+    [
+     0.9785932721712538,
+     0.6935483870967742,
+     0.6735905044510386
+    ],
+    [
+     0.9479166666666666,
+     0.6977611940298507,
+     0.645367412140575
+    ]
+   ],
+   "classified_safe": [
+    false,
+    true,
+    true
+   ],
+   "classification_correct": [
+    true,
+    true,
+    true
+   ],
+   "predicted_cost_m": [
+    6.881860213634102,
+    4.110960958218894,
+    2.6172504656604803
+   ],
+   "choice": {
+    "latest_safe": 2,
+    "cost": 2,
+    "nearest_safe": 1,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 2,
+    "alpha_best": 1,
+    "oracle": 2
+   },
+   "terminal_m": [
+    10.848574071976536,
+    3.729846467760315,
+    1.3115969107292949
+   ],
+   "b0_terminal_m": [
+    10.848574071976536,
+    12.998445924803926,
+    12.363324586158955
+   ],
+   "selected_correct": [
+    false,
+    true,
+    true
+   ],
+   "has_constraint": [
+    true,
+    true,
+    true
+   ],
+   "usable": [
+    4,
+    7,
+    4
+   ],
+   "same_place": [
+    9,
+    7,
+    8
+   ]
+  },
+  {
+   "world": "b4",
+   "zone_types": [
+    "RU",
+    "RR",
+    "RR"
+   ],
+   "alias": [
+    0.7377441858900897,
+    0.9310424550686899,
+    NaN
+   ],
+   "alpha": [
+    0.2946236800865372,
+    0.3102210460990133,
+    NaN
+   ],
+   "alias_per_flight": [
+    [
+     0.7446808510638298,
+     0.9494949494949495,
+     NaN
+    ],
+    [
+     0.7313915857605178,
+     0.9045643153526971,
+     0.9028937719610939
+    ],
+    [
+     0.7371601208459214,
+     0.9390681003584229,
+     0.9588014981273408
+    ]
+   ],
+   "classified_safe": [
+    true,
+    false,
+    false
+   ],
+   "classification_correct": [
+    true,
+    true,
+    true
+   ],
+   "predicted_cost_m": [
+    5.608029957123981,
+    5.728001396647875,
+    4.770744176750625
+   ],
+   "choice": {
+    "latest_safe": 0,
+    "cost": 2,
+    "nearest_safe": 0,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 2,
+    "alpha_best": 2,
+    "oracle": 1
+   },
+   "terminal_m": [
+    7.828286351515502,
+    1.5176990256152583,
+    16.005751838919263
+   ],
+   "b0_terminal_m": [
+    18.544089431771567,
+    15.536385084137311,
+    16.005751838919263
+   ],
+   "selected_correct": [
+    true,
+    false,
+    false
+   ],
+   "has_constraint": [
+    true,
+    true,
+    false
+   ],
+   "usable": [
+    8,
+    2,
+    0
+   ],
+   "same_place": [
+    8,
+    8,
+    9
+   ]
+  },
+  {
+   "world": "b5",
+   "zone_types": [
+    "RR",
+    "RU",
+    "RR"
+   ],
+   "alias": [
+    0.8603017115980358,
+    0.6915154422263715,
+    0.8967722134901246
+   ],
+   "alpha": [
+    0.3284149661102071,
+    0.27601227472136675,
+    0.36139872374526344
+   ],
+   "alias_per_flight": [
+    [
+     0.8316498316498316,
+     0.7158273381294964,
+     0.9037800687285223
+    ],
+    [
+     0.8565217391304348,
+     0.6640625,
+     0.8868231046931407
+    ],
+    [
+     0.8927335640138409,
+     0.6946564885496184,
+     0.8997134670487106
+    ]
+   ],
+   "classified_safe": [
+    false,
+    true,
+    false
+   ],
+   "classification_correct": [
+    true,
+    true,
+    true
+   ],
+   "predicted_cost_m": [
+    6.881860213634102,
+    4.110960958218894,
+    4.770744176750625
+   ],
+   "choice": {
+    "latest_safe": 1,
+    "cost": 1,
+    "nearest_safe": 1,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 1,
+    "alpha_best": 2,
+    "oracle": 0
+   },
+   "terminal_m": [
+    1.103786363205614,
+    6.5225512831936365,
+    6.34110877302276
+   ],
+   "b0_terminal_m": [
+    14.904309936162987,
+    17.142765129174688,
+    13.80213030964652
+   ],
+   "selected_correct": [
+    true,
+    true,
+    true
+   ],
+   "has_constraint": [
+    true,
+    true,
+    true
+   ],
+   "usable": [
+    6,
+    6,
+    2
+   ],
+   "same_place": [
+    7,
+    7,
+    8
+   ]
+  },
+  {
+   "world": "b6",
+   "zone_types": [
+    "RR",
+    "RR",
+    "RU"
+   ],
+   "alias": [
+    0.90384899042874,
+    0.9159188442998168,
+    NaN
+   ],
+   "alpha": [
+    0.28385834336924176,
+    0.26904413261079263,
+    NaN
+   ],
+   "alias_per_flight": [
+    [
+     0.90625,
+     0.9102040816326531,
+     NaN
+    ],
+    [
+     0.908745247148289,
+     0.9194029850746268,
+     0.7367160984889427
+    ],
+    [
+     0.896551724137931,
+     0.9181494661921709,
+     0.768025078369906
+    ]
+   ],
+   "classified_safe": [
+    false,
+    false,
+    false
+   ],
+   "classification_correct": [
+    true,
+    true,
+    false
+   ],
+   "predicted_cost_m": [
+    6.881860213634102,
+    5.728001396647875,
+    4.770744176750625
+   ],
+   "choice": {
+    "latest_safe": null,
+    "cost": 2,
+    "nearest_safe": null,
+    "farthest": 2,
+    "nearest": 0,
+    "lowest_alias": 2,
+    "alpha_best": 2,
+    "oracle": 2
+   },
+   "terminal_m": [
+    17.981217461853845,
+    3.812292161494971,
+    2.159720380821422
+   ],
+   "b0_terminal_m": [
+    17.981217461853845,
+    14.679353714911636,
+    12.859122118092039
+   ],
+   "selected_correct": [
+    false,
+    false,
+    true
+   ],
+   "has_constraint": [
+    true,
+    true,
+    true
+   ],
+   "usable": [
+    3,
+    4,
+    3
+   ],
+   "same_place": [
+    6,
+    6,
+    6
+   ]
+  }
+ ],
+ "summary": {
+  "worlds": 6,
+  "zones_classified_correctly": 17,
+  "no_correction_median_m": 13.971634522769119,
+  "latest_safe": {
+   "terminal_median_m": 5.076786502514484,
+   "terminal_mean_m": 5.950401145438228,
+   "constraint_correct": 5,
+   "picks": [
+    2,
+    3,
+    3,
+    1,
+    2,
+    null
+   ]
+  },
+  "cost": {
+   "terminal_median_m": 2.895371051328377,
+   "terminal_mean_m": 5.144393607094785,
+   "constraint_correct": 5,
+   "picks": [
+    2,
+    3,
+    3,
+    3,
+    2,
+    3
+   ]
+  },
+  "nearest_safe": {
+   "terminal_median_m": 5.754093790288856,
+   "terminal_mean_m": 6.839007556602472,
+   "constraint_correct": 5,
+   "picks": [
+    1,
+    1,
+    2,
+    1,
+    2,
+    null
+   ]
+  },
+  "farthest": {
+   "terminal_median_m": 2.769095206750193,
+   "terminal_mean_m": 5.072061240540245,
+   "constraint_correct": 5,
+   "picks": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ]
+  },
+  "nearest": {
+   "terminal_median_m": 6.406961324449789,
+   "terminal_mean_m": 7.59033239790184,
+   "constraint_correct": 4,
+   "picks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "lowest_alias": {
+   "terminal_median_m": 3.890065069429771,
+   "terminal_mean_m": 5.629958425420526,
+   "constraint_correct": 5,
+   "picks": [
+    1,
+    1,
+    3,
+    3,
+    2,
+    3
+   ]
+  },
+  "alpha_best": {
+   "terminal_median_m": 3.55415825021964,
+   "terminal_mean_m": 5.734898555779697,
+   "constraint_correct": 5,
+   "picks": [
+    3,
+    1,
+    2,
+    3,
+    3,
+    3
+   ]
+  },
+  "oracle": {
+   "terminal_median_m": 1.4146479681722766,
+   "terminal_mean_m": 1.7844987033533863,
+   "constraint_correct": 5,
+   "picks": [
+    3,
+    3,
+    3,
+    2,
+    1,
+    3
+   ]
+  }
+ }
+}

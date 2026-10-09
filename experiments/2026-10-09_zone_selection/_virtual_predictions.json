@@ -1,0 +1,90 @@
+[
+ {
+  "world": "a5",
+  "approach_zone_index": 0,
+  "approach_world_x": [
+   24,
+   36
+  ],
+  "zone_type": "RU",
+  "virtual_alias_median": 0.709,
+  "virtual_alpha_median": 0.288
+ },
+ {
+  "world": "a5",
+  "approach_zone_index": 1,
+  "approach_world_x": [
+   54,
+   66
+  ],
+  "zone_type": "RR",
+  "virtual_alias_median": 0.982,
+  "virtual_alpha_median": 0.275
+ },
+ {
+  "world": "a6",
+  "approach_zone_index": 0,
+  "approach_world_x": [
+   24,
+   36
+  ],
+  "zone_type": "RR",
+  "virtual_alias_median": 0.96,
+  "virtual_alpha_median": 0.223
+ },
+ {
+  "world": "a6",
+  "approach_zone_index": 1,
+  "approach_world_x": [
+   54,
+   66
+  ],
+  "zone_type": "RU",
+  "virtual_alias_median": 0.735,
+  "virtual_alpha_median": 0.282
+ },
+ {
+  "world": "a7",
+  "approach_zone_index": 0,
+  "approach_world_x": [
+   24,
+   36
+  ],
+  "zone_type": "RU",
+  "virtual_alias_median": 0.722,
+  "virtual_alpha_median": 0.29
+ },
+ {
+  "world": "a7",
+  "approach_zone_index": 1,
+  "approach_world_x": [
+   54,
+   66
+  ],
+  "zone_type": "RR",
+  "virtual_alias_median": 0.93,
+  "virtual_alpha_median": 0.328
+ },
+ {
+  "world": "a8",
+  "approach_zone_index": 0,
+  "approach_world_x": [
+   24,
+   36
+  ],
+  "zone_type": "RR",
+  "virtual_alias_median": 0.96,
+  "virtual_alpha_median": 0.249
+ },
+ {
+  "world": "a8",
+  "approach_zone_index": 1,
+  "approach_world_x": [
+   54,
+   66
+  ],
+  "zone_type": "RU",
+  "virtual_alias_median": 0.73,
+  "virtual_alpha_median": 0.315
+ }
+]
