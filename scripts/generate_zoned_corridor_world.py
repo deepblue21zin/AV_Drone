@@ -44,11 +44,21 @@ LATIN["p3"] = ["RU", "RR", "RU", "RR"]   # approach pilot 3: p2's drone1 side (s
 # approach main experiment: p3 layout, two zone orders x two seeds, so each zone type is approached near and far
 LATIN.update({"a1": ["RU", "RR", "RU", "RR"], "a2": ["RR", "RU", "RR", "RU"],
               "a3": ["RU", "RR", "RU", "RR"], "a4": ["RR", "RU", "RR", "RU"]})
+# zone-selection replication (2026-10-09): same rule as a1..a4 with new seeds
+LATIN.update({"a5": ["RU", "RR", "RU", "RR"], "a6": ["RR", "RU", "RR", "RU"],
+              "a7": ["RU", "RR", "RU", "RR"], "a8": ["RR", "RU", "RR", "RU"]})
+# three-candidate selection (2026-10-09): every mix of unique/repeated over the first three zones that has
+# at least one of each; the fourth zone is not a candidate and is always unique
+LATIN.update({"b1": ["RU", "RU", "RR", "RU"], "b2": ["RU", "RR", "RU", "RU"], "b3": ["RR", "RU", "RU", "RU"],
+              "b4": ["RU", "RR", "RR", "RU"], "b5": ["RR", "RU", "RR", "RU"], "b6": ["RR", "RR", "RU", "RU"]})
 SEEDS = {"w1": 101, "w2": 202, "w3": 303, "w4": 404, "p1": 501, "p2": 502, "p3": 502,
-         "a1": 611, "a2": 612, "a3": 613, "a4": 614}
+         "a1": 611, "a2": 612, "a3": 613, "a4": 614, "a5": 615, "a6": 616, "a7": 617, "a8": 618,
+         "b1": 621, "b2": 622, "b3": 623, "b4": 624, "b5": 625, "b6": 626}
 ROLE = {"w1": "design", "w2": "design", "w3": "evaluation", "w4": "evaluation",
         "p1": "approach_pilot", "p2": "approach_pilot", "p3": "approach_pilot",
-        "a1": "approach_main", "a2": "approach_main", "a3": "approach_main", "a4": "approach_main"}
+        "a1": "approach_main", "a2": "approach_main", "a3": "approach_main", "a4": "approach_main",
+        "a5": "approach_selection", "a6": "approach_selection", "a7": "approach_selection", "a8": "approach_selection",
+        **{f"b{i}": "approach_selection3" for i in range(1, 7)}}
 # "trailing": drone2 follows the drone1 lane (w1..w4). "approach": drone2 keeps its own lane (y=+7.5)
 # and dips to the centre line (y=0), so both must be clear and drone2 must not see drone1-side
 # cylinders from its lane (LiDAR 8 m): centre clearance 2.2 m, drone2-side cylinders only beyond y=9.7 m.
@@ -59,7 +69,10 @@ ROLE = {"w1": "design", "w2": "design", "w3": "evaluation", "w4": "evaluation",
 # drone2's raw SLAM slipped ~3 m along x within the first 30 m.
 LAYOUT = {"p1": "approach", "p2": "approach_between", "p3": "approach_between_dense",
           "a1": "approach_between_dense", "a2": "approach_between_dense",
-          "a3": "approach_between_dense", "a4": "approach_between_dense"}
+          "a3": "approach_between_dense", "a4": "approach_between_dense",
+          "a5": "approach_between_dense", "a6": "approach_between_dense",
+          "a7": "approach_between_dense", "a8": "approach_between_dense",
+          **{f"b{i}": "approach_between_dense" for i in range(1, 7)}}
 DENSE_DRONE2_SIDE = {"count": 60, "min_gap_m": 2.0}
 BETWEEN_ONLY = False
 APPROACH = {"center_free_y": 2.2, "drone2_side": {"count": 25, "min_gap_m": 3.0, "y": (9.7, 13.5)}}

@@ -1,0 +1,231 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="default">
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros>
+        <namespace>/gazebo</namespace>
+      </ros>
+      <update_rate>20.0</update_rate>
+    </plugin>
+
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <model name="corridor_floor">
+      <static>true</static>
+      <pose>75 0 0.01 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>150 30 0.02</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>150 30 0.02</size></box></geometry>
+          <material>
+            <ambient>0.25 0.25 0.25 1</ambient>
+            <diffuse>0.35 0.35 0.35 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <physics name="default_physics" default="0" type="ode">
+      <gravity>0 0 -9.8066</gravity>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>10</iters>
+          <sor>1.3</sor>
+          <use_dynamic_moi_rescaling>0</use_dynamic_moi_rescaling>
+        </solver>
+        <constraints>
+          <cfm>0</cfm>
+          <erp>0.2</erp>
+          <contact_max_correcting_vel>100</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+      <magnetic_field>6.0e-6 2.3e-5 -4.2e-5</magnetic_field>
+    </physics>
+
+    <model name="left_wall">
+      <static>true</static>
+      <pose>75 15.15 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>150 0.3 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>150 0.3 5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="right_wall">
+      <static>true</static>
+      <pose>75 -15.15 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>150 0.3 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>150 0.3 5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="start_wall">
+      <static>true</static>
+      <pose>0 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 30.3 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 30.3 5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="end_wall">
+      <static>true</static>
+      <pose>150 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.3 30.3 5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.3 30.3 5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <include><name>cylinder_000</name><uri>model://cylinder_r05_h5</uri><pose>24.615 -2.886 2.5 0 0 0</pose></include>
+    <include><name>cylinder_001</name><uri>model://cylinder_r05_h5</uri><pose>35.591 -2.835 2.5 0 0 0</pose></include>
+    <include><name>cylinder_002</name><uri>model://cylinder_r05_h5</uri><pose>30.159 -3.198 2.5 0 0 0</pose></include>
+    <include><name>cylinder_003</name><uri>model://cylinder_r05_h5</uri><pose>42.795 -4.705 2.5 0 0 0</pose></include>
+    <include><name>cylinder_004</name><uri>model://cylinder_r05_h5</uri><pose>44.119 -2.855 2.5 0 0 0</pose></include>
+    <include><name>cylinder_005</name><uri>model://cylinder_r05_h5</uri><pose>27.093 -2.338 2.5 0 0 0</pose></include>
+    <include><name>cylinder_006</name><uri>model://cylinder_r05_h5</uri><pose>26.657 -4.934 2.5 0 0 0</pose></include>
+    <include><name>cylinder_007</name><uri>model://cylinder_r05_h5</uri><pose>36.683 -4.608 2.5 0 0 0</pose></include>
+    <include><name>cylinder_008</name><uri>model://cylinder_r05_h5</uri><pose>20.467 -2.555 2.5 0 0 0</pose></include>
+    <include><name>cylinder_009</name><uri>model://cylinder_r05_h5</uri><pose>17.854 -4.929 2.5 0 0 0</pose></include>
+    <include><name>cylinder_010</name><uri>model://cylinder_r05_h5</uri><pose>20.267 -4.857 2.5 0 0 0</pose></include>
+    <include><name>cylinder_011</name><uri>model://cylinder_r05_h5</uri><pose>40.149 -3.231 2.5 0 0 0</pose></include>
+    <include><name>cylinder_012</name><uri>model://cylinder_r05_h5</uri><pose>16.758 -2.819 2.5 0 0 0</pose></include>
+    <include><name>cylinder_013</name><uri>model://cylinder_r05_h5</uri><pose>23.809 -5.289 2.5 0 0 0</pose></include>
+    <include><name>cylinder_014</name><uri>model://cylinder_r05_h5</uri><pose>32.829 -3.734 2.5 0 0 0</pose></include>
+    <include><name>cylinder_015</name><uri>model://cylinder_r05_h5</uri><pose>63.267 -4.728 2.5 0 0 0</pose></include>
+    <include><name>cylinder_016</name><uri>model://cylinder_r05_h5</uri><pose>59.315 -4.430 2.5 0 0 0</pose></include>
+    <include><name>cylinder_017</name><uri>model://cylinder_r05_h5</uri><pose>52.834 -3.907 2.5 0 0 0</pose></include>
+    <include><name>cylinder_018</name><uri>model://cylinder_r05_h5</uri><pose>74.449 -2.387 2.5 0 0 0</pose></include>
+    <include><name>cylinder_019</name><uri>model://cylinder_r05_h5</uri><pose>65.239 -2.310 2.5 0 0 0</pose></include>
+    <include><name>cylinder_020</name><uri>model://cylinder_r05_h5</uri><pose>55.856 -2.654 2.5 0 0 0</pose></include>
+    <include><name>cylinder_021</name><uri>model://cylinder_r05_h5</uri><pose>74.334 -5.257 2.5 0 0 0</pose></include>
+    <include><name>cylinder_022</name><uri>model://cylinder_r05_h5</uri><pose>56.385 -5.193 2.5 0 0 0</pose></include>
+    <include><name>cylinder_023</name><uri>model://cylinder_r05_h5</uri><pose>50.360 -3.268 2.5 0 0 0</pose></include>
+    <include><name>cylinder_024</name><uri>model://cylinder_r05_h5</uri><pose>46.008 -4.269 2.5 0 0 0</pose></include>
+    <include><name>cylinder_025</name><uri>model://cylinder_r05_h5</uri><pose>66.719 -4.680 2.5 0 0 0</pose></include>
+    <include><name>cylinder_026</name><uri>model://cylinder_r05_h5</uri><pose>70.439 -5.272 2.5 0 0 0</pose></include>
+    <include><name>cylinder_027</name><uri>model://cylinder_r05_h5</uri><pose>72.218 -2.289 2.5 0 0 0</pose></include>
+    <include><name>cylinder_028</name><uri>model://cylinder_r05_h5</uri><pose>48.668 -4.697 2.5 0 0 0</pose></include>
+    <include><name>cylinder_029</name><uri>model://cylinder_r05_h5</uri><pose>61.674 -3.492 2.5 0 0 0</pose></include>
+    <include><name>cylinder_030</name><uri>model://cylinder_r05_h5</uri><pose>76.764 -3.123 2.5 0 0 0</pose></include>
+    <include><name>cylinder_031</name><uri>model://cylinder_r05_h5</uri><pose>77.496 -4.697 2.5 0 0 0</pose></include>
+    <include><name>cylinder_032</name><uri>model://cylinder_r05_h5</uri><pose>80.579 -3.034 2.5 0 0 0</pose></include>
+    <include><name>cylinder_033</name><uri>model://cylinder_r05_h5</uri><pose>81.035 -4.661 2.5 0 0 0</pose></include>
+    <include><name>cylinder_034</name><uri>model://cylinder_r05_h5</uri><pose>84.460 -3.244 2.5 0 0 0</pose></include>
+    <include><name>cylinder_035</name><uri>model://cylinder_r05_h5</uri><pose>84.910 -4.684 2.5 0 0 0</pose></include>
+    <include><name>cylinder_036</name><uri>model://cylinder_r05_h5</uri><pose>88.399 -3.213 2.5 0 0 0</pose></include>
+    <include><name>cylinder_037</name><uri>model://cylinder_r05_h5</uri><pose>89.206 -5.011 2.5 0 0 0</pose></include>
+    <include><name>cylinder_038</name><uri>model://cylinder_r05_h5</uri><pose>92.816 -3.096 2.5 0 0 0</pose></include>
+    <include><name>cylinder_039</name><uri>model://cylinder_r05_h5</uri><pose>92.923 -4.534 2.5 0 0 0</pose></include>
+    <include><name>cylinder_040</name><uri>model://cylinder_r05_h5</uri><pose>96.442 -2.965 2.5 0 0 0</pose></include>
+    <include><name>cylinder_041</name><uri>model://cylinder_r05_h5</uri><pose>97.010 -4.632 2.5 0 0 0</pose></include>
+    <include><name>cylinder_042</name><uri>model://cylinder_r05_h5</uri><pose>100.529 -3.441 2.5 0 0 0</pose></include>
+    <include><name>cylinder_043</name><uri>model://cylinder_r05_h5</uri><pose>101.212 -4.750 2.5 0 0 0</pose></include>
+    <include><name>cylinder_044</name><uri>model://cylinder_r05_h5</uri><pose>127.520 -3.406 2.5 0 0 0</pose></include>
+    <include><name>cylinder_045</name><uri>model://cylinder_r05_h5</uri><pose>121.123 -4.341 2.5 0 0 0</pose></include>
+    <include><name>cylinder_046</name><uri>model://cylinder_r05_h5</uri><pose>123.890 -5.236 2.5 0 0 0</pose></include>
+    <include><name>cylinder_047</name><uri>model://cylinder_r05_h5</uri><pose>108.336 -3.825 2.5 0 0 0</pose></include>
+    <include><name>cylinder_048</name><uri>model://cylinder_r05_h5</uri><pose>116.525 -3.088 2.5 0 0 0</pose></include>
+    <include><name>cylinder_049</name><uri>model://cylinder_r05_h5</uri><pose>112.096 -5.092 2.5 0 0 0</pose></include>
+    <include><name>cylinder_050</name><uri>model://cylinder_r05_h5</uri><pose>131.915 -3.957 2.5 0 0 0</pose></include>
+    <include><name>cylinder_051</name><uri>model://cylinder_r05_h5</uri><pose>129.461 -2.260 2.5 0 0 0</pose></include>
+    <include><name>cylinder_052</name><uri>model://cylinder_r05_h5</uri><pose>133.978 -2.564 2.5 0 0 0</pose></include>
+    <include><name>cylinder_053</name><uri>model://cylinder_r05_h5</uri><pose>115.979 -5.033 2.5 0 0 0</pose></include>
+    <include><name>cylinder_054</name><uri>model://cylinder_r05_h5</uri><pose>118.659 -5.050 2.5 0 0 0</pose></include>
+    <include><name>cylinder_055</name><uri>model://cylinder_r05_h5</uri><pose>111.096 -2.577 2.5 0 0 0</pose></include>
+    <include><name>cylinder_056</name><uri>model://cylinder_r05_h5</uri><pose>105.966 -2.357 2.5 0 0 0</pose></include>
+    <include><name>cylinder_057</name><uri>model://cylinder_r05_h5</uri><pose>130.032 -4.969 2.5 0 0 0</pose></include>
+    <include><name>cylinder_058</name><uri>model://cylinder_r05_h5</uri><pose>123.738 -2.214 2.5 0 0 0</pose></include>
+    <include><name>cylinder_059</name><uri>model://cylinder_r05_h5</uri><pose>13.771 -3.271 2.5 0 0 0</pose></include>
+    <include><name>cylinder_060</name><uri>model://cylinder_r05_h5</uri><pose>10.510 -3.174 2.5 0 0 0</pose></include>
+    <include><name>cylinder_061</name><uri>model://cylinder_r05_h5</uri><pose>138.345 -2.997 2.5 0 0 0</pose></include>
+    <include><name>cylinder_062</name><uri>model://cylinder_r05_h5</uri><pose>140.439 -5.195 2.5 0 0 0</pose></include>
+    <include><name>cylinder_063</name><uri>model://cylinder_r05_h5</uri><pose>135.594 -5.064 2.5 0 0 0</pose></include>
+    <include><name>cylinder_064</name><uri>model://cylinder_r05_h5</uri><pose>60.347 10.344 2.5 0 0 0</pose></include>
+    <include><name>cylinder_065</name><uri>model://cylinder_r05_h5</uri><pose>26.006 13.436 2.5 0 0 0</pose></include>
+    <include><name>cylinder_066</name><uri>model://cylinder_r05_h5</uri><pose>22.270 11.888 2.5 0 0 0</pose></include>
+    <include><name>cylinder_067</name><uri>model://cylinder_r05_h5</uri><pose>94.757 11.746 2.5 0 0 0</pose></include>
+    <include><name>cylinder_068</name><uri>model://cylinder_r05_h5</uri><pose>30.833 12.636 2.5 0 0 0</pose></include>
+    <include><name>cylinder_069</name><uri>model://cylinder_r05_h5</uri><pose>108.556 11.931 2.5 0 0 0</pose></include>
+    <include><name>cylinder_070</name><uri>model://cylinder_r05_h5</uri><pose>124.861 9.781 2.5 0 0 0</pose></include>
+    <include><name>cylinder_071</name><uri>model://cylinder_r05_h5</uri><pose>96.916 13.168 2.5 0 0 0</pose></include>
+    <include><name>cylinder_072</name><uri>model://cylinder_r05_h5</uri><pose>39.218 10.695 2.5 0 0 0</pose></include>
+    <include><name>cylinder_073</name><uri>model://cylinder_r05_h5</uri><pose>78.566 9.818 2.5 0 0 0</pose></include>
+    <include><name>cylinder_074</name><uri>model://cylinder_r05_h5</uri><pose>45.141 10.882 2.5 0 0 0</pose></include>
+    <include><name>cylinder_075</name><uri>model://cylinder_r05_h5</uri><pose>91.281 12.149 2.5 0 0 0</pose></include>
+    <include><name>cylinder_076</name><uri>model://cylinder_r05_h5</uri><pose>88.487 10.000 2.5 0 0 0</pose></include>
+    <include><name>cylinder_077</name><uri>model://cylinder_r05_h5</uri><pose>104.733 10.224 2.5 0 0 0</pose></include>
+    <include><name>cylinder_078</name><uri>model://cylinder_r05_h5</uri><pose>115.062 9.729 2.5 0 0 0</pose></include>
+    <include><name>cylinder_079</name><uri>model://cylinder_r05_h5</uri><pose>26.115 10.791 2.5 0 0 0</pose></include>
+    <include><name>cylinder_080</name><uri>model://cylinder_r05_h5</uri><pose>54.546 10.828 2.5 0 0 0</pose></include>
+    <include><name>cylinder_081</name><uri>model://cylinder_r05_h5</uri><pose>120.026 11.397 2.5 0 0 0</pose></include>
+    <include><name>cylinder_082</name><uri>model://cylinder_r05_h5</uri><pose>43.269 11.765 2.5 0 0 0</pose></include>
+    <include><name>cylinder_083</name><uri>model://cylinder_r05_h5</uri><pose>107.094 10.207 2.5 0 0 0</pose></include>
+    <include><name>cylinder_084</name><uri>model://cylinder_r05_h5</uri><pose>17.609 12.093 2.5 0 0 0</pose></include>
+    <include><name>cylinder_085</name><uri>model://cylinder_r05_h5</uri><pose>66.437 10.109 2.5 0 0 0</pose></include>
+    <include><name>cylinder_086</name><uri>model://cylinder_r05_h5</uri><pose>64.450 12.665 2.5 0 0 0</pose></include>
+    <include><name>cylinder_087</name><uri>model://cylinder_r05_h5</uri><pose>22.287 9.800 2.5 0 0 0</pose></include>
+    <include><name>cylinder_088</name><uri>model://cylinder_r05_h5</uri><pose>124.698 13.010 2.5 0 0 0</pose></include>
+    <include><name>cylinder_089</name><uri>model://cylinder_r05_h5</uri><pose>114.292 11.587 2.5 0 0 0</pose></include>
+    <include><name>cylinder_090</name><uri>model://cylinder_r05_h5</uri><pose>49.216 11.327 2.5 0 0 0</pose></include>
+    <include><name>cylinder_091</name><uri>model://cylinder_r05_h5</uri><pose>137.930 9.840 2.5 0 0 0</pose></include>
+    <include><name>cylinder_092</name><uri>model://cylinder_r05_h5</uri><pose>77.035 12.642 2.5 0 0 0</pose></include>
+    <include><name>cylinder_093</name><uri>model://cylinder_r05_h5</uri><pose>71.024 11.300 2.5 0 0 0</pose></include>
+    <include><name>cylinder_094</name><uri>model://cylinder_r05_h5</uri><pose>81.514 11.537 2.5 0 0 0</pose></include>
+    <include><name>cylinder_095</name><uri>model://cylinder_r05_h5</uri><pose>46.214 12.990 2.5 0 0 0</pose></include>
+    <include><name>cylinder_096</name><uri>model://cylinder_r05_h5</uri><pose>12.887 12.161 2.5 0 0 0</pose></include>
+    <include><name>cylinder_097</name><uri>model://cylinder_r05_h5</uri><pose>119.374 13.349 2.5 0 0 0</pose></include>
+    <include><name>cylinder_098</name><uri>model://cylinder_r05_h5</uri><pose>91.108 9.775 2.5 0 0 0</pose></include>
+    <include><name>cylinder_099</name><uri>model://cylinder_r05_h5</uri><pose>37.259 9.805 2.5 0 0 0</pose></include>
+    <include><name>cylinder_100</name><uri>model://cylinder_r05_h5</uri><pose>99.192 12.712 2.5 0 0 0</pose></include>
+    <include><name>cylinder_101</name><uri>model://cylinder_r05_h5</uri><pose>140.376 13.141 2.5 0 0 0</pose></include>
+    <include><name>cylinder_102</name><uri>model://cylinder_r05_h5</uri><pose>52.173 12.846 2.5 0 0 0</pose></include>
+    <include><name>cylinder_103</name><uri>model://cylinder_r05_h5</uri><pose>62.062 11.997 2.5 0 0 0</pose></include>
+    <include><name>cylinder_104</name><uri>model://cylinder_r05_h5</uri><pose>111.726 12.728 2.5 0 0 0</pose></include>
+    <include><name>cylinder_105</name><uri>model://cylinder_r05_h5</uri><pose>69.601 12.807 2.5 0 0 0</pose></include>
+    <include><name>cylinder_106</name><uri>model://cylinder_r05_h5</uri><pose>57.577 10.792 2.5 0 0 0</pose></include>
+    <include><name>cylinder_107</name><uri>model://cylinder_r05_h5</uri><pose>15.297 11.405 2.5 0 0 0</pose></include>
+    <include><name>cylinder_108</name><uri>model://cylinder_r05_h5</uri><pose>75.048 11.114 2.5 0 0 0</pose></include>
+    <include><name>cylinder_109</name><uri>model://cylinder_r05_h5</uri><pose>112.840 10.070 2.5 0 0 0</pose></include>
+    <include><name>cylinder_110</name><uri>model://cylinder_r05_h5</uri><pose>98.926 10.670 2.5 0 0 0</pose></include>
+    <include><name>cylinder_111</name><uri>model://cylinder_r05_h5</uri><pose>14.600 13.368 2.5 0 0 0</pose></include>
+    <include><name>cylinder_112</name><uri>model://cylinder_r05_h5</uri><pose>42.296 9.867 2.5 0 0 0</pose></include>
+    <include><name>cylinder_113</name><uri>model://cylinder_r05_h5</uri><pose>134.687 12.521 2.5 0 0 0</pose></include>
+    <include><name>cylinder_114</name><uri>model://cylinder_r05_h5</uri><pose>131.921 11.383 2.5 0 0 0</pose></include>
+    <include><name>cylinder_115</name><uri>model://cylinder_r05_h5</uri><pose>64.366 10.557 2.5 0 0 0</pose></include>
+    <include><name>cylinder_116</name><uri>model://cylinder_r05_h5</uri><pose>28.422 10.800 2.5 0 0 0</pose></include>
+    <include><name>cylinder_117</name><uri>model://cylinder_r05_h5</uri><pose>35.776 12.232 2.5 0 0 0</pose></include>
+    <include><name>cylinder_118</name><uri>model://cylinder_r05_h5</uri><pose>141.271 9.989 2.5 0 0 0</pose></include>
+    <include><name>cylinder_119</name><uri>model://cylinder_r05_h5</uri><pose>40.860 12.721 2.5 0 0 0</pose></include>
+    <include><name>cylinder_120</name><uri>model://cylinder_r05_h5</uri><pose>79.148 13.328 2.5 0 0 0</pose></include>
+    <include><name>cylinder_121</name><uri>model://cylinder_r05_h5</uri><pose>116.479 13.403 2.5 0 0 0</pose></include>
+    <include><name>cylinder_122</name><uri>model://cylinder_r05_h5</uri><pose>10.559 13.269 2.5 0 0 0</pose></include>
+    <include><name>cylinder_123</name><uri>model://cylinder_r05_h5</uri><pose>137.208 13.279 2.5 0 0 0</pose></include>
+
+  </world>
+</sdf>

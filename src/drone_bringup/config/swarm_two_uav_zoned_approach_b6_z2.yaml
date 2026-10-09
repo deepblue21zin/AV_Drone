@@ -1,0 +1,96 @@
+# Approach pilot: drone2 keeps its own lane (world y=+7.5) and dips to the centre line (y=0)
+# only inside zone 2 (RR), so common observations exist only there.
+# Neither the route nor the world layout is fed to LiDAR retrieval, registration or
+# pose-graph measurements; zone labels are used only for offline scoring.
+scenario_name: zoned_corridor_b6_approach_z2
+world_name: zoned_corridor_b6
+world_path: /workspace/AV_Drone/sim_assets/worlds/zoned_corridor_b6.world
+vehicle_model: iris_rplidar
+vehicle_count: 2
+fusion_source: known_pose
+algorithm_name: offline_lidar_zoned_approach
+run_id: ""
+experiment:
+  purpose: latest_safe_zone_selection
+  world_role: approach_selection3
+  world_seed: 626
+  layout: sim_assets/worlds/zoned_corridor_b6_layout.json
+  zones:
+    - {type: RR, world_x: [15.0, 45.0]}
+    - {type: RR, world_x: [45.0, 75.0]}
+    - {type: RU, world_x: [75.0, 105.0]}
+    - {type: RU, world_x: [105.0, 135.0]}
+  drone1_lane_world_y: -7.5
+  drone2_follows_drone1_lane: false
+  approach_zone: RR
+  approach_zone_index: 1
+  approach_world_x: [54.0, 66.0]
+  approach_world_y: 0.0
+  world_length_m: 150.0
+  target_world_x: 145.0
+  initial_frame_calibration_known: true
+  note: Drone2 waits 30 s after takeoff, flies its own lane and approaches to y=0 inside one zone. From y=+7.5 its 8 m LiDAR cannot see drone1-side cylinders.
+slam:
+  use_scan_matching: true
+  do_loop_closing: false
+diagnostics:
+  enabled: true
+  map_save_interval_sec: 30.0
+  record_rosbag: true
+  record_ground_truth: true
+  gt_service_name: /gazebo/get_entity_state
+  gt_publish_rate_hz: 10.0
+vehicles:
+  - name: drone1
+    gazebo_entity: iris_rplidar_0
+    px4_instance: 2
+    system_id: 3
+    fcu_url: "udp://:14542@127.0.0.1:14582"
+    spawn: [3.0, -7.5, 0.83, 0.0]
+    goal_local: [142.0, 0.0, 3.0]
+    waypoints_local:
+      - [12.0, 0.0, 3.0]
+      - [28.0, 0.0, 3.0]
+      - [44.0, 0.0, 3.0]
+      - [60.0, 0.0, 3.0]
+      - [76.0, 0.0, 3.0]
+      - [92.0, 0.0, 3.0]
+      - [108.0, 0.0, 3.0]
+      - [124.0, 0.0, 3.0]
+      - [140.0, 0.0, 3.0]
+      - [142.0, 0.0, 3.0]
+    return_home_enabled: false
+  - name: drone2
+    gazebo_entity: iris_rplidar_1
+    px4_instance: 3
+    system_id: 4
+    fcu_url: "udp://:14543@127.0.0.1:14583"
+    spawn: [3.0, 7.5, 0.83, 0.0]
+    goal_local: [139.0, 0.0, 3.0]
+    hover_sec_after_takeoff: 30.0
+    # lateral legs are shorter than goal_capture_radius (8 m) so the planner tracks them directly
+    waypoints_local:
+      - [7.0, 0.00, 3.0]
+      - [23.0, 0.00, 3.0]
+      - [39.0, 0.00, 3.0]
+      - [43.0, 0.00, 3.0]
+      - [47.0, -3.75, 3.0]
+      - [51.0, -7.50, 3.0]
+      - [57.0, -7.50, 3.0]
+      - [63.0, -7.50, 3.0]
+      - [67.0, -3.75, 3.0]
+      - [71.0, 0.00, 3.0]
+      - [87.0, 0.00, 3.0]
+      - [103.0, 0.00, 3.0]
+      - [119.0, 0.00, 3.0]
+      - [135.0, 0.00, 3.0]
+      - [139.0, 0.00, 3.0]
+    return_home_enabled: false
+fusion:
+  frame_id: swarm_map
+  resolution: 0.10
+  bounds: [-1.0, 151.0, -16.0, 16.0]
+  publish_hz: 1.0
+  map_timeout_sec: 2.0
+  free_threshold: 25
+  occupied_threshold: 65
